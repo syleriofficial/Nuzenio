@@ -1,16 +1,30 @@
 import https from 'node:https';
 
-const FEEDS = {
-  top: 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
-  hindi: 'https://news.google.com/rss?hl=hi&gl=IN&ceid=IN:hi',
-  india: 'https://news.google.com/rss/search?q=India&hl=en-IN&gl=IN&ceid=IN:en',
-  world: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en',
-  business: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-IN&gl=IN&ceid=IN:en',
-  tech: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-IN&gl=IN&ceid=IN:en',
-  sports: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-IN&gl=IN&ceid=IN:en',
-  entertainment: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-IN&gl=IN&ceid=IN:en',
-  health: 'https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-IN&gl=IN&ceid=IN:en',
-  science: 'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-IN&gl=IN&ceid=IN:en',
+const TOPICS = {
+  world: 'WORLD',
+  business: 'BUSINESS',
+  tech: 'TECHNOLOGY',
+  sports: 'SPORTS',
+  entertainment: 'ENTERTAINMENT',
+  health: 'HEALTH',
+  science: 'SCIENCE',
+};
+
+const COUNTRY_NAMES = {
+  AE: 'United Arab Emirates',
+  AU: 'Australia',
+  BD: 'Bangladesh',
+  CA: 'Canada',
+  DE: 'Germany',
+  ES: 'Spain',
+  FR: 'France',
+  GB: 'United Kingdom',
+  IN: 'India',
+  JP: 'Japan',
+  KR: 'South Korea',
+  PK: 'Pakistan',
+  RU: 'Russia',
+  US: 'United States',
 };
 
 const headers = {
@@ -86,7 +100,7 @@ function extractImage(item) {
   return media?.[1] || enclosure?.[1] || '';
 }
 
-function parse(xml, category) {
+function parse(xml, category, country) {
   return (xml.match(/<item\b[\s\S]*?<\/item>/gi) || [])
     .slice(0, 60)
     .map((item, index) => {
@@ -97,12 +111,13 @@ function parse(xml, category) {
       const pubDate = first(item, 'pubDate');
       const summary = buildSummary(description || title);
       return {
-        id: `${category}-${index}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 16)}`,
+        id: `${country}-${category}-${index}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 16)}`,
         title,
         link,
         source,
         pubDate,
         category,
+        country,
         image: extractImage(item),
         readTime: Math.max(1, Math.ceil((description || title).split(/\s+/).length / 180)),
         trustScore: Math.max(84, 99 - (index % 12)),
@@ -121,8 +136,28 @@ function buildSummary(text) {
 }
 
 function buildWhyItMatters(category, source) {
-  const topic = category === 'top' ? 'public interest' : category;
+  const topic = category === 'top' || category === 'local' ? 'public interest' : category;
   return `This ${topic} report is being tracked from ${source} because it may affect readers, markets, policy, culture, or daily decisions.`;
+}
+
+function normalizeCountry(country = 'IN') {
+  const value = country.toUpperCase();
+  return COUNTRY_NAMES[value] ? value : 'IN';
+}
+
+function googleNewsUrl({ category, country, q }) {
+  const region = normalizeCountry(country);
+  const params = `hl=en-${region}&gl=${region}&ceid=${region}:en`;
+  if (q) {
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${params}`;
+  }
+  if (category === 'local') {
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(COUNTRY_NAMES[region])}&${params}`;
+  }
+  if (TOPICS[category]) {
+    return `https://news.google.com/rss/headlines/section/topic/${TOPICS[category]}?${params}`;
+  }
+  return `https://news.google.com/rss?${params}`;
 }
 
 export const handler = async (event) => {
@@ -131,13 +166,12 @@ export const handler = async (event) => {
   }
 
   try {
-    const category = (event.queryStringParameters?.category || 'top').toLowerCase();
+    const category = (event.queryStringParameters?.category || 'local').toLowerCase();
+    const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
     const q = (event.queryStringParameters?.q || '').trim();
-    const url = q
-      ? `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-IN&gl=IN&ceid=IN:en`
-      : FEEDS[category] || FEEDS.top;
+    const url = googleNewsUrl({ category, country, q });
     const xml = await fetchText(url);
-    const articles = parse(xml, category);
+    const articles = parse(xml, category, country);
 
     return {
       statusCode: 200,
@@ -145,6 +179,8 @@ export const handler = async (event) => {
       body: JSON.stringify({
         ok: true,
         category,
+        country,
+        countryName: COUNTRY_NAMES[country],
         query: q || null,
         total: articles.length,
         sourceType: 'live-rss',

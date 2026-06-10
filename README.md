@@ -5,11 +5,12 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
+- English-first website experience with automatic local-country news
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
 - Google login wiring with Supabase Auth
 - Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, and analytics schema
-- Multilingual selector for Hindi, English, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Arabic, Spanish, French, German, Portuguese, Russian, Chinese, Japanese, Korean
+- Translation selector for Hindi, English, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Arabic, Spanish, French, German, Portuguese, Russian, Chinese, Japanese, Korean
 - RTL document support for Urdu and Arabic
 - Original / translated reading toggle UI
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link

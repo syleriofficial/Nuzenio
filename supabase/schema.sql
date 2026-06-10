@@ -138,8 +138,9 @@ create index if not exists affiliate_category_idx on public.affiliate_links(cate
 
 insert into public.rss_sources (name, category, url, language, country)
 values
+  ('Google News India Local', 'local', 'https://news.google.com/rss/search?q=India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
+  ('Google News US Local', 'local', 'https://news.google.com/rss/search?q=United%20States&hl=en-US&gl=US&ceid=US:en', 'en', 'US'),
   ('Google News India Top', 'top', 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
-  ('Google News Hindi', 'hindi', 'https://news.google.com/rss?hl=hi&gl=IN&ceid=IN:hi', 'hi', 'IN'),
   ('Google News World', 'world', 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN')
 on conflict (url) do nothing;
 

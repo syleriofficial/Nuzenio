@@ -36,9 +36,8 @@ const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const categories = [
+  ['local', 'Local'],
   ['top', 'Top News'],
-  ['hindi', 'Hindi'],
-  ['india', 'India'],
   ['world', 'World'],
   ['business', 'Business'],
   ['tech', 'Technology'],
@@ -47,6 +46,23 @@ const categories = [
   ['health', 'Health'],
   ['science', 'Science'],
 ];
+
+const countryNames = {
+  AE: 'United Arab Emirates',
+  AU: 'Australia',
+  BD: 'Bangladesh',
+  CA: 'Canada',
+  DE: 'Germany',
+  ES: 'Spain',
+  FR: 'France',
+  GB: 'United Kingdom',
+  IN: 'India',
+  JP: 'Japan',
+  KR: 'South Korea',
+  PK: 'Pakistan',
+  RU: 'Russia',
+  US: 'United States',
+};
 
 const languages = [
   { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
@@ -71,20 +87,16 @@ const languages = [
   { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr' },
 ];
 
-const languageCopy = {
-  en: { saved: 'Saved', history: 'History', admin: 'Admin', analytics: 'Analytics' },
-  hi: { saved: 'सेव', history: 'इतिहास', admin: 'एडमिन', analytics: 'विश्लेषण' },
-  ur: { saved: 'محفوظ', history: 'تاریخ', admin: 'ایڈمن', analytics: 'تجزیات' },
-  ar: { saved: 'محفوظ', history: 'السجل', admin: 'الإدارة', analytics: 'التحليلات' },
-};
+const englishCopy = { saved: 'Saved', history: 'History', admin: 'Admin', analytics: 'Analytics' };
 
 function App() {
   const [screen, setScreen] = useState('home');
-  const [category, setCategory] = useState('top');
+  const [category, setCategory] = useState('local');
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState(languages[0]);
+  const [location, setLocation] = useState(() => detectLocaleCountry());
   const [viewMode, setViewMode] = useState('original');
   const [savedIds, setSavedIds] = useState(() => readLocal('newssetu_saved_ids', []));
   const [history, setHistory] = useState(() => readLocal('newssetu_history', []));
@@ -94,13 +106,17 @@ function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
-    document.documentElement.dir = language.dir;
-    document.documentElement.lang = language.code;
-  }, [language]);
+    document.documentElement.dir = 'ltr';
+    document.documentElement.lang = 'en';
+  }, []);
 
   useEffect(() => {
-    loadNews(category);
-  }, [category]);
+    detectBrowserLocation(setLocation);
+  }, []);
+
+  useEffect(() => {
+    loadNews(category, location.country);
+  }, [category, location.country]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -112,14 +128,14 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function loadNews(cat = 'top') {
+  async function loadNews(cat = 'local', country = location.country) {
     setStatus('Loading live RSS news...');
     try {
-      const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}`);
+      const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
-      setStatus(`${data.total} live articles from RSS`);
+      setStatus(`${data.total} live articles for ${countryNames[data.country] || data.country}`);
     } catch (error) {
       setStatus(`Live API error: ${error.message}`);
     }
@@ -127,10 +143,12 @@ function App() {
 
   async function searchNews(event) {
     event?.preventDefault();
-    if (!query.trim()) return loadNews(category);
+    if (!query.trim()) return loadNews(category, location.country);
     setStatus('Searching live RSS news...');
     try {
-      const res = await fetch(`/api/news?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(
+        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}`,
+      );
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Search failed');
       setArticles(data.articles || []);
@@ -215,7 +233,7 @@ function App() {
     }
   }
 
-  const copy = languageCopy[language.code] || languageCopy.en;
+  const copy = englishCopy;
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
@@ -251,6 +269,7 @@ function App() {
           feed={feed}
           language={language}
           lead={lead}
+          location={location}
           openArticle={openArticle}
           savedIds={savedIds}
           setCategory={setCategory}
@@ -326,25 +345,28 @@ function Header({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search live news, sources, countries..."
+            placeholder="Search live news in your region..."
           />
           <button className="searchSubmit" type="submit">
             Search
           </button>
         </form>
 
-        <select
-          className="language"
-          value={language.code}
-          onChange={(event) => setLanguage(languages.find((item) => item.code === event.target.value))}
-          aria-label="Select language"
-        >
-          {languages.map((item) => (
-            <option key={item.code} value={item.code}>
-              {item.native}
-            </option>
-          ))}
-        </select>
+        <label className="translateSelect">
+          <span>Translate</span>
+          <select
+            className="language"
+            value={language.code}
+            onChange={(event) => setLanguage(languages.find((item) => item.code === event.target.value))}
+            aria-label="Translate articles"
+          >
+            {languages.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.native}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <button className="iconBtn" onClick={() => setMobileSearchOpen((value) => !value)} aria-label="Search">
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
@@ -392,6 +414,7 @@ function Home({
   feed,
   language,
   lead,
+  location,
   openArticle,
   savedIds,
   setCategory,
@@ -412,6 +435,7 @@ function Home({
 
       <main className="main">
         <section>
+          <LocationBanner location={location} status={status} />
           <ProductTrustBar />
 
           <div className="toolbarRow">
@@ -536,6 +560,18 @@ function ProductTrustBar() {
         <LinkIcon size={18} />
         <span>Affiliate links require admin approval</span>
       </div>
+    </div>
+  );
+}
+
+function LocationBanner({ location, status }) {
+  return (
+    <div className="locationBanner">
+      <div>
+        <Globe2 size={18} />
+        <b>Local news for {location.label}</b>
+      </div>
+      <span>{location.source === 'gps' ? 'Detected from browser location' : 'Detected from browser region'} · {status}</span>
     </div>
   );
 }
@@ -1048,6 +1084,66 @@ function buildKeyFacts(article) {
     `Published: ${formatDate(article.pubDate)}`,
     `Category: ${article.category || 'top'}`,
   ];
+}
+
+function detectLocaleCountry() {
+  const locale = navigator.language || navigator.languages?.[0] || 'en-IN';
+  const localeCountry = locale.split('-')[1]?.toUpperCase();
+  const timezoneCountry = inferCountryFromTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const country = normalizeCountry(localeCountry || timezoneCountry || 'IN');
+  return {
+    country,
+    label: countryNames[country] || country,
+    source: localeCountry ? 'browser locale' : 'timezone',
+  };
+}
+
+function detectBrowserLocation(setLocation) {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const country = inferCountryFromCoordinates(position.coords.latitude, position.coords.longitude);
+      if (!country) return;
+      setLocation({ country, label: countryNames[country] || country, source: 'gps' });
+    },
+    () => {},
+    { enableHighAccuracy: false, maximumAge: 1000 * 60 * 60 * 12, timeout: 4500 },
+  );
+}
+
+function normalizeCountry(country) {
+  const value = (country || 'IN').toUpperCase();
+  return countryNames[value] ? value : 'IN';
+}
+
+function inferCountryFromTimezone(timeZone = '') {
+  if (timeZone.includes('Kolkata') || timeZone.includes('Calcutta')) return 'IN';
+  if (timeZone.includes('Dubai')) return 'AE';
+  if (timeZone.includes('London')) return 'GB';
+  if (timeZone.includes('Toronto') || timeZone.includes('Vancouver')) return 'CA';
+  if (timeZone.includes('Sydney') || timeZone.includes('Melbourne')) return 'AU';
+  if (timeZone.includes('Berlin')) return 'DE';
+  if (timeZone.includes('Paris')) return 'FR';
+  if (timeZone.includes('Madrid')) return 'ES';
+  if (timeZone.includes('Tokyo')) return 'JP';
+  if (timeZone.includes('Seoul')) return 'KR';
+  if (timeZone.includes('Moscow')) return 'RU';
+  if (timeZone.includes('New_York') || timeZone.includes('Chicago') || timeZone.includes('Los_Angeles')) return 'US';
+  return 'IN';
+}
+
+function inferCountryFromCoordinates(latitude, longitude) {
+  if (latitude >= 6 && latitude <= 37 && longitude >= 68 && longitude <= 98) return 'IN';
+  if (latitude >= 24 && latitude <= 50 && longitude >= -125 && longitude <= -66) return 'US';
+  if (latitude >= 49 && latitude <= 61 && longitude >= -8 && longitude <= 2) return 'GB';
+  if (latitude >= 42 && latitude <= 84 && longitude >= -141 && longitude <= -52) return 'CA';
+  if (latitude >= -44 && latitude <= -10 && longitude >= 112 && longitude <= 154) return 'AU';
+  if (latitude >= 23 && latitude <= 27 && longitude >= 51 && longitude <= 57) return 'AE';
+  if (latitude >= 20 && latitude <= 27 && longitude >= 88 && longitude <= 93) return 'BD';
+  if (latitude >= 23 && latitude <= 37 && longitude >= 60 && longitude <= 78) return 'PK';
+  if (latitude >= 30 && latitude <= 46 && longitude >= 129 && longitude <= 146) return 'JP';
+  if (latitude >= 33 && latitude <= 39 && longitude >= 124 && longitude <= 132) return 'KR';
+  return null;
 }
 
 function formatDate(value) {

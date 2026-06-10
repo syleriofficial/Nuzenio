@@ -157,6 +157,16 @@ button {
   gap: 7px;
 }
 
+.translateSelect {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .authNotice {
   margin: 0 5vw 10px;
   padding: 10px 12px;
@@ -274,6 +284,30 @@ button {
   gap: 10px;
   margin-bottom: 14px;
   padding: 12px;
+}
+
+.locationBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #1e3a8a;
+}
+
+.locationBanner div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.locationBanner span {
+  color: #475569;
+  font-weight: 800;
 }
 
 .productTrustBar div {
@@ -1010,6 +1044,10 @@ button {
     width: 112px;
   }
 
+  .translateSelect span {
+    display: none;
+  }
+
   .breaking {
     margin: 12px 4vw;
   }
@@ -1032,7 +1070,8 @@ button {
   .toolbarRow,
   .sectionHead,
   .articleTopline,
-  .adminHero {
+  .adminHero,
+  .locationBanner {
     align-items: flex-start;
     flex-direction: column;
   }
