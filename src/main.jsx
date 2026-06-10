@@ -98,7 +98,263 @@ const languages = [
   { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr' },
 ];
 
-const englishCopy = { saved: 'Saved', history: 'History', admin: 'Admin', analytics: 'Analytics' };
+const translations = {
+  en: {
+    tagline: 'AI multilingual news bridge',
+    searchPlaceholder: 'Search live news in your region...',
+    search: 'Search',
+    newsLanguage: 'News language',
+    home: 'Home',
+    saved: 'Saved',
+    admin: 'Admin',
+    analytics: 'Analytics',
+    monetize: 'Monetize',
+    login: 'Google Login',
+    logout: 'Logout',
+    breaking: 'BREAKING',
+    localNewsFor: 'Local news for',
+    stateRegion: 'State / region',
+    cityArea: 'City / area',
+    useLocation: 'Use my location',
+    latestStories: 'All Latest Stories',
+    latestIntro: 'Every story shown here is pulled from the live RSS feed. Open any card for the full NewsSetu brief.',
+    aiBriefReady: 'AI brief ready',
+    readStory: 'Read story',
+    aiBrief: 'AI Brief',
+    save: 'Save',
+    source: 'Source',
+    trending: 'Trending Now',
+    dailyBrief: 'Daily Brief',
+    subscribe: 'Subscribe',
+    email: 'Email address',
+    newsSetuBrief: 'NewsSetu Brief',
+    fullStoryAccess: 'Full story access',
+    fullStoryText: 'NewsSetu shows the complete available RSS brief, AI context, key facts, and attribution here. The full publisher article opens on the original source for copyright-safe reading.',
+    readFullOn: 'Read full story on',
+    whatHappened: 'What happened',
+    whyItMatters: 'Why it matters',
+    keyFacts: 'Key facts',
+    timeline: 'Timeline',
+    background: 'Background',
+    quickFaq: 'Quick FAQ',
+    relatedStories: 'Related stories',
+    sourceAttribution: 'Source attribution',
+    readOriginal: 'Read original publisher story',
+    savedArticlesTitle: 'Saved Articles',
+    savedArticlesIntro: 'Your read-later library and reading history sync with Supabase when login is enabled.',
+    emptySaved: 'No saved articles from the current feed yet.',
+    readingHistory: 'Reading History',
+    noHistory: 'No reading history yet.',
+    categories: {
+      local: 'Local',
+      top: 'Top News',
+      world: 'World',
+      business: 'Business',
+      tech: 'Technology',
+      sports: 'Sports',
+      entertainment: 'Entertainment',
+      health: 'Health',
+      science: 'Science',
+    },
+  },
+  hi: {
+    tagline: 'एआई बहुभाषी न्यूज़ ब्रिज',
+    searchPlaceholder: 'अपने इलाके की लाइव खबरें खोजें...',
+    search: 'खोजें',
+    newsLanguage: 'न्यूज़ भाषा',
+    home: 'होम',
+    saved: 'सेव',
+    admin: 'एडमिन',
+    analytics: 'एनालिटिक्स',
+    monetize: 'कमाई',
+    login: 'गूगल लॉगिन',
+    logout: 'लॉगआउट',
+    breaking: 'ब्रेकिंग',
+    localNewsFor: 'लोकल खबरें',
+    stateRegion: 'राज्य / क्षेत्र',
+    cityArea: 'शहर / इलाका',
+    useLocation: 'मेरी लोकेशन',
+    latestStories: 'ताज़ा खबरें',
+    latestIntro: 'यहां हर खबर लाइव RSS फीड से आती है। पूरी NewsSetu ब्रीफ पढ़ने के लिए कार्ड खोलें।',
+    aiBriefReady: 'एआई ब्रीफ तैयार',
+    readStory: 'खबर पढ़ें',
+    aiBrief: 'एआई ब्रीफ',
+    save: 'सेव',
+    source: 'स्रोत',
+    trending: 'ट्रेंडिंग',
+    dailyBrief: 'डेली ब्रीफ',
+    subscribe: 'सब्सक्राइब',
+    email: 'ईमेल पता',
+    newsSetuBrief: 'NewsSetu ब्रीफ',
+    fullStoryAccess: 'पूरी खबर',
+    fullStoryText: 'NewsSetu यहां उपलब्ध RSS ब्रीफ, एआई संदर्भ, मुख्य तथ्य और स्रोत दिखाता है। पूरी पब्लिशर रिपोर्ट मूल स्रोत पर खुलेगी।',
+    readFullOn: 'पूरी खबर पढ़ें',
+    whatHappened: 'क्या हुआ',
+    whyItMatters: 'क्यों ज़रूरी है',
+    keyFacts: 'मुख्य तथ्य',
+    timeline: 'टाइमलाइन',
+    background: 'पृष्ठभूमि',
+    quickFaq: 'त्वरित सवाल',
+    relatedStories: 'संबंधित खबरें',
+    sourceAttribution: 'स्रोत जानकारी',
+    readOriginal: 'मूल पब्लिशर खबर पढ़ें',
+    savedArticlesTitle: 'सेव की गई खबरें',
+    savedArticlesIntro: 'आपकी रीड-लेटर लाइब्रेरी और रीडिंग हिस्ट्री लॉगिन होने पर Supabase से सिंक होती है।',
+    emptySaved: 'इस फीड से अभी कोई सेव खबर नहीं है।',
+    readingHistory: 'रीडिंग हिस्ट्री',
+    noHistory: 'अभी कोई रीडिंग हिस्ट्री नहीं है।',
+    categories: {
+      local: 'लोकल',
+      top: 'मुख्य खबरें',
+      world: 'दुनिया',
+      business: 'बिज़नेस',
+      tech: 'टेक्नोलॉजी',
+      sports: 'खेल',
+      entertainment: 'मनोरंजन',
+      health: 'स्वास्थ्य',
+      science: 'विज्ञान',
+    },
+  },
+  ar: {
+    tagline: 'جسر أخبار ذكي متعدد اللغات',
+    searchPlaceholder: 'ابحث عن الأخبار المباشرة في منطقتك...',
+    search: 'بحث',
+    newsLanguage: 'لغة الأخبار',
+    home: 'الرئيسية',
+    saved: 'المحفوظات',
+    admin: 'الإدارة',
+    analytics: 'التحليلات',
+    monetize: 'الربح',
+    login: 'تسجيل Google',
+    logout: 'خروج',
+    breaking: 'عاجل',
+    localNewsFor: 'أخبار محلية لـ',
+    stateRegion: 'الولاية / المنطقة',
+    cityArea: 'المدينة / الحي',
+    useLocation: 'استخدم موقعي',
+    latestStories: 'آخر الأخبار',
+    latestIntro: 'كل الأخبار هنا تأتي من موجز RSS مباشر. افتح أي بطاقة لقراءة ملخص NewsSetu الكامل.',
+    aiBriefReady: 'ملخص ذكي جاهز',
+    readStory: 'اقرأ الخبر',
+    aiBrief: 'ملخص ذكي',
+    save: 'حفظ',
+    source: 'المصدر',
+    trending: 'الأكثر تداولا',
+    dailyBrief: 'الموجز اليومي',
+    subscribe: 'اشتراك',
+    email: 'البريد الإلكتروني',
+    newsSetuBrief: 'ملخص NewsSetu',
+    fullStoryAccess: 'الوصول للقصة كاملة',
+    fullStoryText: 'يعرض NewsSetu ملخص RSS المتاح والسياق والحقائق والإسناد. يفتح المقال الكامل على موقع الناشر الأصلي.',
+    readFullOn: 'اقرأ القصة كاملة على',
+    whatHappened: 'ماذا حدث',
+    whyItMatters: 'لماذا يهم',
+    keyFacts: 'حقائق رئيسية',
+    timeline: 'الخط الزمني',
+    background: 'الخلفية',
+    quickFaq: 'أسئلة سريعة',
+    relatedStories: 'أخبار ذات صلة',
+    sourceAttribution: 'إسناد المصدر',
+    readOriginal: 'اقرأ خبر الناشر الأصلي',
+    savedArticlesTitle: 'الأخبار المحفوظة',
+    savedArticlesIntro: 'مكتبة القراءة لاحقا وسجل القراءة تتزامن مع Supabase عند تسجيل الدخول.',
+    emptySaved: 'لا توجد أخبار محفوظة من هذا الموجز بعد.',
+    readingHistory: 'سجل القراءة',
+    noHistory: 'لا يوجد سجل قراءة بعد.',
+    categories: {
+      local: 'محلي',
+      top: 'أهم الأخبار',
+      world: 'العالم',
+      business: 'الأعمال',
+      tech: 'التقنية',
+      sports: 'الرياضة',
+      entertainment: 'الترفيه',
+      health: 'الصحة',
+      science: 'العلوم',
+    },
+  },
+  es: {
+    tagline: 'Puente de noticias multilingue con IA',
+    searchPlaceholder: 'Busca noticias en vivo en tu region...',
+    search: 'Buscar',
+    newsLanguage: 'Idioma de noticias',
+    home: 'Inicio',
+    saved: 'Guardados',
+    admin: 'Admin',
+    analytics: 'Analitica',
+    monetize: 'Monetizar',
+    login: 'Login Google',
+    logout: 'Salir',
+    breaking: 'ULTIMA HORA',
+    localNewsFor: 'Noticias locales para',
+    stateRegion: 'Estado / region',
+    cityArea: 'Ciudad / zona',
+    useLocation: 'Usar mi ubicacion',
+    latestStories: 'Ultimas noticias',
+    latestIntro: 'Todas las noticias vienen de RSS en vivo. Abre una tarjeta para leer el resumen completo.',
+    aiBriefReady: 'Resumen IA listo',
+    readStory: 'Leer noticia',
+    aiBrief: 'Resumen IA',
+    save: 'Guardar',
+    source: 'Fuente',
+    trending: 'Tendencias',
+    dailyBrief: 'Resumen diario',
+    subscribe: 'Suscribirse',
+    email: 'Correo electronico',
+    newsSetuBrief: 'Resumen NewsSetu',
+    fullStoryAccess: 'Historia completa',
+    fullStoryText: 'NewsSetu muestra el resumen RSS disponible, contexto, datos clave y atribucion. La historia completa abre en la fuente original.',
+    readFullOn: 'Leer historia completa en',
+    whatHappened: 'Que paso',
+    whyItMatters: 'Por que importa',
+    keyFacts: 'Datos clave',
+    timeline: 'Cronologia',
+    background: 'Contexto',
+    quickFaq: 'FAQ rapido',
+    relatedStories: 'Noticias relacionadas',
+    sourceAttribution: 'Atribucion de fuente',
+    readOriginal: 'Leer fuente original',
+    savedArticlesTitle: 'Noticias guardadas',
+    savedArticlesIntro: 'Tu biblioteca para leer despues y el historial se sincronizan con Supabase al iniciar sesion.',
+    emptySaved: 'Aun no hay noticias guardadas de este feed.',
+    readingHistory: 'Historial de lectura',
+    noHistory: 'Aun no hay historial de lectura.',
+    categories: {
+      local: 'Local',
+      top: 'Principales',
+      world: 'Mundo',
+      business: 'Negocios',
+      tech: 'Tecnologia',
+      sports: 'Deportes',
+      entertainment: 'Entretenimiento',
+      health: 'Salud',
+      science: 'Ciencia',
+    },
+  },
+};
+
+const languageAliases = {
+  bn: 'hi',
+  ta: 'hi',
+  te: 'hi',
+  mr: 'hi',
+  gu: 'hi',
+  kn: 'hi',
+  ml: 'hi',
+  pa: 'hi',
+  ur: 'ar',
+  fr: 'es',
+  de: 'es',
+  pt: 'es',
+  ru: 'es',
+  zh: 'es',
+  ja: 'es',
+  ko: 'es',
+};
+
+function uiCopy(code) {
+  return translations[code] || translations[languageAliases[code]] || translations.en;
+}
 
 function App() {
   const [screen, setScreen] = useState('home');
@@ -116,11 +372,8 @@ function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
-    document.documentElement.dir = 'ltr';
-    document.documentElement.lang = 'en';
-  }, []);
-
-  useEffect(() => {
+    document.documentElement.dir = language.dir;
+    document.documentElement.lang = language.code;
     document.documentElement.dataset.newsLanguage = language.code;
     writeLocal('newssetu_news_language', language);
   }, [language]);
@@ -269,7 +522,7 @@ function App() {
     }
   }
 
-  const copy = englishCopy;
+  const copy = uiCopy(language.code);
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
@@ -302,6 +555,7 @@ function App() {
         <Home
           articles={articles}
           category={category}
+          copy={copy}
           feed={feed}
           language={language}
           lead={lead}
@@ -319,6 +573,7 @@ function App() {
       {screen === 'saved' && (
         <Saved
           articles={savedArticles}
+          copy={copy}
           history={history}
           openArticle={openArticle}
           savedIds={savedIds}
@@ -333,13 +588,14 @@ function App() {
         <ArticleModal
           article={selected}
           articles={articles}
+          copy={copy}
           language={language}
           onClose={() => setSelected(null)}
           savedIds={savedIds}
           toggleSave={toggleSave}
         />
       )}
-      <Footer />
+      <Footer copy={copy} />
       <MobileNav copy={copy} setScreen={setScreen} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
@@ -370,7 +626,7 @@ function Header({
             <h1>
               News<span>Setu</span>
             </h1>
-            <small>AI multilingual news bridge</small>
+            <small>{copy.tagline}</small>
           </div>
         </button>
 
@@ -379,15 +635,15 @@ function Header({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search live news in your region..."
+            placeholder={copy.searchPlaceholder}
           />
           <button className="searchSubmit" type="submit">
-            Search
+            {copy.search}
           </button>
         </form>
 
         <label className="newsLanguageSelect">
-          <span>News language</span>
+          <span>{copy.newsLanguage}</span>
           <select
             className="language"
             value={language.code}
@@ -410,11 +666,11 @@ function Header({
         </button>
         {user ? (
           <button className="loginBtn" onClick={logout}>
-            <LogOut size={17} /> Logout
+            <LogOut size={17} /> {copy.logout}
           </button>
         ) : (
           <button className="loginBtn" onClick={loginWithGoogle}>
-            <LogIn size={17} /> Google Login
+            <LogIn size={17} /> {copy.login}
           </button>
         )}
       </div>
@@ -423,7 +679,7 @@ function Header({
 
       <nav className="nav" aria-label="Primary navigation">
         <button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}>
-          Home
+          {copy.home}
         </button>
         <button className={screen === 'saved' ? 'active' : ''} onClick={() => setScreen('saved')}>
           {copy.saved}
@@ -435,7 +691,7 @@ function Header({
           {copy.analytics}
         </button>
         <button className={screen === 'monetize' ? 'active' : ''} onClick={() => setScreen('monetize')}>
-          Monetize
+          {copy.monetize}
         </button>
       </nav>
     </header>
@@ -445,6 +701,7 @@ function Header({
 function Home({
   articles,
   category,
+  copy,
   feed,
   language,
   lead,
@@ -461,14 +718,14 @@ function Home({
   return (
     <>
       <div className="breaking">
-        <b>BREAKING</b>
+        <b>{copy.breaking}</b>
         <span>{ticker || status}</span>
       </div>
       <RevenueStrip />
 
       <main className="main">
         <section>
-          <LocationBanner location={location} setLocation={setLocation} status={status} />
+          <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
           <ProductTrustBar />
 
           <div className="toolbarRow">
@@ -479,7 +736,7 @@ function Home({
                   className={category === key ? 'pillActive' : ''}
                   onClick={() => setCategory(key)}
                 >
-                  {label}
+                  {copy.categories[key] || label}
                 </button>
               ))}
             </div>
@@ -498,10 +755,10 @@ function Home({
                 <p>{displaySummary(lead) || status}</p>
                 <div className="leadActions">
                   <span>
-                    <Sparkles size={15} /> AI brief ready
+                    <Sparkles size={15} /> {copy.aiBriefReady}
                   </span>
                   <span>
-                    Read story <ChevronRight size={15} />
+                    {copy.readStory} <ChevronRight size={15} />
                   </span>
                 </div>
               </div>
@@ -512,6 +769,7 @@ function Home({
                 <SmallStory
                   key={article.id}
                   article={article}
+                  copy={copy}
                   openArticle={openArticle}
                 />
               ))}
@@ -522,8 +780,8 @@ function Home({
 
           <div className="sectionHead">
             <div>
-              <h2>All Latest Stories</h2>
-              <p>Every story shown here is pulled from the live RSS feed. Open any card for the full NewsSetu brief.</p>
+              <h2>{copy.latestStories}</h2>
+              <p>{copy.latestIntro}</p>
             </div>
             <span>{status}</span>
           </div>
@@ -533,6 +791,7 @@ function Home({
               <ArticleCard
                 key={article.id}
                 article={article}
+                copy={copy}
                 openArticle={openArticle}
                 savedIds={savedIds}
                 toggleSave={toggleSave}
@@ -542,10 +801,10 @@ function Home({
         </section>
 
         <aside className="rightRail">
-          <Trending articles={articles} openArticle={openArticle} />
-          <AISummaryBox />
+          <Trending articles={articles} copy={copy} openArticle={openArticle} />
+          <AISummaryBox copy={copy} />
           <AffiliatePanel />
-          <Newsletter />
+          <Newsletter copy={copy} />
           <AdSlot name="sidebar-rectangle" label="AdSense Sidebar Slot" compact />
         </aside>
       </main>
@@ -595,7 +854,7 @@ function ProductTrustBar() {
   );
 }
 
-function LocationBanner({ location, setLocation, status }) {
+function LocationBanner({ copy, location, setLocation, status }) {
   function changeCountry(event) {
     const country = normalizeCountry(event.target.value);
     setLocation({ country, region: '', city: '', label: countryLabel(country), source: 'manual' });
@@ -625,7 +884,7 @@ function LocationBanner({ location, setLocation, status }) {
     <div className="locationBanner">
       <div>
         <Globe2 size={18} />
-        <b>Local news for {location.label}</b>
+        <b>{copy.localNewsFor} {location.label}</b>
       </div>
       <div className="locationControls">
         <span>{locationSourceLabel(location.source)} · {status}</span>
@@ -639,22 +898,22 @@ function LocationBanner({ location, setLocation, status }) {
         <input
           value={location.region || ''}
           onChange={changeRegion}
-          placeholder="State / region"
+          placeholder={copy.stateRegion}
           aria-label="Set state or region for local news"
         />
         <input
           value={location.city || ''}
           onChange={changeCity}
-          placeholder="City / area"
+          placeholder={copy.cityArea}
           aria-label="Set city or nearby area for local news"
         />
-        <button onClick={() => detectAccurateLocation(setLocation)}>Use my location</button>
+        <button onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
       </div>
     </div>
   );
 }
 
-function SmallStory({ article, openArticle }) {
+function SmallStory({ article, copy, openArticle }) {
   return (
     <button className="smallStory" onClick={() => openArticle(article)}>
       <div className="miniThumb">
@@ -670,7 +929,7 @@ function SmallStory({ article, openArticle }) {
   );
 }
 
-function ArticleCard({ article, openArticle, savedIds, toggleSave }) {
+function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const isSaved = savedIds.includes(article.id);
   return (
     <article className="articleCard">
@@ -694,10 +953,10 @@ function ArticleCard({ article, openArticle, savedIds, toggleSave }) {
       </div>
       <div className="cardActions">
         <button className="primaryAction" onClick={() => openArticle(article)}>
-          <Sparkles size={15} /> AI Brief
+          <Sparkles size={15} /> {copy.aiBrief}
         </button>
         <button onClick={() => toggleSave(article)}>
-          <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? 'Saved' : 'Save'}
+          <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? copy.saved : copy.save}
         </button>
         <button onClick={() => shareArticle(article)}>
           <Share2 size={15} /> Share
@@ -707,17 +966,17 @@ function ArticleCard({ article, openArticle, savedIds, toggleSave }) {
         <LinkIcon size={14} /> Related partner links can appear here after admin review.
       </div>
       <a href={article.link} target="_blank" rel="noreferrer">
-        Source <ExternalLink size={14} />
+        {copy.source} <ExternalLink size={14} />
       </a>
     </article>
   );
 }
 
-function Trending({ articles, openArticle }) {
+function Trending({ articles, copy, openArticle }) {
   return (
     <div className="railCard">
       <h3>
-        <TrendingUp size={18} /> Trending Now
+        <TrendingUp size={18} /> {copy.trending}
       </h3>
       {articles.slice(0, 5).map((article, index) => (
         <button className="trend" key={article.id} onClick={() => openArticle(article)}>
@@ -729,14 +988,14 @@ function Trending({ articles, openArticle }) {
   );
 }
 
-function AISummaryBox() {
+function AISummaryBox({ copy }) {
   return (
     <div className="railCard aiBox">
       <h3>
         <Sparkles size={18} /> AI News Companion
       </h3>
-      <p>Article pages include summary, what happened, why it matters, key facts, and source attribution.</p>
-      <button>Open AI Brief</button>
+      <p>Article pages include summary, context, key facts, and source attribution.</p>
+      <button>{copy.aiBrief}</button>
     </div>
   );
 }
@@ -753,7 +1012,7 @@ function AffiliatePanel() {
   );
 }
 
-function Newsletter() {
+function Newsletter({ copy }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
@@ -770,17 +1029,17 @@ function Newsletter() {
   return (
     <form className="railCard" onSubmit={subscribe}>
       <h3>
-        <Mail size={18} /> Daily Brief
+        <Mail size={18} /> {copy.dailyBrief}
       </h3>
-      <p>Top stories in your language every morning.</p>
-      <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email address" />
-      <button type="submit">Subscribe</button>
+      <p>Top stories in your selected language every morning.</p>
+      <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={copy.email} />
+      <button type="submit">{copy.subscribe}</button>
       {message && <small>{message}</small>}
     </form>
   );
 }
 
-function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
+function ArticleModal({ article, articles, copy, onClose, savedIds, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -803,33 +1062,30 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
         </div>
         <div className="summaryPanel">
           <h3>
-            <Sparkles size={18} /> NewsSetu Brief
+            <Sparkles size={18} /> {copy.newsSetuBrief}
           </h3>
           <p>{displayFullBrief(article)}</p>
         </div>
         <div className="fullStoryPanel">
           <div>
-            <h3>Full story access</h3>
-            <p>
-              NewsSetu shows the complete available RSS brief, AI context, key facts, and attribution here. The full
-              publisher article opens on the original source for copyright-safe reading.
-            </p>
+            <h3>{copy.fullStoryAccess}</h3>
+            <p>{copy.fullStoryText}</p>
           </div>
           <a href={article.link} target="_blank" rel="noreferrer">
-            Read full story on {article.source} <ExternalLink size={16} />
+            {copy.readFullOn} {article.source} <ExternalLink size={16} />
           </a>
         </div>
         <div className="infoGrid">
           <div>
-            <h3>What happened</h3>
+            <h3>{copy.whatHappened}</h3>
             <p>{article.whatHappened || displaySummary(article)}</p>
           </div>
           <div>
-            <h3>Why it matters</h3>
+            <h3>{copy.whyItMatters}</h3>
             <p>{article.whyItMatters}</p>
           </div>
           <div>
-            <h3>Key facts</h3>
+            <h3>{copy.keyFacts}</h3>
             <ul>
               {facts.map((fact) => (
                 <li key={fact}>{fact}</li>
@@ -839,7 +1095,7 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
         </div>
         <div className="explainerGrid">
           <section className="timelinePanel">
-            <h3>Timeline</h3>
+            <h3>{copy.timeline}</h3>
             {timeline.map((item) => (
               <div className="timelineItem" key={item.label}>
                 <b>{item.label}</b>
@@ -848,12 +1104,12 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
             ))}
           </section>
           <section className="backgroundPanel">
-            <h3>Background</h3>
+            <h3>{copy.background}</h3>
             <p>{buildBackground(article)}</p>
           </section>
         </div>
         <section className="faqPanel">
-          <h3>Quick FAQ</h3>
+          <h3>{copy.quickFaq}</h3>
           {faqs.map((item) => (
             <details key={item.q}>
               <summary>{item.q}</summary>
@@ -863,7 +1119,7 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
         </section>
         {related.length > 0 && (
           <section className="relatedPanel">
-            <h3>Related stories</h3>
+            <h3>{copy.relatedStories}</h3>
             <div>
               {related.map((item) => (
                 <a key={item.id} href={item.link} target="_blank" rel="noreferrer">
@@ -875,7 +1131,7 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
           </section>
         )}
         <div className="sourceBox">
-          <h3>Source attribution</h3>
+          <h3>{copy.sourceAttribution}</h3>
           <p>
             This story is sourced from <b>{article.source}</b> via live RSS. NewsSetu links back to the original
             publisher for the full report.
@@ -891,27 +1147,27 @@ function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
         </div>
         <div className="readerTools">
           <button onClick={() => toggleSave(article)}>
-            <Bookmark size={16} /> {savedIds.includes(article.id) ? 'Saved' : 'Save'}
+            <Bookmark size={16} /> {savedIds.includes(article.id) ? copy.saved : copy.save}
           </button>
           <button onClick={() => shareArticle(article)}>
             <Share2 size={16} /> Share
           </button>
         </div>
         <a className="original" href={article.link} target="_blank" rel="noreferrer">
-          Read original publisher story <ExternalLink size={16} />
+          {copy.readOriginal} <ExternalLink size={16} />
         </a>
       </article>
     </div>
   );
 }
 
-function Saved({ articles, history, openArticle, savedIds, toggleSave }) {
+function Saved({ articles, copy, history, openArticle, savedIds, toggleSave }) {
   return (
     <main className="single">
       <section>
         <div className="pageHero">
-          <h2>Saved Articles</h2>
-          <p>Your read-later library and reading history sync with Supabase when login is enabled.</p>
+          <h2>{copy.savedArticlesTitle}</h2>
+          <p>{copy.savedArticlesIntro}</p>
         </div>
         <div className="feedGrid">
           {articles.length ? (
@@ -925,11 +1181,11 @@ function Saved({ articles, history, openArticle, savedIds, toggleSave }) {
               />
             ))
           ) : (
-            <div className="empty">No saved articles from the current feed yet.</div>
+            <div className="empty">{copy.emptySaved}</div>
           )}
         </div>
         <div className="historyPanel">
-          <h3>Reading History</h3>
+          <h3>{copy.readingHistory}</h3>
           {history.length ? (
             history.slice(0, 8).map((item) => (
               <div className="historyItem" key={`${item.id}-${item.openedAt}`}>
@@ -940,7 +1196,7 @@ function Saved({ articles, history, openArticle, savedIds, toggleSave }) {
               </div>
             ))
           ) : (
-            <p>No reading history yet.</p>
+            <p>{copy.noHistory}</p>
           )}
         </div>
       </section>
@@ -1143,13 +1399,13 @@ function MobileNav({ copy, setScreen, setMobileSearchOpen }) {
   return (
     <div className="mobileNav">
       <button onClick={() => setScreen('home')}>
-        <HomeIcon size={18} /> Home
+        <HomeIcon size={18} /> {copy.home}
       </button>
       <button onClick={() => setScreen('saved')}>
         <Bookmark size={18} /> {copy.saved}
       </button>
       <button onClick={() => setMobileSearchOpen((value) => !value)}>
-        <Search size={18} /> Search
+        <Search size={18} /> {copy.search}
       </button>
       <button onClick={() => setScreen('admin')}>
         <Settings size={18} /> {copy.admin}
@@ -1158,14 +1414,14 @@ function MobileNav({ copy, setScreen, setMobileSearchOpen }) {
   );
 }
 
-function Footer() {
+function Footer({ copy }) {
   return (
     <footer className="footer">
       <b>NewsSetu</b>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
       <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
-      <span>Live RSS news with labeled monetization surfaces.</span>
+      <span>{copy.tagline}</span>
     </footer>
   );
 }
