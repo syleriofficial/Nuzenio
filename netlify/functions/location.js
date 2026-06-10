@@ -70,7 +70,17 @@ function fetchJson(url, redirects = 0) {
 
 function normalizeCountry(country = 'IN') {
   const value = country.toUpperCase();
-  return COUNTRY_NAMES[value] ? value : 'IN';
+  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+}
+
+function countryLabel(country = 'IN') {
+  const value = normalizeCountry(country);
+  if (COUNTRY_NAMES[value]) return COUNTRY_NAMES[value];
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(value) || value;
+  } catch {
+    return value;
+  }
 }
 
 function clientIp(event) {
@@ -103,7 +113,7 @@ export const handler = async (event) => {
         body: JSON.stringify({
           ok: true,
           country,
-          countryName: COUNTRY_NAMES[country],
+          countryName: countryLabel(country),
           city: geo.city || geo.locality || '',
           source: 'gps',
         }),
@@ -123,7 +133,7 @@ export const handler = async (event) => {
       body: JSON.stringify({
         ok: true,
         country,
-        countryName: COUNTRY_NAMES[country],
+        countryName: countryLabel(country),
         city: geo.city || '',
         region: geo.region || '',
         source: 'ip',
@@ -136,7 +146,7 @@ export const handler = async (event) => {
       body: JSON.stringify({
         ok: false,
         country: 'IN',
-        countryName: COUNTRY_NAMES.IN,
+        countryName: countryLabel('IN'),
         source: 'fallback',
         error: error.message,
       }),

@@ -149,7 +149,17 @@ function buildWhyItMatters(category, source) {
 
 function normalizeCountry(country = 'IN') {
   const value = country.toUpperCase();
-  return COUNTRY_NAMES[value] ? value : 'IN';
+  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+}
+
+function countryLabel(country = 'IN') {
+  const value = normalizeCountry(country);
+  if (COUNTRY_NAMES[value]) return COUNTRY_NAMES[value];
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(value) || value;
+  } catch {
+    return value;
+  }
 }
 
 function googleNewsUrl({ category, country, q }) {
@@ -159,7 +169,7 @@ function googleNewsUrl({ category, country, q }) {
     return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${params}`;
   }
   if (category === 'local') {
-    return `https://news.google.com/rss/search?q=${encodeURIComponent(COUNTRY_NAMES[region])}&${params}`;
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(countryLabel(region))}&${params}`;
   }
   if (TOPICS[category]) {
     return `https://news.google.com/rss/headlines/section/topic/${TOPICS[category]}?${params}`;
@@ -187,7 +197,7 @@ export const handler = async (event) => {
         ok: true,
         category,
         country,
-        countryName: COUNTRY_NAMES[country],
+        countryName: countryLabel(country),
         query: q || null,
         total: articles.length,
         sourceType: 'live-rss',

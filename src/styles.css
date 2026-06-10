@@ -310,6 +310,30 @@ button {
   font-weight: 800;
 }
 
+.locationControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.locationControls select,
+.locationControls button {
+  min-height: 36px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e3a8a;
+  padding: 7px 10px;
+  font-weight: 900;
+}
+
+.locationControls button {
+  background: var(--blue);
+  color: #fff;
+}
+
 .productTrustBar div {
   display: flex;
   align-items: center;
@@ -1198,6 +1222,16 @@ button {
   .locationBanner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .locationControls {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .locationControls select,
+  .locationControls button {
+    width: 100%;
   }
 
   .translationToggle {

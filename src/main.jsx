@@ -69,6 +69,12 @@ const countryNames = {
   ZA: 'South Africa',
 };
 
+const countryOptions = [
+  'AE', 'AR', 'AT', 'AU', 'BD', 'BE', 'BR', 'CA', 'CH', 'CL', 'CN', 'CO', 'DE', 'DK', 'EG', 'ES', 'FI', 'FR',
+  'GB', 'GR', 'HK', 'ID', 'IE', 'IL', 'IN', 'IT', 'JP', 'KE', 'KR', 'LK', 'MX', 'MY', 'NG', 'NL', 'NO', 'NP',
+  'NZ', 'PH', 'PK', 'PL', 'PT', 'QA', 'RU', 'SA', 'SE', 'SG', 'TH', 'TR', 'TW', 'UA', 'US', 'VN', 'ZA',
+].map((code) => ({ code, label: countryLabel(code) })).sort((a, b) => a.label.localeCompare(b.label));
+
 const languages = [
   { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
   { code: 'hi', label: 'Hindi', native: 'हिन्दी', dir: 'ltr' },
@@ -101,7 +107,7 @@ function App() {
   const [status, setStatus] = useState('Loading live news...');
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState(languages[0]);
-  const [location, setLocation] = useState(() => detectLocaleCountry());
+  const [location, setLocation] = useState(() => readLocal('newssetu_location', detectLocaleCountry()));
   const [viewMode, setViewMode] = useState('original');
   const [savedIds, setSavedIds] = useState(() => readLocal('newssetu_saved_ids', []));
   const [history, setHistory] = useState(() => readLocal('newssetu_history', []));
@@ -116,7 +122,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    detectAccurateLocation(setLocation);
+    if (location.source !== 'manual') {
+      detectAccurateLocation(updateLocation);
+    }
   }, []);
 
   useEffect(() => {
@@ -140,7 +148,7 @@ function App() {
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
-      setStatus(`${data.total} live articles for ${countryNames[data.country] || data.country}`);
+      setStatus(`${data.total} live articles for ${countryLabel(data.country)}`);
     } catch (error) {
       setStatus(`Live API error: ${error.message}`);
     }
@@ -161,6 +169,11 @@ function App() {
     } catch (error) {
       setStatus(`Search error: ${error.message}`);
     }
+  }
+
+  function updateLocation(next) {
+    setLocation(next);
+    writeLocal('newssetu_location', next);
   }
 
   async function loginWithGoogle() {
@@ -275,6 +288,7 @@ function App() {
           language={language}
           lead={lead}
           location={location}
+          setLocation={updateLocation}
           openArticle={openArticle}
           savedIds={savedIds}
           setCategory={setCategory}
@@ -424,6 +438,7 @@ function Home({
   openArticle,
   savedIds,
   setCategory,
+  setLocation,
   sideStories,
   status,
   ticker,
@@ -441,7 +456,7 @@ function Home({
 
       <main className="main">
         <section>
-          <LocationBanner location={location} status={status} />
+          <LocationBanner location={location} setLocation={setLocation} status={status} />
           <ProductTrustBar />
 
           <div className="toolbarRow">
@@ -573,14 +588,29 @@ function ProductTrustBar() {
   );
 }
 
-function LocationBanner({ location, status }) {
+function LocationBanner({ location, setLocation, status }) {
+  function changeCountry(event) {
+    const country = normalizeCountry(event.target.value);
+    setLocation({ country, label: countryLabel(country), source: 'manual' });
+  }
+
   return (
     <div className="locationBanner">
       <div>
         <Globe2 size={18} />
         <b>Local news for {location.label}</b>
       </div>
-      <span>{locationSourceLabel(location.source)} · {status}</span>
+      <div className="locationControls">
+        <span>{locationSourceLabel(location.source)} · {status}</span>
+        <select value={location.country} onChange={changeCountry} aria-label="Set news country">
+          {countryOptions.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.label}
+            </option>
+          ))}
+        </select>
+        <button onClick={() => detectAccurateLocation(setLocation)}>Use my location</button>
+      </div>
     </div>
   );
 }
@@ -1202,7 +1232,7 @@ function detectLocaleCountry() {
   const country = normalizeCountry(localeCountry || timezoneCountry || 'IN');
   return {
     country,
-    label: countryNames[country] || country,
+    label: countryLabel(country),
     source: localeCountry ? 'browser locale' : 'timezone',
   };
 }
@@ -1243,7 +1273,7 @@ function formatLocation(data) {
   const city = data.city ? `${data.city}, ` : '';
   return {
     country,
-    label: `${city}${countryNames[country] || country}`,
+    label: `${city}${countryLabel(country)}`,
     source: data.source || 'ip',
   };
 }
@@ -1257,7 +1287,17 @@ function locationSourceLabel(source) {
 
 function normalizeCountry(country) {
   const value = (country || 'IN').toUpperCase();
-  return countryNames[value] ? value : 'IN';
+  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+}
+
+function countryLabel(country) {
+  const code = normalizeCountry(country);
+  if (countryNames[code]) return countryNames[code];
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code;
+  } catch {
+    return code;
+  }
 }
 
 function inferCountryFromTimezone(timeZone = '') {
