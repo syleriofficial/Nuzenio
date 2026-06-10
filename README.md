@@ -18,7 +18,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Affiliate link manager structure with visible disclosure
 - SEO basics: meta tags, Open Graph tags, `robots.txt`, and `sitemap.xml`
 - Policy pages: privacy, terms, and affiliate disclosure
-- AdSense placeholders only, with no fake ad scripts
+- AdSense inventory areas with publisher scripts disabled until approval
 - Mobile bottom navigation and readable article view
 
 ## Netlify settings

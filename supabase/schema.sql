@@ -146,8 +146,8 @@ on conflict (url) do nothing;
 
 insert into public.adsense_slots (slot_key, placement, format, notes)
 values
-  ('top-native', 'Home feed top', 'native', 'Placeholder only until AdSense approval.'),
-  ('sidebar-rectangle', 'Desktop right rail', 'rectangle', 'Placeholder only until AdSense approval.'),
+  ('top-native', 'Home feed top', 'native', 'Reserved until AdSense approval.'),
+  ('sidebar-rectangle', 'Desktop right rail', 'rectangle', 'Reserved until AdSense approval.'),
   ('article-inline', 'Article detail body', 'responsive', 'Add publisher script after policy review.'),
   ('mobile-feed', 'Mobile feed after story cards', 'responsive', 'Mobile-first revenue slot.'),
   ('newsletter-sponsor', 'Daily brief sponsorship', 'sponsor', 'Sponsor slot for newsletter campaigns.')

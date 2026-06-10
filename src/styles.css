@@ -265,7 +265,6 @@ button {
 
 .revenueStrip div,
 .productTrustBar,
-.commerceHint,
 .affiliateDisclosure,
 .revenueFunnel,
 .launchChecklist,
@@ -287,7 +286,6 @@ button {
 }
 
 .revenueStrip span,
-.commerceHint,
 .affiliateDisclosure,
 .moneyScore span {
   color: var(--muted);
@@ -371,7 +369,7 @@ button {
 }
 
 .productTrustBar svg,
-.commerceHint svg {
+.affiliateDisclosure {
   color: var(--blue);
 }
 
@@ -660,15 +658,6 @@ button {
 .trustRow {
   margin: 12px 0;
   color: var(--green);
-}
-
-.commerceHint {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 10px 0;
-  padding: 9px 10px;
-  background: #f8fafc;
 }
 
 .articleCard a,

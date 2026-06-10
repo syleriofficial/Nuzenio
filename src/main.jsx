@@ -894,15 +894,15 @@ function RevenueStrip() {
     <section className="revenueStrip" aria-label="NewsSetu revenue and trust model">
       <div>
         <b>Live RSS</b>
-        <span>No fake cards</span>
+        <span>Publisher sourced</span>
       </div>
       <div>
-        <b>AdSense-ready</b>
-        <span>Policy-safe slots</span>
+        <b>Ad policy</b>
+        <span>Scripts disabled</span>
       </div>
       <div>
-        <b>Affiliate-ready</b>
-        <span>Disclosure built in</span>
+        <b>Affiliate policy</b>
+        <span>Approval required</span>
       </div>
       <div>
         <b>AI layer</b>
@@ -925,7 +925,7 @@ function ProductTrustBar() {
       </div>
       <div>
         <LinkIcon size={18} />
-        <span>Affiliate links require admin approval</span>
+        <span>Commercial links require admin approval</span>
       </div>
     </div>
   );
@@ -1039,9 +1039,6 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
           <Share2 size={15} /> Share
         </button>
       </div>
-      <div className="commerceHint">
-        <LinkIcon size={14} /> Related partner links can appear here after admin review.
-      </div>
       <a href={article.link} target="_blank" rel="noreferrer">
         {copy.source} <ExternalLink size={14} />
       </a>
@@ -1081,10 +1078,10 @@ function AffiliatePanel() {
   return (
     <div className="railCard affiliatePanel">
       <h3>
-        <LinkIcon size={18} /> Partner Picks
+        <LinkIcon size={18} /> Commercial Policy
       </h3>
-      <p>Affiliate placements are reserved for relevant tools, books, subscriptions, and courses. Every link must be labeled.</p>
-      <div className="affiliateDisclosure">Affiliate disclosure active</div>
+      <p>Affiliate links are hidden until reviewed, labeled, and separated from editorial RSS coverage.</p>
+      <div className="affiliateDisclosure">Disclosure policy active</div>
     </div>
   );
 }
@@ -1308,8 +1305,8 @@ function Admin({ user }) {
             {adSlots.map((slot) => (
               <div className="managerRow" key={slot}>
                 <b>{slot}</b>
-                <span>Placeholder only</span>
-                <em>No script</em>
+                <span>Reserved inventory</span>
+                <em>Script disabled</em>
               </div>
             ))}
           </Manager>
@@ -1319,7 +1316,7 @@ function Admin({ user }) {
               <div className="managerRow" key={row}>
                 <b>{row}</b>
                 <span>Manual approval</span>
-                <em>Disclosure required</em>
+                <em>Hidden until approved</em>
               </div>
             ))}
           </Manager>
@@ -1440,7 +1437,7 @@ function Monetize() {
         <div className="pageHero monetizationHero">
           <div>
             <h2>Monetization Engine</h2>
-            <p>AdSense, affiliate, newsletter, and premium AI revenue structure without fake scripts or fake stories.</p>
+            <p>AdSense, affiliate, newsletter, and premium AI revenue structure with editorial RSS separated from commercial placements.</p>
           </div>
           <div className="moneyScore">
             <b>4</b>
@@ -1504,7 +1501,7 @@ function AdSlot({ compact = false, label, name }) {
   return (
     <div className={`adSlot ${compact ? 'sideAd' : ''}`} data-ad-slot={name}>
       <span>{label}</span>
-      <small>Publisher-ready placeholder, no ad script loaded</small>
+      <small>Reserved ad inventory. Publisher script disabled until approval.</small>
     </div>
   );
 }
