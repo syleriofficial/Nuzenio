@@ -199,6 +199,29 @@ button {
   border-color: var(--red);
 }
 
+.newsNav {
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+  padding: 0 5vw 12px;
+}
+
+.newsNav button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  padding: 9px 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.newsNav .active {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
 .breaking {
   display: flex;
   align-items: center;
@@ -1150,10 +1173,18 @@ button {
   }
 
   .brand small,
-  .nav,
   .iconBtn + .iconBtn,
   .loginBtn {
     display: none;
+  }
+
+  .nav {
+    gap: 16px;
+    padding: 0 4vw 8px;
+  }
+
+  .newsNav {
+    padding: 0 4vw 10px;
   }
 
   .brand h1 {

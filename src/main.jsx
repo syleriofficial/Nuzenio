@@ -536,6 +536,7 @@ function App() {
     <div className="appShell">
       <Header
         authNotice={authNotice}
+        category={category}
         copy={copy}
         language={language}
         loginWithGoogle={loginWithGoogle}
@@ -544,6 +545,7 @@ function App() {
         query={query}
         screen={screen}
         searchNews={searchNews}
+        setCategory={setCategory}
         setLanguage={setLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
@@ -563,7 +565,6 @@ function App() {
           setLocation={updateLocation}
           openArticle={openArticle}
           savedIds={savedIds}
-          setCategory={setCategory}
           sideStories={sideStories}
           status={status}
           ticker={ticker}
@@ -603,6 +604,7 @@ function App() {
 
 function Header({
   authNotice,
+  category,
   copy,
   language,
   loginWithGoogle,
@@ -611,6 +613,7 @@ function Header({
   query,
   screen,
   searchNews,
+  setCategory,
   setLanguage,
   setMobileSearchOpen,
   setQuery,
@@ -694,6 +697,20 @@ function Header({
           {copy.monetize}
         </button>
       </nav>
+      <nav className="newsNav" aria-label="News sections">
+        {categories.map(([key, label]) => (
+          <button
+            key={key}
+            className={screen === 'home' && category === key ? 'active' : ''}
+            onClick={() => {
+              setScreen('home');
+              setCategory(key);
+            }}
+          >
+            {copy.categories[key] || label}
+          </button>
+        ))}
+      </nav>
     </header>
   );
 }
@@ -708,7 +725,6 @@ function Home({
   location,
   openArticle,
   savedIds,
-  setCategory,
   setLocation,
   sideStories,
   status,
@@ -727,20 +743,6 @@ function Home({
         <section>
           <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
           <ProductTrustBar />
-
-          <div className="toolbarRow">
-            <div className="categoryBar">
-              {categories.map(([key, label]) => (
-                <button
-                  key={key}
-                  className={category === key ? 'pillActive' : ''}
-                  onClick={() => setCategory(key)}
-                >
-                  {copy.categories[key] || label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="heroGrid">
             <button className="leadCard" onClick={() => lead && openArticle(lead)}>
