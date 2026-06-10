@@ -415,11 +415,20 @@ function App() {
   }, [category, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
-    const articleId = readUrlParam('article');
-    if (!articleId || selected?.id === articleId) return;
-    const linkedArticle = articles.find((article) => article.id === articleId);
-    if (linkedArticle) setSelected(linkedArticle);
-  }, [articles, selected]);
+    function syncArticleFromUrl() {
+      const articleId = readUrlParam('article');
+      if (!articleId) {
+        setSelected(null);
+        return;
+      }
+      const linkedArticle = articles.find((article) => article.id === articleId);
+      if (linkedArticle) setSelected(linkedArticle);
+    }
+
+    syncArticleFromUrl();
+    window.addEventListener('popstate', syncArticleFromUrl);
+    return () => window.removeEventListener('popstate', syncArticleFromUrl);
+  }, [articles]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -573,7 +582,7 @@ function App() {
     setSelected(null);
     const url = new URL(window.location.href);
     url.searchParams.delete('article');
-    window.history.pushState({}, '', url);
+    window.history.replaceState({}, '', url);
   }
 
   const copy = uiCopy(language.code);
