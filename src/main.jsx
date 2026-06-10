@@ -382,6 +382,20 @@ function initialLocation() {
   };
 }
 
+function contextUrl({ category, location, language }) {
+  const url = new URL(window.location.href);
+  const currentArticle = url.searchParams.get('article');
+  url.searchParams.set('category', category);
+  url.searchParams.set('country', location.country);
+  url.searchParams.set('language', language.code);
+  if (location.region) url.searchParams.set('region', location.region);
+  else url.searchParams.delete('region');
+  if (location.city) url.searchParams.set('city', location.city);
+  else url.searchParams.delete('city');
+  if (currentArticle) url.searchParams.set('article', currentArticle);
+  return url;
+}
+
 function App() {
   const [screen, setScreen] = useState('home');
   const [category, setCategory] = useState(initialCategory);
@@ -412,6 +426,11 @@ function App() {
 
   useEffect(() => {
     loadNews(category, location.country, location.region, location.city, language.code);
+  }, [category, location.country, location.region, location.city, language.code]);
+
+  useEffect(() => {
+    const url = contextUrl({ category, location, language });
+    window.history.replaceState({}, '', url);
   }, [category, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
@@ -566,15 +585,8 @@ function App() {
   }
 
   function pushArticleUrl(article) {
-    const url = new URL(window.location.href);
+    const url = contextUrl({ category, location, language });
     url.searchParams.set('article', article.id);
-    url.searchParams.set('category', category);
-    url.searchParams.set('country', location.country);
-    url.searchParams.set('language', language.code);
-    if (location.region) url.searchParams.set('region', location.region);
-    else url.searchParams.delete('region');
-    if (location.city) url.searchParams.set('city', location.city);
-    else url.searchParams.delete('city');
     window.history.pushState({}, '', url);
   }
 
