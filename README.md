@@ -42,8 +42,8 @@ Functions directory: netlify/functions
 5. Add these Netlify environment variables:
 
 ```text
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
 ```
 
 ## Local development

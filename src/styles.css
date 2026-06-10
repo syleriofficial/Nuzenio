@@ -984,6 +984,25 @@ button {
   margin-bottom: 12px;
 }
 
+.managerNote {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.statusPill {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: #1d4ed8;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .miniStats,
 .checkRow,
 .historyItem {

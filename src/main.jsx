@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
   BarChart3,
-  Bell,
   Bookmark,
   CheckCircle2,
   ChevronRight,
@@ -739,9 +738,6 @@ function Header({
         <button className="iconBtn" onClick={() => setMobileSearchOpen((value) => !value)} aria-label="Search">
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
         </button>
-        <button className="iconBtn" aria-label="Notifications">
-          <Bell size={18} />
-        </button>
         {user ? (
           <button className="loginBtn" onClick={logout}>
             <LogOut size={17} /> {copy.logout}
@@ -853,7 +849,7 @@ function Home({
             </div>
           </div>
 
-          <AdSlot name="top-native" label="AdSense Native Banner Slot" />
+          <AdSlot name="top-native" label="Top advertising inventory" />
 
           <div className="sectionHead">
             <div>
@@ -882,7 +878,7 @@ function Home({
           <AISummaryBox copy={copy} />
           <AffiliatePanel />
           <Newsletter copy={copy} />
-          <AdSlot name="sidebar-rectangle" label="AdSense Sidebar Slot" compact />
+          <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
     </>
@@ -1069,7 +1065,7 @@ function AISummaryBox({ copy }) {
         <Sparkles size={18} /> AI News Companion
       </h3>
       <p>Article pages include summary, context, key facts, and source attribution.</p>
-      <button>{copy.aiBrief}</button>
+      <span className="statusPill">{copy.aiBrief}</span>
     </div>
   );
 }
@@ -1208,12 +1204,12 @@ function ArticleModal({ article, articles, copy, onClose, savedIds, toggleSave }
             publisher for the full report.
           </p>
         </div>
-        <AdSlot name="article-inline" label="AdSense Article Inline Slot" />
+        <AdSlot name="article-inline" label="Article advertising inventory" />
         <div className="sourceBox affiliateDisclosureBox">
           <h3>Affiliate disclosure</h3>
           <p>
-            Some future partner links may earn NewsSetu a commission. Editorial stories, summaries, and source links stay
-            separate from paid placements.
+            NewsSetu keeps editorial RSS stories separate from commercial placements. Any paid or affiliate link must be
+            labeled before publication.
           </p>
         </div>
         <div className="readerTools">
@@ -1246,6 +1242,7 @@ function Saved({ articles, copy, history, openArticle, savedIds, toggleSave }) {
               <ArticleCard
                 key={article.id}
                 article={article}
+                copy={copy}
                 openArticle={openArticle}
                 savedIds={savedIds}
                 toggleSave={toggleSave}
@@ -1276,9 +1273,8 @@ function Saved({ articles, copy, history, openArticle, savedIds, toggleSave }) {
 }
 
 function Admin({ user }) {
-  const rssRows = categories.map(([key, label]) => ({ key, label, status: 'Live RSS', health: 'Healthy' }));
-  const adSlots = ['top-native', 'sidebar-rectangle', 'article-inline', 'mobile-feed', 'newsletter-sponsor'];
-  const affiliateRows = ['Books and explainers', 'AI tools', 'Market data tools', 'Learning courses'];
+  const rssRows = categories.map(([key, label]) => ({ key, label, status: 'Live RSS', health: 'Configured' }));
+  const adSlots = ['top-native', 'sidebar-rectangle', 'article-inline', 'mobile-feed'];
   return (
     <main className="single">
       <section>
@@ -1312,13 +1308,11 @@ function Admin({ user }) {
           </Manager>
 
           <Manager title="Affiliate Link Manager" icon={<LinkIcon size={18} />}>
-            {affiliateRows.map((row) => (
-              <div className="managerRow" key={row}>
-                <b>{row}</b>
-                <span>Manual approval</span>
-                <em>Hidden until approved</em>
-              </div>
-            ))}
+            <div className="managerMetric">
+              <b>No public affiliate links</b>
+              <span>Add approved rows to public.affiliate_links with enabled=true.</span>
+            </div>
+            <p className="managerNote">Commercial links remain hidden until reviewed, labeled, and stored in Supabase.</p>
           </Manager>
 
           <Manager title="Newsletter Manager" icon={<Mail size={18} />}>
@@ -1326,7 +1320,7 @@ function Admin({ user }) {
               <b>Subscribers table</b>
               <span>public.newsletter_subscribers</span>
             </div>
-            <button>Export CSV</button>
+            <p className="managerNote">Export subscribers from Supabase Table Editor or a protected server function.</p>
           </Manager>
 
           <Manager title="Analytics Dashboard" icon={<BarChart3 size={18} />}>
@@ -1374,7 +1368,14 @@ function Manager({ children, icon, title }) {
 
 function Analytics({ articles, history, savedIds }) {
   const sourceCount = new Set(articles.map((article) => article.source)).size;
-  const revenueReadiness = articles.length && sourceCount ? 86 : 0;
+  const readinessChecks = [
+    articles.length > 0,
+    sourceCount > 0,
+    history.length > 0,
+    savedIds.length > 0,
+    Boolean(supabase),
+  ];
+  const revenueReadiness = Math.round((readinessChecks.filter(Boolean).length / readinessChecks.length) * 100);
   return (
     <main className="single">
       <section>
@@ -1401,7 +1402,7 @@ function Analytics({ articles, history, savedIds }) {
           </div>
           <div>
             <b>{revenueReadiness}%</b>
-            <span>Revenue Readiness</span>
+            <span>Readiness</span>
           </div>
         </div>
         <div className="revenueFunnel">
@@ -1418,12 +1419,12 @@ function Analytics({ articles, history, savedIds }) {
 
 function Monetize() {
   const channels = [
-    ['AdSense Slots', 'Top banner, sidebar, article inline, mobile feed, and newsletter sponsor placements.'],
-    ['Affiliate Links', 'Admin-approved partner links with visible disclosure and category matching.'],
-    ['Newsletter Sponsorship', 'Daily brief subscriber table and sponsorship slot are ready.'],
-    ['Premium AI Summaries', 'Article intelligence panel can connect to paid summaries or memberships.'],
-    ['Sponsored Stories', 'Paid posts stay separate from editorial RSS and must be labeled.'],
-    ['SEO Revenue Loop', 'Sitemap, metadata, source links, and topic pages support search acquisition.'],
+    ['AdSense Slots', 'Top banner, sidebar, article inline, and mobile feed inventory are reserved without loading ad scripts.'],
+    ['Affiliate Links', 'Public links stay hidden until they are reviewed, labeled, enabled, and separated from editorial RSS.'],
+    ['Newsletter Sponsorship', 'Subscriber storage is ready in Supabase; sponsorships need a protected campaign workflow before launch.'],
+    ['Premium AI Summaries', 'Article intelligence can become paid only after subscription, billing, and access controls are added.'],
+    ['Sponsored Stories', 'Paid posts must use a separate content type and visible sponsorship labels.'],
+    ['SEO Revenue Loop', 'Sitemap, metadata, source links, and shareable topic URLs support search acquisition.'],
   ];
   const checklist = [
     'Apply for AdSense after enough original UI, policy pages, and stable traffic.',
@@ -1440,7 +1441,7 @@ function Monetize() {
             <p>AdSense, affiliate, newsletter, and premium AI revenue structure with editorial RSS separated from commercial placements.</p>
           </div>
           <div className="moneyScore">
-            <b>4</b>
+            <b>{channels.length}</b>
             <span>Revenue channels</span>
           </div>
         </div>
@@ -1449,7 +1450,7 @@ function Monetize() {
             <div className="adminCard" key={title}>
               <h3>{title}</h3>
               <p>{body}</p>
-              <button>Configure</button>
+              <span className="statusPill">Policy ready</span>
             </div>
           ))}
         </div>
