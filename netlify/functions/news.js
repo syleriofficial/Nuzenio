@@ -110,6 +110,7 @@ function parse(xml, category, country) {
       const link = first(item, 'link');
       const pubDate = first(item, 'pubDate');
       const summary = buildSummary(description || title);
+      const fullBrief = clean(description || title);
       return {
         id: `${country}-${category}-${index}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 16)}`,
         title,
@@ -122,6 +123,7 @@ function parse(xml, category, country) {
         readTime: Math.max(1, Math.ceil((description || title).split(/\s+/).length / 180)),
         trustScore: Math.max(84, 99 - (index % 12)),
         summary,
+        fullBrief,
         whatHappened: summary,
         whyItMatters: buildWhyItMatters(category, source),
       };

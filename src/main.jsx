@@ -491,7 +491,10 @@ function Home({
           <AdSlot name="top-native" label="AdSense Native Banner Slot" />
 
           <div className="sectionHead">
-            <h2>For You</h2>
+            <div>
+              <h2>All Latest Stories</h2>
+              <p>Every story shown here is pulled from the live RSS feed. Open any card for the full NewsSetu brief.</p>
+            </div>
             <span>{status}</span>
           </div>
 
@@ -721,9 +724,21 @@ function ArticleModal({ article, language, onClose, savedIds, toggleSave, viewMo
         </div>
         <div className="summaryPanel">
           <h3>
-            <Sparkles size={18} /> AI Summary
+            <Sparkles size={18} /> NewsSetu Brief
           </h3>
-          <p>{displaySummary(article, language, viewMode)}</p>
+          <p>{displayFullBrief(article, language, viewMode)}</p>
+        </div>
+        <div className="fullStoryPanel">
+          <div>
+            <h3>Full story access</h3>
+            <p>
+              NewsSetu shows the complete available RSS brief, AI context, key facts, and attribution here. The full
+              publisher article opens on the original source for copyright-safe reading.
+            </p>
+          </div>
+          <a href={article.link} target="_blank" rel="noreferrer">
+            Read full story on {article.source} <ExternalLink size={16} />
+          </a>
         </div>
         <div className="infoGrid">
           <div>
@@ -1076,6 +1091,13 @@ function displaySummary(article, language, viewMode) {
   if (!article) return '';
   if (viewMode === 'original' || language.code === 'en') return article.summary;
   return `${article.summary} Translation layer selected for ${language.label}; connect a server-side AI translation endpoint before production traffic.`;
+}
+
+function displayFullBrief(article, language, viewMode) {
+  if (!article) return '';
+  const brief = article.fullBrief || article.summary;
+  if (viewMode === 'original' || language.code === 'en') return brief;
+  return `${brief} Translation layer selected for ${language.label}; connect a server-side AI translation endpoint before production traffic.`;
 }
 
 function buildKeyFacts(article) {
