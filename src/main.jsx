@@ -352,14 +352,44 @@ function uiCopy(code) {
   return translations[code] || translations[languageAliases[code]] || translations.en;
 }
 
+function readUrlParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+function initialCategory() {
+  const urlCategory = readUrlParam('category');
+  return categories.some(([key]) => key === urlCategory) ? urlCategory : 'local';
+}
+
+function initialLanguage() {
+  const urlLanguage = readUrlParam('language');
+  const linkedLanguage = languages.find((item) => item.code === urlLanguage);
+  return linkedLanguage || readLocal('newssetu_news_language', languages[0]);
+}
+
+function initialLocation() {
+  const urlCountry = readUrlParam('country');
+  if (!urlCountry) return readLocal('newssetu_location', detectLocaleCountry());
+  const country = normalizeCountry(urlCountry);
+  const region = readUrlParam('region') || '';
+  const city = readUrlParam('city') || '';
+  return {
+    country,
+    region,
+    city,
+    label: placeLabel({ country, region, city }),
+    source: 'link',
+  };
+}
+
 function App() {
   const [screen, setScreen] = useState('home');
-  const [category, setCategory] = useState('local');
+  const [category, setCategory] = useState(initialCategory);
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
   const [query, setQuery] = useState('');
-  const [language, setLanguage] = useState(() => readLocal('newssetu_news_language', languages[0]));
-  const [location, setLocation] = useState(() => readLocal('newssetu_location', detectLocaleCountry()));
+  const [language, setLanguage] = useState(initialLanguage);
+  const [location, setLocation] = useState(initialLocation);
   const [savedIds, setSavedIds] = useState(() => readLocal('newssetu_saved_ids', []));
   const [history, setHistory] = useState(() => readLocal('newssetu_history', []));
   const [selected, setSelected] = useState(null);
@@ -375,7 +405,7 @@ function App() {
   }, [language]);
 
   useEffect(() => {
-    if (location.source !== 'manual') {
+    if (!['manual', 'link'].includes(location.source)) {
       detectAccurateLocation(updateLocation);
     }
   }, []);
@@ -383,6 +413,13 @@ function App() {
   useEffect(() => {
     loadNews(category, location.country, location.region, location.city, language.code);
   }, [category, location.country, location.region, location.city, language.code]);
+
+  useEffect(() => {
+    const articleId = readUrlParam('article');
+    if (!articleId || selected?.id === articleId) return;
+    const linkedArticle = articles.find((article) => article.id === articleId);
+    if (linkedArticle) setSelected(linkedArticle);
+  }, [articles, selected]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -497,6 +534,7 @@ function App() {
 
   async function openArticle(article) {
     setSelected(article);
+    pushArticleUrl(article);
     const entry = {
       id: article.id,
       title: article.title,
@@ -516,6 +554,26 @@ function App() {
         category: article.category,
       });
     }
+  }
+
+  function pushArticleUrl(article) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('article', article.id);
+    url.searchParams.set('category', category);
+    url.searchParams.set('country', location.country);
+    url.searchParams.set('language', language.code);
+    if (location.region) url.searchParams.set('region', location.region);
+    else url.searchParams.delete('region');
+    if (location.city) url.searchParams.set('city', location.city);
+    else url.searchParams.delete('city');
+    window.history.pushState({}, '', url);
+  }
+
+  function closeArticle() {
+    setSelected(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('article');
+    window.history.pushState({}, '', url);
   }
 
   const copy = uiCopy(language.code);
@@ -587,7 +645,7 @@ function App() {
           articles={articles}
           copy={copy}
           language={language}
-          onClose={() => setSelected(null)}
+          onClose={closeArticle}
           savedIds={savedIds}
           toggleSave={toggleSave}
         />
@@ -1617,11 +1675,14 @@ function writeLocal(key, value) {
 }
 
 async function shareArticle(article) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('article', article.id);
+  const shareUrl = url.toString();
   if (navigator.share) {
-    await navigator.share({ title: article.title, url: article.link });
+    await navigator.share({ title: article.title, url: shareUrl });
     return;
   }
-  await navigator.clipboard?.writeText(article.link);
+  await navigator.clipboard?.writeText(shareUrl);
 }
 
 createRoot(document.getElementById('root')).render(<App />);
