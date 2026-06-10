@@ -106,9 +106,8 @@ function App() {
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
   const [query, setQuery] = useState('');
-  const [language, setLanguage] = useState(languages[0]);
+  const [language, setLanguage] = useState(() => readLocal('newssetu_news_language', languages[0]));
   const [location, setLocation] = useState(() => readLocal('newssetu_location', detectLocaleCountry()));
-  const [viewMode, setViewMode] = useState('original');
   const [savedIds, setSavedIds] = useState(() => readLocal('newssetu_saved_ids', []));
   const [history, setHistory] = useState(() => readLocal('newssetu_history', []));
   const [selected, setSelected] = useState(null);
@@ -122,14 +121,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.dataset.newsLanguage = language.code;
+    writeLocal('newssetu_news_language', language);
+  }, [language]);
+
+  useEffect(() => {
     if (location.source !== 'manual') {
       detectAccurateLocation(updateLocation);
     }
   }, []);
 
   useEffect(() => {
-    loadNews(category, location.country, location.region, location.city);
-  }, [category, location.country, location.region, location.city]);
+    loadNews(category, location.country, location.region, location.city, language.code);
+  }, [category, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -141,12 +145,19 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function loadNews(cat = 'local', country = location.country, region = location.region, city = location.city) {
+  async function loadNews(
+    cat = 'local',
+    country = location.country,
+    region = location.region,
+    city = location.city,
+    newsLanguage = language.code,
+  ) {
     setStatus('Loading live RSS news...');
     try {
       const cityParam = city ? `&city=${encodeURIComponent(city)}` : '';
       const regionParam = region ? `&region=${encodeURIComponent(region)}` : '';
-      const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}`);
+      const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
+      const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
@@ -163,11 +174,11 @@ function App() {
 
   async function searchNews(event) {
     event?.preventDefault();
-    if (!query.trim()) return loadNews(category, location.country, location.region, location.city);
+    if (!query.trim()) return loadNews(category, location.country, location.region, location.city, language.code);
     setStatus('Searching live RSS news...');
     try {
       const res = await fetch(
-        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}`,
+        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=${encodeURIComponent(language.code)}`,
       );
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Search failed');
@@ -303,8 +314,6 @@ function App() {
           status={status}
           ticker={ticker}
           toggleSave={toggleSave}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
         />
       )}
       {screen === 'saved' && (
@@ -328,8 +337,6 @@ function App() {
           onClose={() => setSelected(null)}
           savedIds={savedIds}
           toggleSave={toggleSave}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
         />
       )}
       <Footer />
@@ -379,13 +386,13 @@ function Header({
           </button>
         </form>
 
-        <label className="translateSelect">
-          <span>Translate</span>
+        <label className="newsLanguageSelect">
+          <span>News language</span>
           <select
             className="language"
             value={language.code}
             onChange={(event) => setLanguage(languages.find((item) => item.code === event.target.value))}
-            aria-label="Translate articles"
+            aria-label="Set news language"
           >
             {languages.map((item) => (
               <option key={item.code} value={item.code}>
@@ -450,8 +457,6 @@ function Home({
   status,
   ticker,
   toggleSave,
-  viewMode,
-  setViewMode,
 }) {
   return (
     <>
@@ -478,7 +483,6 @@ function Home({
                 </button>
               ))}
             </div>
-            <TranslationToggle viewMode={viewMode} setViewMode={setViewMode} language={language} />
           </div>
 
           <div className="heroGrid">
@@ -490,8 +494,8 @@ function Home({
                 <div className="badge">
                   <ShieldCheck size={15} /> Live RSS verified
                 </div>
-                <h2>{displayTitle(lead, language, viewMode) || 'Loading live lead story...'}</h2>
-                <p>{displaySummary(lead, language, viewMode) || status}</p>
+                <h2>{displayTitle(lead) || 'Loading live lead story...'}</h2>
+                <p>{displaySummary(lead) || status}</p>
                 <div className="leadActions">
                   <span>
                     <Sparkles size={15} /> AI brief ready
@@ -508,9 +512,7 @@ function Home({
                 <SmallStory
                   key={article.id}
                   article={article}
-                  language={language}
                   openArticle={openArticle}
-                  viewMode={viewMode}
                 />
               ))}
             </div>
@@ -531,18 +533,16 @@ function Home({
               <ArticleCard
                 key={article.id}
                 article={article}
-                language={language}
                 openArticle={openArticle}
                 savedIds={savedIds}
                 toggleSave={toggleSave}
-                viewMode={viewMode}
               />
             ))}
           </div>
         </section>
 
         <aside className="rightRail">
-          <Trending articles={articles} language={language} openArticle={openArticle} viewMode={viewMode} />
+          <Trending articles={articles} openArticle={openArticle} />
           <AISummaryBox />
           <AffiliatePanel />
           <Newsletter />
@@ -654,14 +654,14 @@ function LocationBanner({ location, setLocation, status }) {
   );
 }
 
-function SmallStory({ article, language, openArticle, viewMode }) {
+function SmallStory({ article, openArticle }) {
   return (
     <button className="smallStory" onClick={() => openArticle(article)}>
       <div className="miniThumb">
         <Globe2 size={28} />
       </div>
       <div>
-        <b>{displayTitle(article, language, viewMode)}</b>
+        <b>{displayTitle(article)}</b>
         <span>
           {article.source} · {formatDate(article.pubDate)}
         </span>
@@ -670,7 +670,7 @@ function SmallStory({ article, language, openArticle, viewMode }) {
   );
 }
 
-function ArticleCard({ article, language, openArticle, savedIds, toggleSave, viewMode }) {
+function ArticleCard({ article, openArticle, savedIds, toggleSave }) {
   const isSaved = savedIds.includes(article.id);
   return (
     <article className="articleCard">
@@ -681,9 +681,9 @@ function ArticleCard({ article, language, openArticle, savedIds, toggleSave, vie
         </span>
       </div>
       <button className="headline" onClick={() => openArticle(article)}>
-        {displayTitle(article, language, viewMode)}
+        {displayTitle(article)}
       </button>
-      <p>{displaySummary(article, language, viewMode)}</p>
+      <p>{displaySummary(article)}</p>
       <div className="trustRow">
         <span>
           <ShieldCheck size={14} /> Trust {article.trustScore || 91}%
@@ -713,7 +713,7 @@ function ArticleCard({ article, language, openArticle, savedIds, toggleSave, vie
   );
 }
 
-function Trending({ articles, language, openArticle, viewMode }) {
+function Trending({ articles, openArticle }) {
   return (
     <div className="railCard">
       <h3>
@@ -722,7 +722,7 @@ function Trending({ articles, language, openArticle, viewMode }) {
       {articles.slice(0, 5).map((article, index) => (
         <button className="trend" key={article.id} onClick={() => openArticle(article)}>
           <b>{index + 1}</b>
-          <span>{displayTitle(article, language, viewMode)}</span>
+          <span>{displayTitle(article)}</span>
         </button>
       ))}
     </div>
@@ -780,7 +780,7 @@ function Newsletter() {
   );
 }
 
-function ArticleModal({ article, articles, language, onClose, savedIds, toggleSave, viewMode, setViewMode }) {
+function ArticleModal({ article, articles, onClose, savedIds, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -796,9 +796,8 @@ function ArticleModal({ article, articles, language, onClose, savedIds, toggleSa
         <div className="progress" />
         <div className="articleTopline">
           <span className="category">{article.category?.toUpperCase()}</span>
-          <TranslationToggle viewMode={viewMode} setViewMode={setViewMode} language={language} />
         </div>
-        <h1>{displayTitle(article, language, viewMode)}</h1>
+        <h1>{displayTitle(article)}</h1>
         <div className="articleMeta">
           {article.source} · {formatDate(article.pubDate)} · <ShieldCheck size={14} /> Verified RSS
         </div>
@@ -806,7 +805,7 @@ function ArticleModal({ article, articles, language, onClose, savedIds, toggleSa
           <h3>
             <Sparkles size={18} /> NewsSetu Brief
           </h3>
-          <p>{displayFullBrief(article, language, viewMode)}</p>
+          <p>{displayFullBrief(article)}</p>
         </div>
         <div className="fullStoryPanel">
           <div>
@@ -823,7 +822,7 @@ function ArticleModal({ article, articles, language, onClose, savedIds, toggleSa
         <div className="infoGrid">
           <div>
             <h3>What happened</h3>
-            <p>{article.whatHappened || displaySummary(article, language, viewMode)}</p>
+            <p>{article.whatHappened || displaySummary(article)}</p>
           </div>
           <div>
             <h3>Why it matters</h3>
@@ -891,9 +890,6 @@ function ArticleModal({ article, articles, language, onClose, savedIds, toggleSa
           </p>
         </div>
         <div className="readerTools">
-          <button>
-            <Languages size={16} /> {viewMode === 'original' ? 'Original' : 'Translated'}
-          </button>
           <button onClick={() => toggleSave(article)}>
             <Bookmark size={16} /> {savedIds.includes(article.id) ? 'Saved' : 'Save'}
           </button>
@@ -923,11 +919,9 @@ function Saved({ articles, history, openArticle, savedIds, toggleSave }) {
               <ArticleCard
                 key={article.id}
                 article={article}
-                language={languages[0]}
                 openArticle={openArticle}
                 savedIds={savedIds}
                 toggleSave={toggleSave}
-                viewMode="original"
               />
             ))
           ) : (
@@ -1176,19 +1170,6 @@ function Footer() {
   );
 }
 
-function TranslationToggle({ language, setViewMode, viewMode }) {
-  return (
-    <div className="translationToggle" role="group" aria-label="Original or translated article view">
-      <button className={viewMode === 'original' ? 'active' : ''} onClick={() => setViewMode('original')}>
-        Original
-      </button>
-      <button className={viewMode === 'translated' ? 'active' : ''} onClick={() => setViewMode('translated')}>
-        {language.native}
-      </button>
-    </div>
-  );
-}
-
 function AdSlot({ compact = false, label, name }) {
   return (
     <div className={`adSlot ${compact ? 'sideAd' : ''}`} data-ad-slot={name}>
@@ -1198,23 +1179,19 @@ function AdSlot({ compact = false, label, name }) {
   );
 }
 
-function displayTitle(article, language, viewMode) {
+function displayTitle(article) {
   if (!article) return '';
-  if (viewMode === 'original' || language.code === 'en') return article.title;
-  return `${article.title} (${language.native})`;
+  return article.title;
 }
 
-function displaySummary(article, language, viewMode) {
+function displaySummary(article) {
   if (!article) return '';
-  if (viewMode === 'original' || language.code === 'en') return article.summary;
-  return `${article.summary} Translation layer selected for ${language.label}; connect a server-side AI translation endpoint before production traffic.`;
+  return article.summary;
 }
 
-function displayFullBrief(article, language, viewMode) {
+function displayFullBrief(article) {
   if (!article) return '';
-  const brief = article.fullBrief || article.summary;
-  if (viewMode === 'original' || language.code === 'en') return brief;
-  return `${brief} Translation layer selected for ${language.label}; connect a server-side AI translation endpoint before production traffic.`;
+  return article.fullBrief || article.summary;
 }
 
 function buildKeyFacts(article) {
@@ -1258,8 +1235,8 @@ function buildFaq(article) {
       a: 'Copying full publisher articles without a license can create copyright and monetization problems. NewsSetu keeps attribution clear and links readers to the source.',
     },
     {
-      q: 'Can I read this in another language?',
-      a: 'Use the Original / translated toggle. A server-side AI translation endpoint can be connected for production translation quality.',
+      q: 'Can I get news in another language?',
+      a: 'Use the News language selector in the header. NewsSetu reloads the RSS feed in the selected language when the source supports it.',
     },
   ];
 }

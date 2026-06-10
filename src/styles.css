@@ -157,7 +157,7 @@ button {
   gap: 7px;
 }
 
-.translateSelect {
+.newsLanguageSelect {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -369,8 +369,7 @@ button {
   padding-bottom: 6px;
 }
 
-.categoryBar button,
-.translationToggle button {
+.categoryBar button {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
@@ -380,29 +379,10 @@ button {
   white-space: nowrap;
 }
 
-.categoryBar .pillActive,
-.translationToggle .active {
+.categoryBar .pillActive {
   border-color: var(--red);
   background: var(--red);
   color: #fff;
-}
-
-.translationToggle {
-  display: flex;
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-}
-
-.translationToggle button {
-  border: 0;
-  padding: 8px 12px;
-}
-
-.translationToggle .active {
-  background: var(--blue);
 }
 
 .heroGrid {
@@ -1197,7 +1177,7 @@ button {
     width: 112px;
   }
 
-  .translateSelect span {
+  .newsLanguageSelect span {
     display: none;
   }
 
@@ -1238,11 +1218,6 @@ button {
   .locationControls input,
   .locationControls button {
     width: 100%;
-  }
-
-  .translationToggle {
-    max-width: 100%;
-    overflow: auto;
   }
 
   .heroGrid,

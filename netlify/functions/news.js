@@ -166,11 +166,17 @@ function cleanRegion(region = '') {
   return region.replace(/[^\p{L}\p{N}\s.'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 }
 
-function googleNewsUrl({ category, country, q, region, city }) {
+function normalizeLanguage(language = 'en') {
+  const value = language.toLowerCase();
+  return /^[a-z]{2}$/.test(value) ? value : 'en';
+}
+
+function googleNewsUrl({ category, country, q, region, city, language }) {
   const countryCode = normalizeCountry(country);
+  const newsLanguage = normalizeLanguage(language);
   const stateRegion = cleanRegion(region);
   const cityArea = cleanRegion(city);
-  const params = `hl=en-${countryCode}&gl=${countryCode}&ceid=${countryCode}:en`;
+  const params = `hl=${newsLanguage}-${countryCode}&gl=${countryCode}&ceid=${countryCode}:${newsLanguage}`;
   if (q) {
     return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${params}`;
   }
@@ -194,8 +200,9 @@ export const handler = async (event) => {
     const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
     const region = cleanRegion(event.queryStringParameters?.region || '');
     const city = cleanRegion(event.queryStringParameters?.city || '');
+    const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
     const q = (event.queryStringParameters?.q || '').trim();
-    const url = googleNewsUrl({ category, country, q, region, city });
+    const url = googleNewsUrl({ category, country, q, region, city, language });
     const xml = await fetchText(url);
     const articles = parse(xml, category, country);
 
@@ -209,6 +216,7 @@ export const handler = async (event) => {
         countryName: countryLabel(country),
         region: region || null,
         city: city || null,
+        language,
         query: q || null,
         total: articles.length,
         sourceType: 'live-rss',

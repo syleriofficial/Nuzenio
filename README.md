@@ -12,7 +12,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, and analytics schema
 - Translation selector for Hindi, English, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu, Arabic, Spanish, French, German, Portuguese, Russian, Chinese, Japanese, Korean
 - RTL document support for Urdu and Arabic
-- Original / translated reading toggle UI
+- News language selector that reloads live RSS in the selected language
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
 - Admin dashboard for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
 - Affiliate link manager structure with visible disclosure
