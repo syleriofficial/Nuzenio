@@ -10,7 +10,7 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
-const CATEGORIES = new Set(['local', 'top', 'video', ...Object.keys(TOPICS)]);
+const CATEGORIES = new Set(['local', 'top', 'video', 'shorts', ...Object.keys(TOPICS)]);
 
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
@@ -135,7 +135,12 @@ function parse(xml, category, country) {
         whyItMatters: buildWhyItMatters(category, source),
       };
     })
-    .filter((article) => article.title && article.link);
+    .filter((article) => article.title && article.link)
+    .filter((article) => (['video', 'shorts'].includes(category) ? isYouTubeArticle(article) : true));
+}
+
+function isYouTubeArticle(article) {
+  return /youtube/i.test(`${article.source} ${article.link} ${article.title}`);
 }
 
 function buildSummary(text) {
@@ -196,8 +201,12 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
     return `https://news.google.com/rss/search?q=${encodeURIComponent(localQuery)}&${params}`;
   }
   if (category === 'video') {
-    const videoQuery = ['video news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    const videoQuery = ['site:youtube.com', 'video news', countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(videoQuery)}&${params}`;
+  }
+  if (category === 'shorts') {
+    const shortsQuery = ['site:youtube.com/shorts', 'news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(shortsQuery)}&${params}`;
   }
   if (TOPICS[category]) {
     return `https://news.google.com/rss/headlines/section/topic/${TOPICS[category]}?${params}`;

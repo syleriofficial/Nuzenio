@@ -44,6 +44,7 @@ const categories = [
   ['health', 'Health'],
   ['science', 'Science'],
   ['video', 'Video'],
+  ['shorts', 'Shorts'],
 ];
 
 const countryNames = {
@@ -155,6 +156,7 @@ const translations = {
       health: 'Health',
       science: 'Science',
       video: 'Video',
+      shorts: 'Shorts',
     },
   },
   hi: {
@@ -214,6 +216,7 @@ const translations = {
       health: 'स्वास्थ्य',
       science: 'विज्ञान',
       video: 'वीडियो',
+      shorts: 'शॉर्ट्स',
     },
   },
   ar: {
@@ -273,6 +276,7 @@ const translations = {
       health: 'الصحة',
       science: 'العلوم',
       video: 'فيديو',
+      shorts: 'شورتس',
     },
   },
   es: {
@@ -332,6 +336,7 @@ const translations = {
       health: 'Salud',
       science: 'Ciencia',
       video: 'Video',
+      shorts: 'Shorts',
     },
   },
 };
@@ -1042,9 +1047,9 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
     <article className="articleCard">
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
-        {article.category === 'video' && (
+        {['video', 'shorts'].includes(article.category) && (
           <span>
-            <PlayCircle size={13} /> Video
+            <PlayCircle size={13} /> {article.category === 'shorts' ? 'Shorts' : 'YouTube'}
           </span>
         )}
         <span>
@@ -1529,6 +1534,14 @@ function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
         }}
       >
         <PlayCircle size={18} /> {copy.categories.video}
+      </button>
+      <button
+        onClick={() => {
+          setCategory('shorts');
+          setScreen('home');
+        }}
+      >
+        <PlayCircle size={18} /> {copy.categories.shorts}
       </button>
       <button onClick={() => setScreen('saved')}>
         <Bookmark size={18} /> {copy.saved}
