@@ -10,6 +10,8 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
+const CATEGORIES = new Set(['local', 'top', ...Object.keys(TOPICS)]);
+
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
   AU: 'Australia',
@@ -166,6 +168,15 @@ function cleanRegion(region = '') {
   return region.replace(/[^\p{L}\p{N}\s.'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 }
 
+function cleanQuery(query = '') {
+  return query.replace(/[^\p{L}\p{N}\s.,'"!?&:()-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+}
+
+function normalizeCategory(category = 'local') {
+  const value = category.toLowerCase();
+  return CATEGORIES.has(value) ? value : 'local';
+}
+
 function normalizeLanguage(language = 'en') {
   const value = language.toLowerCase();
   return /^[a-z]{2}$/.test(value) ? value : 'en';
@@ -196,12 +207,12 @@ export const handler = async (event) => {
   }
 
   try {
-    const category = (event.queryStringParameters?.category || 'local').toLowerCase();
+    const category = normalizeCategory(event.queryStringParameters?.category || 'local');
     const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
     const region = cleanRegion(event.queryStringParameters?.region || '');
     const city = cleanRegion(event.queryStringParameters?.city || '');
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
-    const q = (event.queryStringParameters?.q || '').trim();
+    const q = cleanQuery(event.queryStringParameters?.q || '');
     const url = googleNewsUrl({ category, country, q, region, city, language });
     const xml = await fetchText(url);
     const articles = parse(xml, category, country);

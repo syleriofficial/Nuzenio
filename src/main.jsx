@@ -878,7 +878,7 @@ function Home({
           <Trending articles={articles} copy={copy} openArticle={openArticle} />
           <AISummaryBox copy={copy} />
           <AffiliatePanel />
-          <Newsletter copy={copy} />
+          <Newsletter copy={copy} language={language} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
@@ -1083,15 +1083,25 @@ function AffiliatePanel() {
   );
 }
 
-function Newsletter({ copy }) {
+function Newsletter({ copy, language }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
   async function subscribe(event) {
     event.preventDefault();
-    if (!email.trim()) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setMessage('Enter a valid email address.');
+      return;
+    }
     if (supabase) {
-      await supabase.from('newsletter_subscribers').insert({ email: email.trim(), language: 'en' });
+      const { error } = await supabase
+        .from('newsletter_subscribers')
+        .insert({ email: normalizedEmail, language: language.code });
+      if (error && error.code !== '23505') {
+        setMessage('Subscription could not be saved. Please try again.');
+        return;
+      }
     }
     setMessage('Subscribed for the daily brief.');
     setEmail('');

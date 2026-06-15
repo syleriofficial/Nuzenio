@@ -100,6 +100,21 @@ alter table public.adsense_slots enable row level security;
 alter table public.affiliate_links enable row level security;
 alter table public.analytics_events enable row level security;
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role = 'admin'
+  );
+$$;
+
 create policy "Profiles are readable by owner"
 on public.profiles for select using (auth.uid() = id);
 
@@ -129,6 +144,34 @@ on public.affiliate_links for select using (enabled = true);
 
 create policy "Users can insert analytics events"
 on public.analytics_events for insert with check (auth.uid() = user_id or user_id is null);
+
+create policy "Admins can manage profiles"
+on public.profiles for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can manage rss sources"
+on public.rss_sources for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can manage ad slots"
+on public.adsense_slots for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can manage affiliate links"
+on public.affiliate_links for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can read newsletter subscribers"
+on public.newsletter_subscribers for select
+using (public.is_admin());
+
+create policy "Admins can read analytics events"
+on public.analytics_events for select
+using (public.is_admin());
 
 create index if not exists saved_articles_user_idx on public.saved_articles(user_id, created_at desc);
 create index if not exists reading_history_user_idx on public.reading_history(user_id, read_at desc);

@@ -93,6 +93,11 @@ function clientIp(event) {
   return (headerIp || '').trim();
 }
 
+function validCoordinate(value, min, max) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max;
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
@@ -102,7 +107,7 @@ export const handler = async (event) => {
     const lat = event.queryStringParameters?.lat;
     const lon = event.queryStringParameters?.lon;
 
-    if (lat && lon) {
+    if (validCoordinate(lat, -90, 90) && validCoordinate(lon, -180, 180)) {
       const geo = await fetchJson(
         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`,
       );
