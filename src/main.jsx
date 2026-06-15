@@ -991,12 +991,15 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const isShort = article.category === 'shorts';
   return (
     <article className={`videoCard ${isShort ? 'shortCard' : ''}`}>
-      <button className="videoThumb" onClick={() => openArticle(article)} aria-label={`Play ${displayTitle(article)}`}>
-        <img src={videoThumbnail(article)} alt="" loading="lazy" />
-        <span>
-          <PlayCircle size={34} /> Play
-        </span>
-      </button>
+      <div className="inlineVideo">
+        <iframe
+          title={displayTitle(article)}
+          src={youtubeEmbedUrl(article, { autoplay: false })}
+          loading="lazy"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
       <div className="videoBody">
         <div className="cardTop">
           <span className="category">{isShort ? 'SHORTS' : 'VIDEO'}</span>
@@ -1702,10 +1705,11 @@ function isVideoArticle(article) {
   return ['video', 'shorts'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl);
 }
 
-function youtubeEmbedUrl(article) {
+function youtubeEmbedUrl(article, options = {}) {
+  const autoplay = options.autoplay ?? true;
   const baseUrl = article?.embedUrl || `https://www.youtube-nocookie.com/embed/${article.videoId}`;
   const joiner = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${joiner}autoplay=1&rel=0&modestbranding=1`;
+  return `${baseUrl}${joiner}autoplay=${autoplay ? '1' : '0'}&rel=0&modestbranding=1`;
 }
 
 function videoThumbnail(article) {
