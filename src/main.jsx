@@ -16,10 +16,9 @@ import {
   LogIn,
   LogOut,
   Mail,
-  Menu,
   Newspaper,
+  PlayCircle,
   Search,
-  Settings,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -44,6 +43,7 @@ const categories = [
   ['entertainment', 'Entertainment'],
   ['health', 'Health'],
   ['science', 'Science'],
+  ['video', 'Video'],
 ];
 
 const countryNames = {
@@ -154,6 +154,7 @@ const translations = {
       entertainment: 'Entertainment',
       health: 'Health',
       science: 'Science',
+      video: 'Video',
     },
   },
   hi: {
@@ -212,6 +213,7 @@ const translations = {
       entertainment: 'मनोरंजन',
       health: 'स्वास्थ्य',
       science: 'विज्ञान',
+      video: 'वीडियो',
     },
   },
   ar: {
@@ -270,6 +272,7 @@ const translations = {
       entertainment: 'الترفيه',
       health: 'الصحة',
       science: 'العلوم',
+      video: 'فيديو',
     },
   },
   es: {
@@ -328,6 +331,7 @@ const translations = {
       entertainment: 'Entretenimiento',
       health: 'Salud',
       science: 'Ciencia',
+      video: 'Video',
     },
   },
 };
@@ -702,7 +706,7 @@ function App() {
         />
       )}
       <Footer copy={copy} />
-      <MobileNav copy={copy} setScreen={setScreen} setMobileSearchOpen={setMobileSearchOpen} />
+      <MobileNav copy={copy} setCategory={setCategory} setScreen={setScreen} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
 }
@@ -1038,6 +1042,11 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
     <article className="articleCard">
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
+        {article.category === 'video' && (
+          <span>
+            <PlayCircle size={13} /> Video
+          </span>
+        )}
         <span>
           <Clock size={13} /> {article.readTime || 2} min read
         </span>
@@ -1507,20 +1516,25 @@ function Monetize() {
   );
 }
 
-function MobileNav({ copy, setScreen, setMobileSearchOpen }) {
+function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
   return (
     <div className="mobileNav">
       <button onClick={() => setScreen('home')}>
         <HomeIcon size={18} /> {copy.home}
+      </button>
+      <button
+        onClick={() => {
+          setCategory('video');
+          setScreen('home');
+        }}
+      >
+        <PlayCircle size={18} /> {copy.categories.video}
       </button>
       <button onClick={() => setScreen('saved')}>
         <Bookmark size={18} /> {copy.saved}
       </button>
       <button onClick={() => setMobileSearchOpen((value) => !value)}>
         <Search size={18} /> {copy.search}
-      </button>
-      <button onClick={() => setScreen('admin')}>
-        <Settings size={18} /> {copy.admin}
       </button>
     </div>
   );

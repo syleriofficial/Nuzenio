@@ -10,7 +10,7 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
-const CATEGORIES = new Set(['local', 'top', ...Object.keys(TOPICS)]);
+const CATEGORIES = new Set(['local', 'top', 'video', ...Object.keys(TOPICS)]);
 
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
@@ -194,6 +194,10 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
   if (category === 'local') {
     const localQuery = [cityArea, stateRegion, countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(localQuery)}&${params}`;
+  }
+  if (category === 'video') {
+    const videoQuery = ['video news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(videoQuery)}&${params}`;
   }
   if (TOPICS[category]) {
     return `https://news.google.com/rss/headlines/section/topic/${TOPICS[category]}?${params}`;
