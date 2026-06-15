@@ -37,7 +37,7 @@ Functions directory: netlify/functions
 
 1. Create a Supabase project.
 2. In Authentication > Providers, enable Google.
-3. Add the deployed site URL to Authentication > URL Configuration.
+3. Add the deployed site URLs to Authentication > URL Configuration.
 4. Run `supabase/schema.sql` in the Supabase SQL editor.
 5. Add these Netlify environment variables:
 
@@ -45,6 +45,43 @@ Functions directory: netlify/functions
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
 ```
+
+Recommended Supabase auth URLs:
+
+```text
+Site URL: https://nuzenio.com
+Redirect URLs:
+https://nuzenio.com
+https://nuzenio.com/*
+https://<netlify-site-name>.netlify.app
+https://<netlify-site-name>.netlify.app/*
+```
+
+## Nuzenio.com launch checklist
+
+1. Buy `nuzenio.com` from a registrar.
+2. In Netlify, open Site configuration > Domain management.
+3. Add `nuzenio.com` as the primary custom domain.
+4. Add `www.nuzenio.com` as a domain alias.
+5. At the registrar DNS panel, use Netlify DNS or add these records:
+
+```text
+A     @     75.2.60.5
+CNAME www   <netlify-site-name>.netlify.app
+```
+
+6. In Netlify, enable HTTPS after DNS propagation.
+7. Confirm these URLs load:
+
+```text
+https://nuzenio.com
+https://nuzenio.com/api/news
+https://nuzenio.com/privacy.html
+https://nuzenio.com/sitemap.xml
+```
+
+8. Submit `https://nuzenio.com/sitemap.xml` in Google Search Console.
+9. Keep `https://nuzenio.com` as the canonical production URL.
 
 ## Local development
 
