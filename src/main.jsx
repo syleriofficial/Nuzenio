@@ -520,7 +520,8 @@ function App() {
         : data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      setStatus(`${data.total} live articles for ${place}`);
+      const itemLabel = cat === 'video' ? 'live videos' : cat === 'shorts' ? 'live shorts' : 'live articles';
+      setStatus(`${data.total} ${itemLabel} for ${place}`);
     } catch (error) {
       setStatus(`Live API error: ${error.message}`);
     }
@@ -840,6 +841,67 @@ function Home({
   ticker,
   toggleSave,
 }) {
+  const isVideoSection = ['video', 'shorts'].includes(category);
+
+  if (isVideoSection) {
+    return (
+      <>
+        <div className="breaking">
+          <b>{category === 'shorts' ? 'SHORTS' : copy.categories.video.toUpperCase()}</b>
+          <span>{ticker || status}</span>
+        </div>
+        <RevenueStrip />
+
+        <main className="main">
+          <section>
+            <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
+            <ProductTrustBar />
+            <div className={`videoHero ${category === 'shorts' ? 'shortsHero' : ''}`}>
+              <div>
+                <span className="badge">
+                  <PlayCircle size={15} /> YouTube live source
+                </span>
+                <h2>{category === 'shorts' ? 'News Shorts' : 'News Videos'}</h2>
+                <p>
+                  Real YouTube videos loaded for your selected country and language. Tap any video to watch inside Nuzenio.
+                </p>
+              </div>
+              <b>{articles.length}</b>
+            </div>
+            <AdSlot name="top-native" label="Top advertising inventory" />
+            <div className="sectionHead">
+              <div>
+                <h2>{category === 'shorts' ? 'Latest Shorts' : 'Latest Videos'}</h2>
+                <p>No article cards here. This section only shows playable YouTube video results.</p>
+              </div>
+              <span>{status}</span>
+            </div>
+            <div className={`videoGrid ${category === 'shorts' ? 'shortsGrid' : ''}`}>
+              {articles.map((article) => (
+                <VideoCard
+                  key={article.id}
+                  article={article}
+                  copy={copy}
+                  openArticle={openArticle}
+                  savedIds={savedIds}
+                  toggleSave={toggleSave}
+                />
+              ))}
+              {articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+            </div>
+          </section>
+
+          <aside className="rightRail">
+            <Trending articles={articles} copy={copy} openArticle={openArticle} />
+            <AISummaryBox copy={copy} />
+            <Newsletter copy={copy} language={language} />
+            <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
+          </aside>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <div className="breaking">
@@ -921,6 +983,42 @@ function Home({
         </aside>
       </main>
     </>
+  );
+}
+
+function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
+  const isSaved = savedIds.includes(article.id);
+  const isShort = article.category === 'shorts';
+  return (
+    <article className={`videoCard ${isShort ? 'shortCard' : ''}`}>
+      <button className="videoThumb" onClick={() => openArticle(article)} aria-label={`Play ${displayTitle(article)}`}>
+        <img src={videoThumbnail(article)} alt="" loading="lazy" />
+        <span>
+          <PlayCircle size={34} /> Play
+        </span>
+      </button>
+      <div className="videoBody">
+        <div className="cardTop">
+          <span className="category">{isShort ? 'SHORTS' : 'VIDEO'}</span>
+          <span>{article.source}</span>
+        </div>
+        <button className="headline" onClick={() => openArticle(article)}>
+          {displayTitle(article)}
+        </button>
+        <p>{displaySummary(article)}</p>
+        <div className="cardActions">
+          <button className="primaryAction" onClick={() => openArticle(article)}>
+            <PlayCircle size={15} /> Watch
+          </button>
+          <button onClick={() => toggleSave(article)}>
+            <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? copy.saved : copy.save}
+          </button>
+          <button onClick={() => shareArticle(article)}>
+            <Share2 size={15} /> Share
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -1167,6 +1265,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
+  const isVideo = isVideoArticle(article);
   const related = articles
     .filter((item) => item.id !== article.id && (item.category === article.category || item.source === article.source))
     .slice(0, 4);
@@ -1184,9 +1283,19 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         <div className="articleMeta">
           {article.source} · {formatDate(article.pubDate)} · <ShieldCheck size={14} /> Verified RSS
         </div>
+        {isVideo && (
+          <div className={`videoPlayer ${article.category === 'shorts' ? 'shortPlayer' : ''}`}>
+            <iframe
+              title={displayTitle(article)}
+              src={youtubeEmbedUrl(article)}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
         <div className="summaryPanel">
           <h3>
-            <Sparkles size={18} /> {copy.brandBrief}
+            <Sparkles size={18} /> {isVideo ? 'Video brief' : copy.brandBrief}
           </h3>
           <p>{displayFullBrief(article)}</p>
         </div>
@@ -1587,6 +1696,20 @@ function displaySummary(article) {
 function displayFullBrief(article) {
   if (!article) return '';
   return article.fullBrief || article.summary;
+}
+
+function isVideoArticle(article) {
+  return ['video', 'shorts'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl);
+}
+
+function youtubeEmbedUrl(article) {
+  if (article?.embedUrl) return article.embedUrl;
+  return `https://www.youtube-nocookie.com/embed/${article.videoId}`;
+}
+
+function videoThumbnail(article) {
+  if (article?.image) return article.image;
+  return article?.videoId ? `https://i.ytimg.com/vi/${article.videoId}/hqdefault.jpg` : '';
 }
 
 function buildKeyFacts(article) {

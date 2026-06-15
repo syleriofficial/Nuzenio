@@ -42,7 +42,7 @@ const headers = {
   'Content-Type': 'application/json; charset=utf-8',
 };
 
-function fetchText(url, redirects = 0) {
+function fetchText(url, redirects = 0, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const request = https.get(
       url,
@@ -51,13 +51,14 @@ function fetchText(url, redirects = 0) {
         headers: {
           Accept: 'application/rss+xml, application/xml, text/xml',
           'User-Agent': 'Nuzenio/1.0 (+https://nuzenio.com)',
+          ...extraHeaders,
         },
       },
       (response) => {
         if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
           response.resume();
           if (redirects > 2) return reject(new Error('Too many RSS redirects'));
-          return resolve(fetchText(new URL(response.headers.location, url).toString(), redirects + 1));
+          return resolve(fetchText(new URL(response.headers.location, url).toString(), redirects + 1, extraHeaders));
         }
 
         if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -143,6 +144,80 @@ function isYouTubeArticle(article) {
   return /youtube/i.test(`${article.source} ${article.link} ${article.title}`);
 }
 
+function extractYouTubeVideos(html, category, country) {
+  const idPattern = category === 'shorts'
+    ? /"reelWatchEndpoint":\{"videoId":"([\w-]{11})"/g
+    : /"videoId":"([\w-]{11})"/g;
+  const seen = new Set();
+  const videos = [];
+  let match;
+
+  while ((match = idPattern.exec(html)) && videos.length < 36) {
+    const videoId = match[1];
+    if (seen.has(videoId)) continue;
+    seen.add(videoId);
+
+    const nearby = html.slice(Math.max(0, match.index - 900), match.index + 2600);
+    const title = cleanJsonText(
+      nearby.match(/"title":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
+        || nearby.match(/"accessibilityData":\{"label":"([^"]+)"/)?.[1]
+        || 'YouTube news video',
+    );
+    const channel = cleanJsonText(
+      nearby.match(/"ownerText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
+        || nearby.match(/"shortBylineText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
+        || 'YouTube',
+    );
+    const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
+    const linkPath = category === 'shorts' ? `/shorts/${videoId}` : `/watch?v=${videoId}`;
+    const link = `https://www.youtube.com${linkPath}`;
+    const summary = `${channel} · ${published}`;
+
+    videos.push({
+      id: `${country}-${category}-${videoId}`,
+      title,
+      link,
+      source: channel,
+      pubDate: published,
+      category,
+      country,
+      image: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      videoId,
+      videoUrl: link,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+      mediaType: category === 'shorts' ? 'short' : 'video',
+      readTime: 1,
+      trustScore: 90,
+      summary,
+      fullBrief: summary,
+      whatHappened: `Watch this live YouTube news video from ${channel}.`,
+      whyItMatters: `This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.`,
+    });
+  }
+
+  return videos;
+}
+
+function cleanJsonText(value = '') {
+  return clean(value.replace(/\\u0026/g, '&').replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
+}
+
+async function fetchYouTubeVideos({ category, country, language }) {
+  const countryCode = normalizeCountry(country);
+  const newsLanguage = normalizeLanguage(language);
+  const query = [
+    countryLabel(countryCode),
+    category === 'shorts' ? 'news shorts #shorts' : 'news today video',
+  ].join(' ');
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
+  const html = await fetchText(url, 0, {
+    Accept: 'text/html,application/xhtml+xml',
+    'Accept-Language': `${newsLanguage}-${countryCode},${newsLanguage};q=0.9,en;q=0.8`,
+    'User-Agent': 'Mozilla/5.0 Nuzenio/1.0 (+https://nuzenio.com)',
+  });
+  return extractYouTubeVideos(html, category, countryCode);
+}
+
 function buildSummary(text) {
   const cleanText = clean(text);
   if (cleanText.length <= 260) return cleanText;
@@ -226,6 +301,29 @@ export const handler = async (event) => {
     const city = cleanRegion(event.queryStringParameters?.city || '');
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
     const q = cleanQuery(event.queryStringParameters?.q || '');
+
+    if (!q && ['video', 'shorts'].includes(category)) {
+      const articles = await fetchYouTubeVideos({ category, country, language });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          ok: true,
+          category,
+          country,
+          countryName: countryLabel(country),
+          region: region || null,
+          city: city || null,
+          language,
+          query: null,
+          total: articles.length,
+          sourceType: 'youtube-live-search',
+          updatedAt: new Date().toISOString(),
+          articles,
+        }),
+      };
+    }
+
     const url = googleNewsUrl({ category, country, q, region, city, language });
     const xml = await fetchText(url);
     const articles = parse(xml, category, country);
