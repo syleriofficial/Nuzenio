@@ -1384,7 +1384,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           </button>
         </div>
         <a className="original" href={article.link} target="_blank" rel="noreferrer">
-          {copy.readOriginal} <ExternalLink size={16} />
+          {isVideo ? 'Watch on YouTube' : copy.readOriginal} <ExternalLink size={16} />
         </a>
       </article>
     </div>
@@ -1703,8 +1703,9 @@ function isVideoArticle(article) {
 }
 
 function youtubeEmbedUrl(article) {
-  if (article?.embedUrl) return article.embedUrl;
-  return `https://www.youtube-nocookie.com/embed/${article.videoId}`;
+  const baseUrl = article?.embedUrl || `https://www.youtube-nocookie.com/embed/${article.videoId}`;
+  const joiner = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${joiner}autoplay=1&rel=0&modestbranding=1`;
 }
 
 function videoThumbnail(article) {
