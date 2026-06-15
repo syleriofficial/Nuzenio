@@ -452,6 +452,101 @@ button {
   font-size: 40px;
 }
 
+.videoShowcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.featuredVideo,
+.videoQueue {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.featuredFrame {
+  background: #020617;
+  aspect-ratio: 16 / 9;
+}
+
+.shortShowcase .featuredFrame {
+  width: min(360px, 100%);
+  margin: 0 auto;
+  aspect-ratio: 9 / 16;
+}
+
+.featuredFrame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.featuredBody {
+  padding: 18px;
+}
+
+.featuredBody h2 {
+  margin: 12px 0 8px;
+  font-size: 27px;
+  line-height: 1.16;
+}
+
+.featuredBody p {
+  margin: 0 0 14px;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.videoQueue {
+  padding: 14px;
+}
+
+.videoQueue h3 {
+  margin: 0 0 10px;
+}
+
+.videoQueue button {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #eef2f7;
+  background: transparent;
+  color: var(--text);
+  padding: 11px 0;
+  text-align: start;
+}
+
+.videoQueue img {
+  width: 86px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background: #020617;
+  object-fit: cover;
+}
+
+.videoQueue b {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.videoQueue small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
 .leadCard {
   position: relative;
   min-height: 438px;
@@ -680,6 +775,12 @@ button {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.videoCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
 }
 
 .videoThumb {
@@ -723,6 +824,7 @@ button {
   overflow: hidden;
   background: #020617;
   aspect-ratio: 16 / 9;
+  border-bottom: 1px solid #111827;
 }
 
 .shortCard .inlineVideo {
@@ -745,6 +847,7 @@ button {
 }
 
 .videoBody p {
+  min-height: 42px;
   color: #475569;
   line-height: 1.45;
 }
@@ -1423,6 +1526,18 @@ button {
     min-width: 72px;
     height: 72px;
     font-size: 30px;
+  }
+
+  .videoShowcase {
+    grid-template-columns: 1fr;
+  }
+
+  .featuredBody {
+    padding: 15px;
+  }
+
+  .featuredBody h2 {
+    font-size: 22px;
   }
 
   .timelineItem {

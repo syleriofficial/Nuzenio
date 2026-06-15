@@ -868,16 +868,25 @@ function Home({
               </div>
               <b>{articles.length}</b>
             </div>
+            {articles.length > 0 && (
+              <VideoShowcase
+                articles={articles}
+                copy={copy}
+                openArticle={openArticle}
+                savedIds={savedIds}
+                toggleSave={toggleSave}
+              />
+            )}
             <AdSlot name="top-native" label="Top advertising inventory" />
             <div className="sectionHead">
               <div>
-                <h2>{category === 'shorts' ? 'Latest Shorts' : 'Latest Videos'}</h2>
-                <p>No article cards here. This section only shows playable YouTube video results.</p>
+                <h2>{category === 'shorts' ? 'More Shorts' : 'More Videos'}</h2>
+                <p>Playable YouTube video feed for your selected country and language.</p>
               </div>
               <span>{status}</span>
             </div>
             <div className={`videoGrid ${category === 'shorts' ? 'shortsGrid' : ''}`}>
-              {articles.map((article) => (
+              {articles.slice(1).map((article) => (
                 <VideoCard
                   key={article.id}
                   article={article}
@@ -983,6 +992,61 @@ function Home({
         </aside>
       </main>
     </>
+  );
+}
+
+function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
+  const featured = articles[0];
+  const queue = articles.slice(1, 6);
+  const isSaved = savedIds.includes(featured.id);
+  const isShort = featured.category === 'shorts';
+
+  return (
+    <section className={`videoShowcase ${isShort ? 'shortShowcase' : ''}`}>
+      <div className="featuredVideo">
+        <div className="featuredFrame">
+          <iframe
+            title={displayTitle(featured)}
+            src={youtubeEmbedUrl(featured, { autoplay: false })}
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+        <div className="featuredBody">
+          <div className="cardTop">
+            <span className="category">{isShort ? 'FEATURED SHORT' : 'FEATURED VIDEO'}</span>
+            <span>{featured.source}</span>
+          </div>
+          <h2>{displayTitle(featured)}</h2>
+          <p>{displaySummary(featured)}</p>
+          <div className="cardActions">
+            <button className="primaryAction" onClick={() => openArticle(featured)}>
+              <PlayCircle size={15} /> Theater mode
+            </button>
+            <button onClick={() => toggleSave(featured)}>
+              <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? copy.saved : copy.save}
+            </button>
+            <button onClick={() => shareArticle(featured)}>
+              <Share2 size={15} /> Share
+            </button>
+          </div>
+        </div>
+      </div>
+      {queue.length > 0 && (
+        <div className="videoQueue">
+          <h3>Up next</h3>
+          {queue.map((article) => (
+            <button key={article.id} onClick={() => openArticle(article)}>
+              <img src={videoThumbnail(article)} alt="" loading="lazy" />
+              <span>
+                <b>{displayTitle(article)}</b>
+                <small>{article.source}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
