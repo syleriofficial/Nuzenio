@@ -45,7 +45,6 @@ const categories = [
   ['science', 'Science'],
   ['live', 'Live News'],
   ['video', 'Video'],
-  ['shorts', 'Shorts'],
 ];
 
 const countryNames = {
@@ -158,7 +157,6 @@ const translations = {
       science: 'Science',
       live: 'Live News',
       video: 'Video',
-      shorts: 'Shorts',
     },
   },
   hi: {
@@ -219,7 +217,6 @@ const translations = {
       science: 'विज्ञान',
       live: 'लाइव न्यूज़',
       video: 'वीडियो',
-      shorts: 'शॉर्ट्स',
     },
   },
   ar: {
@@ -280,7 +277,6 @@ const translations = {
       science: 'العلوم',
       live: 'أخبار مباشرة',
       video: 'فيديو',
-      shorts: 'شورتس',
     },
   },
   es: {
@@ -341,7 +337,6 @@ const translations = {
       science: 'Ciencia',
       live: 'Noticias en vivo',
       video: 'Video',
-      shorts: 'Shorts',
     },
   },
 };
@@ -525,7 +520,7 @@ function App() {
         : data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      const itemLabel = cat === 'live' ? 'live news streams' : cat === 'video' ? 'live videos' : cat === 'shorts' ? 'live shorts' : 'live articles';
+      const itemLabel = cat === 'live' ? 'live news streams' : cat === 'video' ? 'live videos' : 'live articles';
       setStatus(`${data.total} ${itemLabel} for ${place}`);
     } catch (error) {
       setStatus(`Live API error: ${error.message}`);
@@ -846,7 +841,7 @@ function Home({
   ticker,
   toggleSave,
 }) {
-  const isVideoSection = ['live', 'video', 'shorts'].includes(category);
+  const isVideoSection = ['live', 'video'].includes(category);
 
   if (isVideoSection) {
     return (
@@ -861,12 +856,12 @@ function Home({
           <section>
             <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
             <ProductTrustBar />
-            <div className={`videoHero ${category === 'shorts' ? 'shortsHero' : ''}`}>
+            <div className="videoHero">
               <div>
                 <span className="badge">
                   <PlayCircle size={15} /> YouTube live source
                 </span>
-                <h2>{category === 'shorts' ? 'News Shorts' : category === 'live' ? 'Live News' : 'News Videos'}</h2>
+                <h2>{category === 'live' ? 'Live News' : 'News Videos'}</h2>
                 <p>
                   Real YouTube {category === 'live' ? 'live streams' : 'videos'} loaded for your selected country and language. Watch inside Nuzenio.
                 </p>
@@ -885,12 +880,12 @@ function Home({
             <AdSlot name="top-native" label="Top advertising inventory" />
             <div className="sectionHead">
               <div>
-                <h2>{category === 'shorts' ? 'More Shorts' : category === 'live' ? 'More Live News' : 'More Videos'}</h2>
+                <h2>{category === 'live' ? 'More Live News' : 'More Videos'}</h2>
                 <p>Playable YouTube video feed for your selected country and language.</p>
               </div>
               <span>{status}</span>
             </div>
-            <div className={`videoGrid ${category === 'shorts' ? 'shortsGrid' : ''}`}>
+            <div className="videoGrid">
               {articles.slice(1).map((article) => (
                 <VideoCard
                   key={article.id}
@@ -1004,11 +999,10 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
   const featured = articles[0];
   const queue = articles.slice(1, 6);
   const isSaved = savedIds.includes(featured.id);
-  const isShort = featured.category === 'shorts';
   const isLive = featured.category === 'live';
 
   return (
-    <section className={`videoShowcase ${isShort ? 'shortShowcase' : ''}`}>
+    <section className="videoShowcase">
       <div className="featuredVideo">
         <div className="featuredFrame">
           <iframe
@@ -1020,7 +1014,7 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
         </div>
         <div className="featuredBody">
           <div className="cardTop">
-            <span className="category">{isShort ? 'FEATURED SHORT' : isLive ? 'LIVE NOW' : 'FEATURED VIDEO'}</span>
+            <span className="category">{isLive ? 'LIVE NOW' : 'FEATURED VIDEO'}</span>
             <span>{featured.source}</span>
           </div>
           <h2>{displayTitle(featured)}</h2>
@@ -1058,10 +1052,9 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
 
 function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const isSaved = savedIds.includes(article.id);
-  const isShort = article.category === 'shorts';
   const isLive = article.category === 'live';
   return (
-    <article className={`videoCard ${isShort ? 'shortCard' : ''} ${isLive ? 'liveCard' : ''}`}>
+    <article className={`videoCard ${isLive ? 'liveCard' : ''}`}>
       <div className="inlineVideo">
         <iframe
           title={displayTitle(article)}
@@ -1073,7 +1066,7 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
       </div>
       <div className="videoBody">
         <div className="cardTop">
-          <span className="category">{isShort ? 'SHORTS' : isLive ? 'LIVE' : 'VIDEO'}</span>
+          <span className="category">{isLive ? 'LIVE' : 'VIDEO'}</span>
           <span>{article.source}</span>
         </div>
         <button className="headline" onClick={() => openArticle(article)}>
@@ -1219,9 +1212,9 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
     <article className="articleCard">
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
-        {['live', 'video', 'shorts'].includes(article.category) && (
+        {['live', 'video'].includes(article.category) && (
           <span>
-            <PlayCircle size={13} /> {article.category === 'shorts' ? 'Shorts' : article.category === 'live' ? 'Live' : 'YouTube'}
+            <PlayCircle size={13} /> {article.category === 'live' ? 'Live' : 'YouTube'}
           </span>
         )}
         <span>
@@ -1358,7 +1351,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           {article.source} · {formatDate(article.pubDate)} · <ShieldCheck size={14} /> Verified RSS
         </div>
         {isVideo && (
-          <div className={`videoPlayer ${article.category === 'shorts' ? 'shortPlayer' : ''}`}>
+          <div className="videoPlayer">
             <iframe
               title={displayTitle(article)}
               src={youtubeEmbedUrl(article)}
@@ -1734,14 +1727,6 @@ function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
       >
         <PlayCircle size={18} /> {copy.categories.video}
       </button>
-      <button
-        onClick={() => {
-          setCategory('shorts');
-          setScreen('home');
-        }}
-      >
-        <PlayCircle size={18} /> {copy.categories.shorts}
-      </button>
       <button onClick={() => setScreen('saved')}>
         <Bookmark size={18} /> {copy.saved}
       </button>
@@ -1789,11 +1774,10 @@ function displayFullBrief(article) {
 }
 
 function isVideoArticle(article) {
-  return ['live', 'video', 'shorts'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl);
+  return ['live', 'video'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl);
 }
 
 function videoSectionLabel(category, copy) {
-  if (category === 'shorts') return copy.categories.shorts;
   if (category === 'live') return copy.categories.live;
   return copy.categories.video;
 }

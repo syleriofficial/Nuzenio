@@ -243,12 +243,28 @@ button {
 }
 
 .breaking span {
+  display: inline-block;
+  min-width: 100%;
   padding: 12px 16px;
-  overflow: hidden;
   color: #7f1d1d;
   font-weight: 900;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  animation: breakingTicker 30s linear infinite;
+  will-change: transform;
+}
+
+.breaking:hover span {
+  animation-play-state: paused;
+}
+
+@keyframes breakingTicker {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 .main,
@@ -471,12 +487,6 @@ button {
 .featuredFrame {
   background: #020617;
   aspect-ratio: 16 / 9;
-}
-
-.shortShowcase .featuredFrame {
-  width: min(360px, 100%);
-  margin: 0 auto;
-  aspect-ratio: 9 / 16;
 }
 
 .featuredFrame iframe {
@@ -746,10 +756,6 @@ button {
   gap: 14px;
 }
 
-.shortsGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
 .articleCard,
 .railCard,
 .pageHero,
@@ -814,10 +820,6 @@ button {
   padding: 0;
 }
 
-.shortCard .videoThumb {
-  aspect-ratio: 9 / 16;
-}
-
 .videoThumb img {
   width: 100%;
   height: 100%;
@@ -844,10 +846,6 @@ button {
   background: #020617;
   aspect-ratio: 16 / 9;
   border-bottom: 1px solid #111827;
-}
-
-.shortCard .inlineVideo {
-  aspect-ratio: 9 / 16;
 }
 
 .inlineVideo iframe {
@@ -1076,12 +1074,6 @@ button {
   width: 100%;
   height: 100%;
   border: 0;
-}
-
-.shortPlayer {
-  max-width: 430px;
-  margin-inline: auto;
-  aspect-ratio: 9 / 16;
 }
 
 .infoGrid {
@@ -1526,10 +1518,6 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .shortsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .videoHero {
     align-items: flex-start;
     flex-direction: column;
@@ -1613,7 +1601,7 @@ button {
     bottom: 0;
     z-index: 55;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     border-top: 1px solid var(--line);
     background: #fff;
     padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));

@@ -186,8 +186,7 @@ values
   ('Google News India Top', 'top', 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
   ('Google News World', 'world', 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
   ('Google News YouTube Live', 'live', 'https://news.google.com/rss/search?q=site%3Ayoutube.com%2Fwatch%20live%20news%20India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
-  ('Google News YouTube Video', 'video', 'https://news.google.com/rss/search?q=site%3Ayoutube.com%20video%20news%20India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
-  ('Google News YouTube Shorts', 'shorts', 'https://news.google.com/rss/search?q=site%3Ayoutube.com%2Fshorts%20news%20India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN')
+  ('Google News YouTube Video', 'video', 'https://news.google.com/rss/search?q=site%3Ayoutube.com%20video%20news%20India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN')
 on conflict (url) do nothing;
 
 insert into public.adsense_slots (slot_key, placement, format, notes)

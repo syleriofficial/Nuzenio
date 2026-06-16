@@ -61,11 +61,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nuzenio.com/?category=shorts</loc>
-    <changefreq>hourly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://nuzenio.com/privacy.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>

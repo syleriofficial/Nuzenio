@@ -5,7 +5,7 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
-- YouTube-only Live News, Video, and Shorts sections with playable embedded videos
+- YouTube-only Live News and Video sections with playable embedded videos
 - English-first website experience with automatic local-country news
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
@@ -49,7 +49,7 @@ YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 ```
 
-`YOUTUBE_API_KEY` lets Netlify Functions load Video and Shorts through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
+`YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 
 Recommended Supabase auth URLs:
