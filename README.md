@@ -5,7 +5,7 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
-- YouTube-only Video and Shorts sections backed by live RSS search results
+- YouTube-only Video and Shorts sections with playable embedded videos
 - English-first website experience with automatic local-country news
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
@@ -45,7 +45,10 @@ Functions directory: netlify/functions
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 ```
+
+`YOUTUBE_API_KEY` lets Netlify Functions load Video and Shorts through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 
 Recommended Supabase auth URLs:
 
