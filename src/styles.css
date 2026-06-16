@@ -250,7 +250,7 @@ button {
 .breakingTrack {
   display: inline-flex;
   min-width: max-content;
-  animation: breakingTicker 36s linear infinite;
+  animation: breakingTicker 60s linear infinite;
   will-change: transform;
 }
 

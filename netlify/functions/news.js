@@ -209,7 +209,8 @@ function isLiveNewsChannelResult(nearby = '', title = '', channel = '') {
 
 function hasNewsChannelSignal(title = '', channel = '') {
   const text = `${title} ${channel}`;
-  return /\b(news|live tv|tv live|breaking|headlines|bulletin|aaj tak|ndtv|wion|cnn|bbc|sky news|al jazeera|reuters|ani|news18|india today|times now|cnbc|fox news|abc news|cbs news|nbc news)\b/i.test(text);
+  return /\b(news|live tv|tv live|breaking|headlines|bulletin|aaj tak|ndtv|wion|cnn|bbc|sky news|al jazeera|reuters|ani|news18|india today|times now|cnbc|fox news|abc news|cbs news|nbc news)\b/i.test(text)
+    || /(समाचार|खबर|न्यूज़|সংবাদ|செய்தி|వార్తలు|बातम्या|સમાચાર|ಸುದ್ದಿ|വാർത്ത|خبر|أخبار|noticias|actualités|nachrichten|notícias|новости|新闻|ニュース|뉴스)/i.test(text);
 }
 
 function isReadableVideoTitle(title = '') {
@@ -258,7 +259,7 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLanguage }) {
   const query = [
     channelId ? '' : countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news channel live tv breaking news' : 'news latest video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? liveNewsQuery(newsLanguage) : 'news latest video',
   ].filter(Boolean).join(' ');
   const params = new URLSearchParams({
     part: 'snippet',
@@ -276,6 +277,31 @@ function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLangua
   if (category === 'shorts') params.set('videoDuration', 'short');
   if (category === 'live') params.set('eventType', 'live');
   return `https://www.googleapis.com/youtube/v3/search?${params}`;
+}
+
+function liveNewsQuery(language = 'en') {
+  const terms = {
+    ar: 'قناة أخبار مباشرة بث مباشر أخبار عاجلة',
+    bn: 'লাইভ সংবাদ চ্যানেল ব্রেকিং নিউজ',
+    de: 'live nachrichten sender breaking news',
+    es: 'canal de noticias en vivo ultima hora',
+    fr: 'chaine info en direct actualites',
+    gu: 'લાઇવ સમાચાર ચેનલ બ્રેકિંગ ન્યૂઝ',
+    hi: 'लाइव न्यूज़ चैनल ब्रेकिंग न्यूज़',
+    ja: 'ライブニュース チャンネル 速報',
+    kn: 'ಲೈವ್ ಸುದ್ದಿ ಚಾನೆಲ್ ಬ್ರೇಕಿಂಗ್ ನ್ಯೂಸ್',
+    ko: '라이브 뉴스 채널 속보',
+    ml: 'ലൈവ് വാർത്ത ചാനൽ ബ്രേക്കിംഗ് ന്യൂസ്',
+    mr: 'लाइव्ह बातम्या चॅनेल ब्रेकिंग न्यूज',
+    pa: 'ਲਾਈਵ ਨਿਊਜ਼ ਚੈਨਲ ਬ੍ਰੇਕਿੰਗ ਨਿਊਜ਼',
+    pt: 'canal de noticias ao vivo ultimas noticias',
+    ru: 'прямой эфир новости канал срочные новости',
+    ta: 'நேரலை செய்தி சேனல் பிரேக்கிங் நியூஸ்',
+    te: 'లైవ్ న్యూస్ ఛానల్ బ్రేకింగ్ న్యూస్',
+    ur: 'لائیو نیوز چینل بریکنگ نیوز',
+    zh: '直播新闻频道 突发新闻',
+  };
+  return terms[language] || 'live news channel live tv breaking news';
 }
 
 function youtubeChannelIds() {
@@ -332,7 +358,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
   const newsLanguage = normalizeLanguage(language);
   const query = [
     countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news channel live tv breaking news' : 'news today video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? liveNewsQuery(newsLanguage) : 'news today video',
   ].join(' ');
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
   const html = await fetchText(url, 0, {
