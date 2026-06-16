@@ -51,6 +51,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nuzenio.com/?category=live</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nuzenio.com/?category=video</loc>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>

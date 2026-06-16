@@ -10,7 +10,8 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
-const CATEGORIES = new Set(['local', 'top', 'video', 'shorts', ...Object.keys(TOPICS)]);
+const VIDEO_CATEGORIES = new Set(['video', 'shorts', 'live']);
+const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS)]);
 
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
@@ -137,7 +138,7 @@ function parse(xml, category, country) {
       };
     })
     .filter((article) => article.title && article.link)
-    .filter((article) => (['video', 'shorts'].includes(category) ? isYouTubeArticle(article) : true));
+    .filter((article) => (VIDEO_CATEGORIES.has(category) ? isYouTubeArticle(article) : true));
 }
 
 function isYouTubeArticle(article) {
@@ -185,12 +186,12 @@ function extractYouTubeVideos(html, category, country) {
       videoId,
       videoUrl: link,
       embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
-      mediaType: category === 'shorts' ? 'short' : 'video',
+      mediaType: category === 'shorts' ? 'short' : category === 'live' ? 'live' : 'video',
       readTime: 1,
       trustScore: 90,
       summary,
       fullBrief: summary,
-      whatHappened: `Watch this live YouTube news video from ${channel}.`,
+      whatHappened: `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${channel}.`,
       whyItMatters: `This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.`,
     });
   }
@@ -238,7 +239,7 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLanguage }) {
   const query = [
     channelId ? '' : countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : 'news latest video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news' : 'news latest video',
   ].filter(Boolean).join(' ');
   const params = new URLSearchParams({
     part: 'snippet',
@@ -254,6 +255,7 @@ function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLangua
   });
   if (channelId) params.set('channelId', channelId);
   if (category === 'shorts') params.set('videoDuration', 'short');
+  if (category === 'live') params.set('eventType', 'live');
   return `https://www.googleapis.com/youtube/v3/search?${params}`;
 }
 
@@ -287,12 +289,12 @@ function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode
     videoId,
     videoUrl: link,
     embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
-    mediaType: category === 'shorts' ? 'short' : 'video',
+    mediaType: category === 'shorts' ? 'short' : category === 'live' ? 'live' : 'video',
     readTime: 1,
     trustScore: trustedChannelMode ? 98 : 95,
     summary,
     fullBrief: clean(snippet.description || summary),
-    whatHappened: `Watch this YouTube news video from ${source}.`,
+    whatHappened: `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${source}.`,
     whyItMatters: trustedChannelMode
       ? `This playable YouTube news video is loaded from a Nuzenio-approved YouTube channel with source attribution.`
       : `This playable YouTube news video is loaded through the official YouTube Data API with source attribution.`,
@@ -311,7 +313,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
   const newsLanguage = normalizeLanguage(language);
   const query = [
     countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : 'news today video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news' : 'news today video',
   ].join(' ');
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
   const html = await fetchText(url, 0, {
@@ -392,6 +394,10 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
     const videoQuery = ['site:youtube.com', 'video news', countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(videoQuery)}&${params}`;
   }
+  if (category === 'live') {
+    const liveQuery = ['site:youtube.com/watch', 'live news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(liveQuery)}&${params}`;
+  }
   if (category === 'shorts') {
     const shortsQuery = ['site:youtube.com/shorts', 'news', countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(shortsQuery)}&${params}`;
@@ -415,7 +421,7 @@ export const handler = async (event) => {
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
     const q = cleanQuery(event.queryStringParameters?.q || '');
 
-    if (!q && ['video', 'shorts'].includes(category)) {
+    if (!q && VIDEO_CATEGORIES.has(category)) {
       const { articles, sourceType } = await fetchYouTubeVideos({ category, country, language });
       return {
         statusCode: 200,

@@ -5,7 +5,7 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
-- YouTube-only Video and Shorts sections with playable embedded videos
+- YouTube-only Live News, Video, and Shorts sections with playable embedded videos
 - English-first website experience with automatic local-country news
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
