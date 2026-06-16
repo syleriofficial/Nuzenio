@@ -46,9 +46,11 @@ Functions directory: netlify/functions
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
 YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
+YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 ```
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Video and Shorts through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
+`YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 
 Recommended Supabase auth URLs:
 

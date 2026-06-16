@@ -1527,6 +1527,14 @@ function Admin({ user }) {
             ))}
           </Manager>
 
+          <Manager title="Video Source Manager" icon={<PlayCircle size={18} />}>
+            <div className="managerMetric">
+              <b>Trusted YouTube channels</b>
+              <span>YOUTUBE_NEWS_CHANNEL_IDS</span>
+            </div>
+            <p className="managerNote">Add approved YouTube channel IDs in Netlify to prioritize brand-safe playable videos.</p>
+          </Manager>
+
           <Manager title="AdSense Slot Manager" icon={<LayoutDashboard size={18} />}>
             {adSlots.map((slot) => (
               <div className="managerRow" key={slot}>

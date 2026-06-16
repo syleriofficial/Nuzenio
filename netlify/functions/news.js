@@ -208,15 +208,43 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 
   const countryCode = normalizeCountry(country);
   const newsLanguage = normalizeLanguage(language);
+  const channelIds = youtubeChannelIds();
+  const requests = channelIds.length
+    ? channelIds.slice(0, 8).map((channelId) => youtubeApiSearchUrl({
+      category,
+      channelId,
+      countryCode,
+      key,
+      newsLanguage,
+    }))
+    : [youtubeApiSearchUrl({ category, countryCode, key, newsLanguage })];
+
+  const responses = await Promise.all(requests.map(async (url) => {
+    const body = await fetchText(url, 0, { Accept: 'application/json' });
+    const data = JSON.parse(body);
+    if (data.error) throw new Error(data.error.message || 'YouTube API request failed');
+    return data.items || [];
+  }));
+
+  return responses
+    .flat()
+    .map((item) => normalizeYouTubeApiItem(item, category, countryCode, Boolean(channelIds.length)))
+    .filter(Boolean)
+    .filter((article, index, all) => all.findIndex((item) => item.videoId === article.videoId) === index)
+    .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
+    .slice(0, 36);
+}
+
+function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLanguage }) {
   const query = [
-    countryLabel(countryCode),
+    channelId ? '' : countryLabel(countryCode),
     category === 'shorts' ? 'news shorts #shorts' : 'news latest video',
-  ].join(' ');
+  ].filter(Boolean).join(' ');
   const params = new URLSearchParams({
     part: 'snippet',
     type: 'video',
     order: 'date',
-    maxResults: '30',
+    maxResults: channelId ? '8' : '30',
     safeSearch: 'moderate',
     videoEmbeddable: 'true',
     regionCode: countryCode,
@@ -224,48 +252,51 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
     q: query,
     key,
   });
+  if (channelId) params.set('channelId', channelId);
   if (category === 'shorts') params.set('videoDuration', 'short');
+  return `https://www.googleapis.com/youtube/v3/search?${params}`;
+}
 
-  const body = await fetchText(`https://www.googleapis.com/youtube/v3/search?${params}`, 0, {
-    Accept: 'application/json',
-  });
-  const data = JSON.parse(body);
-  if (data.error) throw new Error(data.error.message || 'YouTube API request failed');
+function youtubeChannelIds() {
+  return (process.env.YOUTUBE_NEWS_CHANNEL_IDS || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => /^UC[\w-]{20,}$/.test(item));
+}
 
-  return (data.items || [])
-    .map((item) => {
-      const videoId = item.id?.videoId;
-      const snippet = item.snippet || {};
-      if (!videoId || !snippet.title) return null;
-      const title = clean(snippet.title);
-      const source = clean(snippet.channelTitle || 'YouTube');
-      const pubDate = snippet.publishedAt || '';
-      const linkPath = category === 'shorts' ? `/shorts/${videoId}` : `/watch?v=${videoId}`;
-      const link = `https://www.youtube.com${linkPath}`;
-      const summary = `${source} · ${formatApiDate(pubDate)}`;
+function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode) {
+  const videoId = item.id?.videoId;
+  const snippet = item.snippet || {};
+  if (!videoId || !snippet.title) return null;
+  const title = clean(snippet.title);
+  const source = clean(snippet.channelTitle || 'YouTube');
+  const pubDate = snippet.publishedAt || '';
+  const linkPath = category === 'shorts' ? `/shorts/${videoId}` : `/watch?v=${videoId}`;
+  const link = `https://www.youtube.com${linkPath}`;
+  const summary = `${source} · ${formatApiDate(pubDate)}`;
 
-      return {
-        id: `${countryCode}-${category}-${videoId}`,
-        title,
-        link,
-        source,
-        pubDate,
-        category,
-        country: countryCode,
-        image: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-        videoId,
-        videoUrl: link,
-        embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
-        mediaType: category === 'shorts' ? 'short' : 'video',
-        readTime: 1,
-        trustScore: 95,
-        summary,
-        fullBrief: clean(snippet.description || summary),
-        whatHappened: `Watch this YouTube news video from ${source}.`,
-        whyItMatters: `This playable YouTube news video is loaded through the official YouTube Data API with source attribution.`,
-      };
-    })
-    .filter(Boolean);
+  return {
+    id: `${countryCode}-${category}-${videoId}`,
+    title,
+    link,
+    source,
+    pubDate,
+    category,
+    country: countryCode,
+    image: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    videoId,
+    videoUrl: link,
+    embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+    mediaType: category === 'shorts' ? 'short' : 'video',
+    readTime: 1,
+    trustScore: trustedChannelMode ? 98 : 95,
+    summary,
+    fullBrief: clean(snippet.description || summary),
+    whatHappened: `Watch this YouTube news video from ${source}.`,
+    whyItMatters: trustedChannelMode
+      ? `This playable YouTube news video is loaded from a Nuzenio-approved YouTube channel with source attribution.`
+      : `This playable YouTube news video is loaded through the official YouTube Data API with source attribution.`,
+  };
 }
 
 async function fetchYouTubeVideos({ category, country, language }) {
