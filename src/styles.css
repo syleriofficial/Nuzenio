@@ -242,28 +242,48 @@ button {
   letter-spacing: 0.04em;
 }
 
-.breaking span {
-  display: inline-block;
-  min-width: 100%;
-  padding: 12px 16px;
-  color: #7f1d1d;
-  font-weight: 900;
-  white-space: nowrap;
-  animation: breakingTicker 30s linear infinite;
+.breakingViewport {
+  flex: 1;
+  overflow: hidden;
+}
+
+.breakingTrack {
+  display: inline-flex;
+  min-width: max-content;
+  animation: breakingTicker 36s linear infinite;
   will-change: transform;
 }
 
-.breaking:hover span {
+.breakingTrack span {
+  min-width: 100vw;
+  padding: 12px 28px;
+  color: #7f1d1d;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.breaking:hover .breakingTrack,
+.breaking:focus-within .breakingTrack {
   animation-play-state: paused;
 }
 
 @keyframes breakingTicker {
   from {
-    transform: translateX(100%);
+    transform: translateX(0);
   }
 
   to {
-    transform: translateX(-100%);
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breakingTrack {
+    animation: none;
+  }
+
+  .breakingTrack span:last-child {
+    display: none;
   }
 }
 

@@ -889,10 +889,7 @@ function Home({
   if (isVideoSection) {
     return (
       <>
-        <div className="breaking">
-          <b>{videoSectionLabel(category, copy).toUpperCase()}</b>
-          <span>{ticker || status}</span>
-        </div>
+        <BreakingStrip label={videoSectionLabel(category, copy).toUpperCase()} text={ticker || status} />
         <RevenueStrip />
 
         <main className="main">
@@ -956,10 +953,7 @@ function Home({
 
   return (
     <>
-      <div className="breaking">
-        <b>{copy.breaking}</b>
-        <span>{ticker || status}</span>
-      </div>
+      <BreakingStrip label={copy.breaking} text={ticker || status} />
       <RevenueStrip />
 
       <main className="main">
@@ -1035,6 +1029,22 @@ function Home({
         </aside>
       </main>
     </>
+  );
+}
+
+function BreakingStrip({ label, text }) {
+  const safeText = text || 'Loading live news...';
+  const tickerText = `${safeText}   •   ${safeText}`;
+  return (
+    <div className="breaking" aria-label={`${label}: ${safeText}`}>
+      <b>{label}</b>
+      <div className="breakingViewport">
+        <div className="breakingTrack">
+          <span>{tickerText}</span>
+          <span aria-hidden="true">{tickerText}</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
