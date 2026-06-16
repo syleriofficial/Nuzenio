@@ -47,6 +47,12 @@ const categories = [
   ['video', 'Video'],
 ];
 
+const sectionRoutes = {
+  local: '/local',
+  live: '/live',
+  video: '/video',
+};
+
 const countryNames = {
   AE: 'United Arab Emirates',
   AU: 'Australia',
@@ -374,6 +380,9 @@ function readArticleIdFromUrl() {
 }
 
 function initialCategory() {
+  const routeCategory = Object.entries(sectionRoutes)
+    .find(([, path]) => window.location.pathname === path)?.[0];
+  if (routeCategory) return routeCategory;
   const urlCategory = readUrlParam('category');
   return categories.some(([key]) => key === urlCategory) ? urlCategory : 'local';
 }
@@ -402,8 +411,9 @@ function initialLocation() {
 function contextUrl({ category, location, language }) {
   const url = new URL(window.location.href);
   const currentArticle = readArticleIdFromUrl();
-  url.pathname = '/';
-  url.searchParams.set('category', category);
+  url.pathname = sectionRoutes[category] || '/';
+  if (sectionRoutes[category]) url.searchParams.delete('category');
+  else url.searchParams.set('category', category);
   url.searchParams.set('country', location.country);
   url.searchParams.set('language', language.code);
   if (location.region) url.searchParams.set('region', location.region);
@@ -417,7 +427,7 @@ function contextUrl({ category, location, language }) {
 
 function homeContextUrl({ category, location, language }) {
   const url = contextUrl({ category, location, language });
-  url.pathname = '/';
+  url.pathname = sectionRoutes[category] || '/';
   url.searchParams.delete('article');
   return url;
 }
@@ -791,8 +801,41 @@ function Header({
       {authNotice && <div className="authNotice">{authNotice}</div>}
 
       <nav className="nav" aria-label="Primary navigation">
-        <button className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}>
+        <button
+          className={screen === 'home' && !sectionRoutes[category] ? 'active' : ''}
+          onClick={() => {
+            setCategory('top');
+            setScreen('home');
+          }}
+        >
           {copy.home}
+        </button>
+        <button
+          className={screen === 'home' && category === 'local' ? 'active' : ''}
+          onClick={() => {
+            setCategory('local');
+            setScreen('home');
+          }}
+        >
+          {copy.categories.local}
+        </button>
+        <button
+          className={screen === 'home' && category === 'live' ? 'active' : ''}
+          onClick={() => {
+            setCategory('live');
+            setScreen('home');
+          }}
+        >
+          {copy.categories.live}
+        </button>
+        <button
+          className={screen === 'home' && category === 'video' ? 'active' : ''}
+          onClick={() => {
+            setCategory('video');
+            setScreen('home');
+          }}
+        >
+          {copy.categories.video}
         </button>
         <button className={screen === 'saved' ? 'active' : ''} onClick={() => setScreen('saved')}>
           {copy.saved}
@@ -808,7 +851,7 @@ function Header({
         </button>
       </nav>
       <nav className="newsNav" aria-label="News sections">
-        {categories.map(([key, label]) => (
+        {categories.filter(([key]) => !sectionRoutes[key]).map(([key, label]) => (
           <button
             key={key}
             className={screen === 'home' && category === key ? 'active' : ''}
@@ -1710,6 +1753,14 @@ function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
     <div className="mobileNav">
       <button onClick={() => setScreen('home')}>
         <HomeIcon size={18} /> {copy.home}
+      </button>
+      <button
+        onClick={() => {
+          setCategory('local');
+          setScreen('home');
+        }}
+      >
+        <Globe2 size={18} /> {copy.categories.local}
       </button>
       <button
         onClick={() => {

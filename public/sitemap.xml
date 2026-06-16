@@ -6,7 +6,7 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://nuzenio.com/?category=local</loc>
+    <loc>https://nuzenio.com/local</loc>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -51,12 +51,12 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nuzenio.com/?category=live</loc>
+    <loc>https://nuzenio.com/live</loc>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nuzenio.com/?category=video</loc>
+    <loc>https://nuzenio.com/video</loc>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>
   </url>
