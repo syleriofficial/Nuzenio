@@ -163,14 +163,14 @@ function extractYouTubeVideos(html, category, country) {
         || nearby.match(/"accessibilityData":\{"label":"([^"]+)"/)?.[1]
         || 'YouTube news video',
     );
-    if (category === 'live' && !isLiveYouTubeResult(nearby, title)) continue;
-    seen.add(videoId);
-
     const channel = cleanJsonText(
       nearby.match(/"ownerText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
         || nearby.match(/"shortBylineText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
         || 'YouTube',
     );
+    if (category === 'live' && (!isReadableVideoTitle(title) || !isLiveNewsChannelResult(nearby, title, channel))) continue;
+    seen.add(videoId);
+
     const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
     const linkPath = category === 'shorts' ? `/shorts/${videoId}` : `/watch?v=${videoId}`;
     const link = `https://www.youtube.com${linkPath}`;
@@ -201,9 +201,19 @@ function extractYouTubeVideos(html, category, country) {
   return videos;
 }
 
-function isLiveYouTubeResult(nearby = '', title = '') {
+function isLiveNewsChannelResult(nearby = '', title = '', channel = '') {
   return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now/i.test(nearby)
-    && !/\b(streamed|premiered|replay|full match replay)\b/i.test(title);
+    && hasNewsChannelSignal(title, channel)
+    && !/\b(streamed|premiered|replay|full match replay|music|lofi|gaming|gameplay|cricket live score)\b/i.test(`${title} ${channel}`);
+}
+
+function hasNewsChannelSignal(title = '', channel = '') {
+  const text = `${title} ${channel}`;
+  return /\b(news|live tv|tv live|breaking|headlines|bulletin|aaj tak|ndtv|wion|cnn|bbc|sky news|al jazeera|reuters|ani|news18|india today|times now|cnbc|fox news|abc news|cbs news|nbc news)\b/i.test(text);
+}
+
+function isReadableVideoTitle(title = '') {
+  return title.split(/\s+/).length >= 4 && !/^(verified|live|news)$/i.test(title.trim());
 }
 
 function cleanJsonText(value = '') {
@@ -238,6 +248,8 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
     .flat()
     .map((item) => normalizeYouTubeApiItem(item, category, countryCode, Boolean(channelIds.length)))
     .filter(Boolean)
+    .filter((article) => category !== 'live' || isReadableVideoTitle(article.title))
+    .filter((article) => category !== 'live' || hasNewsChannelSignal(article.title, article.source))
     .filter((article, index, all) => all.findIndex((item) => item.videoId === article.videoId) === index)
     .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
     .slice(0, 36);
@@ -246,7 +258,7 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLanguage }) {
   const query = [
     channelId ? '' : countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news' : 'news latest video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news channel live tv breaking news' : 'news latest video',
   ].filter(Boolean).join(' ');
   const params = new URLSearchParams({
     part: 'snippet',
@@ -320,7 +332,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
   const newsLanguage = normalizeLanguage(language);
   const query = [
     countryLabel(countryCode),
-    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news' : 'news today video',
+    category === 'shorts' ? 'news shorts #shorts' : category === 'live' ? 'live news channel live tv breaking news' : 'news today video',
   ].join(' ');
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
   const html = await fetchText(url, 0, {
