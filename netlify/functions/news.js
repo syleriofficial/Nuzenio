@@ -156,7 +156,6 @@ function extractYouTubeVideos(html, category, country) {
   while ((match = idPattern.exec(html)) && videos.length < 36) {
     const videoId = match[1];
     if (seen.has(videoId)) continue;
-    seen.add(videoId);
 
     const nearby = html.slice(Math.max(0, match.index - 900), match.index + 2600);
     const title = cleanJsonText(
@@ -164,6 +163,9 @@ function extractYouTubeVideos(html, category, country) {
         || nearby.match(/"accessibilityData":\{"label":"([^"]+)"/)?.[1]
         || 'YouTube news video',
     );
+    if (category === 'live' && !isLiveYouTubeResult(nearby, title)) continue;
+    seen.add(videoId);
+
     const channel = cleanJsonText(
       nearby.match(/"ownerText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
         || nearby.match(/"shortBylineText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
@@ -197,6 +199,11 @@ function extractYouTubeVideos(html, category, country) {
   }
 
   return videos;
+}
+
+function isLiveYouTubeResult(nearby = '', title = '') {
+  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now/i.test(nearby)
+    && !/\b(streamed|premiered|replay|full match replay)\b/i.test(title);
 }
 
 function cleanJsonText(value = '') {
