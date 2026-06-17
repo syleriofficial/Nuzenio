@@ -247,6 +247,7 @@ button {
 
 .breakingViewport {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -287,6 +288,21 @@ button {
 
   .breakingTrack span:last-child {
     display: none;
+  }
+
+  .skeletonCard span,
+  .skeletonCard b,
+  .skeletonCard p,
+  .skeletonCard em,
+  .skeletonThumb,
+  .skeletonFeature .featuredFrame,
+  .skeletonFeature span,
+  .skeletonFeature b,
+  .skeletonFeature p,
+  .skeletonQueue span,
+  .skeletonQueue b,
+  .spinIcon {
+    animation: none;
   }
 }
 
@@ -917,6 +933,134 @@ button {
   padding: 16px;
 }
 
+.skeletonCard {
+  display: grid;
+  gap: 12px;
+  min-height: 214px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+}
+
+.skeletonCard span,
+.skeletonCard b,
+.skeletonCard p,
+.skeletonCard em,
+.skeletonThumb,
+.skeletonFeature .featuredFrame,
+.skeletonFeature span,
+.skeletonFeature b,
+.skeletonFeature p,
+.skeletonQueue span,
+.skeletonQueue b {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 48%, #eef2f7 100%);
+  background-size: 220% 100%;
+  animation: skeletonPulse 1.25s ease-in-out infinite;
+}
+
+.skeletonCard span {
+  width: 38%;
+  height: 16px;
+}
+
+.skeletonCard b {
+  width: 86%;
+  height: 28px;
+}
+
+.skeletonCard p {
+  width: 100%;
+  height: 52px;
+  margin: 0;
+}
+
+.skeletonCard em {
+  width: 62%;
+  height: 18px;
+}
+
+.videoSkeleton {
+  padding: 0;
+}
+
+.videoSkeleton span,
+.videoSkeleton b,
+.videoSkeleton p,
+.videoSkeleton em {
+  margin-inline: 14px;
+}
+
+.videoSkeleton em {
+  margin-bottom: 14px;
+}
+
+.skeletonThumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px 8px 0 0;
+}
+
+.skeletonShowcase {
+  pointer-events: none;
+}
+
+.skeletonFeature .featuredFrame {
+  border-radius: 0;
+}
+
+.skeletonFeature .featuredBody {
+  display: grid;
+  gap: 12px;
+}
+
+.skeletonFeature span {
+  width: 34%;
+  height: 16px;
+}
+
+.skeletonFeature b {
+  width: 82%;
+  height: 30px;
+}
+
+.skeletonFeature p {
+  width: 100%;
+  height: 48px;
+  margin: 0;
+}
+
+.skeletonQueue div {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid #eef2f7;
+}
+
+.skeletonQueue span {
+  width: 72%;
+  height: 16px;
+}
+
+.skeletonQueue b {
+  width: 92%;
+  height: 22px;
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .videoCard {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -1506,11 +1650,14 @@ button {
   .sectionHead,
   .articleTopline,
   .locationBanner {
+    flex-direction: column;
     grid-template-columns: 1fr;
     align-items: flex-start;
   }
 
   .sectionStatus {
+    width: 100%;
+    min-width: 0;
     justify-content: flex-start;
     text-align: start;
   }

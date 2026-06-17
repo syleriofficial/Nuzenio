@@ -974,7 +974,7 @@ function Home({
               </div>
             </div>
             <VideoModeStrip category={category} language={language} location={location} status={status} />
-            {articles.length > 0 && (
+            {articles.length > 0 ? (
               <VideoShowcase
                 articles={articles}
                 copy={copy}
@@ -982,7 +982,9 @@ function Home({
                 savedIds={savedIds}
                 toggleSave={toggleSave}
               />
-            )}
+            ) : isLoadingNews ? (
+              <VideoShowcaseSkeleton />
+            ) : null}
             <AdSlot name="top-native" label="Top advertising inventory" />
             <div className="sectionHead">
               <div>
@@ -1007,7 +1009,8 @@ function Home({
                   toggleSave={toggleSave}
                 />
               ))}
-              {articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+              {isLoadingNews && articles.length === 0 && <LoadingCards type="video" count={6} />}
+              {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
             </div>
           </section>
 
@@ -1090,7 +1093,8 @@ function Home({
                 toggleSave={toggleSave}
               />
             ))}
-            {articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+            {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
+            {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
           </div>
         </section>
 
@@ -1154,6 +1158,42 @@ function SectionStatus({ isLoading, lastUpdated, onRefresh, status }) {
         Refresh
       </button>
     </div>
+  );
+}
+
+function LoadingCards({ count = 6, type = 'article' }) {
+  return Array.from({ length: count }, (_, index) => (
+    <div className={`skeletonCard ${type === 'video' ? 'videoSkeleton' : ''}`} key={`loading-${type}-${index}`}>
+      {type === 'video' && <div className="skeletonThumb" />}
+      <span />
+      <b />
+      <p />
+      <em />
+    </div>
+  ));
+}
+
+function VideoShowcaseSkeleton() {
+  return (
+    <section className="videoShowcase skeletonShowcase">
+      <div className="featuredVideo skeletonFeature">
+        <div className="featuredFrame" />
+        <div className="featuredBody">
+          <span />
+          <b />
+          <p />
+        </div>
+      </div>
+      <div className="videoQueue skeletonQueue">
+        <h3>Loading</h3>
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={`queue-loading-${index}`}>
+            <span />
+            <b />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
