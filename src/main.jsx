@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
-  BarChart3,
   Bookmark,
   CheckCircle2,
   ChevronRight,
@@ -11,8 +10,6 @@ import {
   Globe2,
   Home as HomeIcon,
   Languages,
-  LayoutDashboard,
-  Link as LinkIcon,
   LogIn,
   LogOut,
   Mail,
@@ -23,7 +20,6 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
-  User,
   X,
 } from 'lucide-react';
 import './styles.css';
@@ -160,9 +156,6 @@ const translations = {
     newsLanguage: 'News language',
     home: 'Home',
     saved: 'Saved',
-    admin: 'Admin',
-    analytics: 'Analytics',
-    monetize: 'Monetize',
     login: 'Google Login',
     logout: 'Logout',
     breaking: 'BREAKING',
@@ -193,12 +186,7 @@ const translations = {
     relatedStories: 'Related stories',
     sourceAttribution: 'Source attribution',
     readOriginal: 'Read original publisher story',
-    savedArticlesTitle: 'Saved Articles',
-    savedArticlesIntro: 'Your read-later library and reading history sync with Supabase when login is enabled.',
-    emptySaved: 'No saved articles from the current feed yet.',
     emptyFeed: 'No live stories loaded yet. Try another category, language, or location.',
-    readingHistory: 'Reading History',
-    noHistory: 'No reading history yet.',
     categories: {
       local: 'Local',
       top: 'Top News',
@@ -220,9 +208,6 @@ const translations = {
     newsLanguage: 'न्यूज़ भाषा',
     home: 'होम',
     saved: 'सेव',
-    admin: 'एडमिन',
-    analytics: 'एनालिटिक्स',
-    monetize: 'कमाई',
     login: 'गूगल लॉगिन',
     logout: 'लॉगआउट',
     breaking: 'ब्रेकिंग',
@@ -253,12 +238,7 @@ const translations = {
     relatedStories: 'संबंधित खबरें',
     sourceAttribution: 'स्रोत जानकारी',
     readOriginal: 'मूल पब्लिशर खबर पढ़ें',
-    savedArticlesTitle: 'सेव की गई खबरें',
-    savedArticlesIntro: 'आपकी रीड-लेटर लाइब्रेरी और रीडिंग हिस्ट्री लॉगिन होने पर Supabase से सिंक होती है।',
-    emptySaved: 'इस फीड से अभी कोई सेव खबर नहीं है।',
     emptyFeed: 'अभी लाइव खबरें लोड नहीं हुईं। दूसरी कैटेगरी, भाषा या लोकेशन आज़माएं।',
-    readingHistory: 'रीडिंग हिस्ट्री',
-    noHistory: 'अभी कोई रीडिंग हिस्ट्री नहीं है।',
     categories: {
       local: 'लोकल',
       top: 'मुख्य खबरें',
@@ -280,9 +260,6 @@ const translations = {
     newsLanguage: 'لغة الأخبار',
     home: 'الرئيسية',
     saved: 'المحفوظات',
-    admin: 'الإدارة',
-    analytics: 'التحليلات',
-    monetize: 'الربح',
     login: 'تسجيل Google',
     logout: 'خروج',
     breaking: 'عاجل',
@@ -313,12 +290,7 @@ const translations = {
     relatedStories: 'أخبار ذات صلة',
     sourceAttribution: 'إسناد المصدر',
     readOriginal: 'اقرأ خبر الناشر الأصلي',
-    savedArticlesTitle: 'الأخبار المحفوظة',
-    savedArticlesIntro: 'مكتبة القراءة لاحقا وسجل القراءة تتزامن مع Supabase عند تسجيل الدخول.',
-    emptySaved: 'لا توجد أخبار محفوظة من هذا الموجز بعد.',
     emptyFeed: 'لم يتم تحميل أخبار مباشرة بعد. جرب فئة أو لغة أو موقعا آخر.',
-    readingHistory: 'سجل القراءة',
-    noHistory: 'لا يوجد سجل قراءة بعد.',
     categories: {
       local: 'محلي',
       top: 'أهم الأخبار',
@@ -340,9 +312,6 @@ const translations = {
     newsLanguage: 'Idioma de noticias',
     home: 'Inicio',
     saved: 'Guardados',
-    admin: 'Admin',
-    analytics: 'Analitica',
-    monetize: 'Monetizar',
     login: 'Login Google',
     logout: 'Salir',
     breaking: 'ULTIMA HORA',
@@ -373,12 +342,7 @@ const translations = {
     relatedStories: 'Noticias relacionadas',
     sourceAttribution: 'Atribucion de fuente',
     readOriginal: 'Leer fuente original',
-    savedArticlesTitle: 'Noticias guardadas',
-    savedArticlesIntro: 'Tu biblioteca para leer despues y el historial se sincronizan con Supabase al iniciar sesion.',
-    emptySaved: 'Aun no hay noticias guardadas de este feed.',
     emptyFeed: 'Aun no se cargaron noticias en vivo. Prueba otra categoria, idioma o ubicacion.',
-    readingHistory: 'Historial de lectura',
-    noHistory: 'Aun no hay historial de lectura.',
     categories: {
       local: 'Local',
       top: 'Principales',
@@ -1583,253 +1547,6 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         </a>
       </article>
     </div>
-  );
-}
-
-function Saved({ articles, copy, history, openArticle, savedIds, toggleSave }) {
-  return (
-    <main className="single">
-      <section>
-        <div className="pageHero">
-          <h2>{copy.savedArticlesTitle}</h2>
-          <p>{copy.savedArticlesIntro}</p>
-        </div>
-        <div className="feedGrid">
-          {articles.length ? (
-            articles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                article={article}
-                copy={copy}
-                openArticle={openArticle}
-                savedIds={savedIds}
-                toggleSave={toggleSave}
-              />
-            ))
-          ) : (
-            <div className="empty">{copy.emptySaved}</div>
-          )}
-        </div>
-        <div className="historyPanel">
-          <h3>{copy.readingHistory}</h3>
-          {history.length ? (
-            history.slice(0, 8).map((item) => (
-              <div className="historyItem" key={`${item.id}-${item.openedAt}`}>
-                <b>{item.title}</b>
-                <span>
-                  {item.source} · {formatDate(item.openedAt)}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p>{copy.noHistory}</p>
-          )}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function Admin({ user }) {
-  const rssRows = categories.map(([key, label]) => ({ key, label, status: 'Live RSS', health: 'Configured' }));
-  const adSlots = ['top-native', 'sidebar-rectangle', 'article-inline', 'mobile-feed'];
-  return (
-    <main className="single">
-      <section>
-        <div className="pageHero adminHero">
-          <div>
-            <h2>Admin Dashboard</h2>
-            <p>Production controls for sources, ads, newsletter, analytics, and SEO readiness.</p>
-          </div>
-          <span>{user ? 'Authenticated admin session' : 'Connect Supabase auth for admin roles'}</span>
-        </div>
-
-        <div className="managerGrid">
-          <Manager title="RSS Source Manager" icon={<Newspaper size={18} />}>
-            {rssRows.map((row) => (
-              <div className="managerRow" key={row.key}>
-                <b>{row.label}</b>
-                <span>{row.status}</span>
-                <em>{row.health}</em>
-              </div>
-            ))}
-          </Manager>
-
-      <Manager title="Video Source Manager" icon={<PlayCircle size={18} />}>
-            <div className="managerMetric">
-              <b>Trusted YouTube channels</b>
-              <span>YOUTUBE_NEWS_CHANNEL_IDS</span>
-            </div>
-            <p className="managerNote">Add approved YouTube channel IDs in Netlify to prioritize brand-safe playable videos and live news streams.</p>
-          </Manager>
-
-          <Manager title="AdSense Slot Manager" icon={<LayoutDashboard size={18} />}>
-            {adSlots.map((slot) => (
-              <div className="managerRow" key={slot}>
-                <b>{slot}</b>
-                <span>Reserved inventory</span>
-                <em>Script disabled</em>
-              </div>
-            ))}
-          </Manager>
-
-          <Manager title="Affiliate Link Manager" icon={<LinkIcon size={18} />}>
-            <div className="managerMetric">
-              <b>No public affiliate links</b>
-              <span>Add approved rows to public.affiliate_links with enabled=true.</span>
-            </div>
-            <p className="managerNote">Commercial links remain hidden until reviewed, labeled, and stored in Supabase.</p>
-          </Manager>
-
-          <Manager title="Newsletter Manager" icon={<Mail size={18} />}>
-            <div className="managerMetric">
-              <b>Subscribers table</b>
-              <span>public.newsletter_subscribers</span>
-            </div>
-            <p className="managerNote">Export subscribers from Supabase Table Editor or a protected server function.</p>
-          </Manager>
-
-          <Manager title="Analytics Dashboard" icon={<BarChart3 size={18} />}>
-            <div className="miniStats">
-              <span>Views</span>
-              <b>Client + Supabase ready</b>
-            </div>
-            <div className="miniStats">
-              <span>Saves</span>
-              <b>Tracked per user</b>
-            </div>
-          </Manager>
-
-          <Manager title="SEO Checklist" icon={<CheckCircle2 size={18} />}>
-            {['robots.txt', 'sitemap.xml', 'Open Graph tags', 'Canonical URL', 'RSS indexable routes'].map((item) => (
-              <div className="checkRow" key={item}>
-                <CheckCircle2 size={16} /> {item}
-              </div>
-            ))}
-          </Manager>
-
-          <Manager title="Language Manager" icon={<Languages size={18} />}>
-            <div className="languageCloud">
-              {languages.map((item) => (
-                <span key={item.code}>{item.native}</span>
-              ))}
-            </div>
-          </Manager>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function Manager({ children, icon, title }) {
-  return (
-    <div className="managerCard">
-      <h3>
-        {icon} {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function Analytics({ articles, history, savedIds }) {
-  const sourceCount = new Set(articles.map((article) => article.source)).size;
-  const readinessChecks = [
-    articles.length > 0,
-    sourceCount > 0,
-    history.length > 0,
-    savedIds.length > 0,
-    Boolean(supabase),
-  ];
-  const revenueReadiness = Math.round((readinessChecks.filter(Boolean).length / readinessChecks.length) * 100);
-  return (
-    <main className="single">
-      <section>
-        <div className="pageHero">
-          <h2>Analytics Dashboard</h2>
-          <p>Engagement, content coverage, and monetization readiness for the live feed.</p>
-        </div>
-        <div className="stats">
-          <div>
-            <b>{articles.length}</b>
-            <span>Live Articles</span>
-          </div>
-          <div>
-            <b>{savedIds.length}</b>
-            <span>Saved</span>
-          </div>
-          <div>
-            <b>{history.length}</b>
-            <span>Reads</span>
-          </div>
-          <div>
-            <b>{sourceCount}</b>
-            <span>Sources</span>
-          </div>
-          <div>
-            <b>{revenueReadiness}%</b>
-            <span>Readiness</span>
-          </div>
-        </div>
-        <div className="revenueFunnel">
-          <h3>Revenue Funnel</h3>
-          <div><span>Search traffic</span><b>SEO + sitemap</b></div>
-          <div><span>Engagement</span><b>AI brief + save</b></div>
-          <div><span>Monetization</span><b>AdSense + affiliate</b></div>
-          <div><span>Retention</span><b>Newsletter + history</b></div>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function Monetize() {
-  const channels = [
-    ['AdSense Slots', 'Top banner, sidebar, article inline, and mobile feed inventory are reserved without loading ad scripts.'],
-    ['Affiliate Links', 'Public links stay hidden until they are reviewed, labeled, enabled, and separated from editorial RSS.'],
-    ['Newsletter Sponsorship', 'Subscriber storage is ready in Supabase; sponsorships need a protected campaign workflow before launch.'],
-    ['Premium AI Summaries', 'Article intelligence can become paid only after subscription, billing, and access controls are added.'],
-    ['Sponsored Stories', 'Paid posts must use a separate content type and visible sponsorship labels.'],
-    ['SEO Revenue Loop', 'Sitemap, metadata, source links, and shareable topic URLs support search acquisition.'],
-  ];
-  const checklist = [
-    'Apply for AdSense after enough original UI, policy pages, and stable traffic.',
-    'Add privacy policy, terms, contact, and affiliate disclosure pages before ad approval.',
-    'Use server-side affiliate redirect tracking instead of hiding destination URLs.',
-    'Keep ads away from navigation buttons and breaking labels to avoid accidental clicks.',
-  ];
-  return (
-    <main className="single">
-      <section>
-        <div className="pageHero monetizationHero">
-          <div>
-            <h2>Monetization Engine</h2>
-            <p>AdSense, affiliate, newsletter, and premium AI revenue structure with editorial RSS separated from commercial placements.</p>
-          </div>
-          <div className="moneyScore">
-            <b>{channels.length}</b>
-            <span>Revenue channels</span>
-          </div>
-        </div>
-        <div className="adminGrid">
-          {channels.map(([title, body]) => (
-            <div className="adminCard" key={title}>
-              <h3>{title}</h3>
-              <p>{body}</p>
-              <span className="statusPill">Policy ready</span>
-            </div>
-          ))}
-        </div>
-        <div className="launchChecklist">
-          <h3>Before earning money</h3>
-          {checklist.map((item) => (
-            <div className="checkRow" key={item}>
-              <CheckCircle2 size={16} /> {item}
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
   );
 }
 
