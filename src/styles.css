@@ -1198,7 +1198,8 @@ button {
 }
 
 .cardTop,
-.trustRow {
+.trustRow,
+.publisherLine {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -1208,11 +1209,28 @@ button {
 
 .cardTop span,
 .trustRow span,
+.publisherLine span,
 .sourceAction,
 .original {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.cardTop,
+.publisherLine {
+  flex-wrap: wrap;
+}
+
+.publisherLine {
+  margin-top: 10px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.publisherLine span:first-child {
+  color: #166534;
 }
 
 .headline {

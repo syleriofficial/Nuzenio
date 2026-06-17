@@ -1408,7 +1408,7 @@ function SmallStory({ article, copy, openArticle }) {
       <div>
         <b>{displayTitle(article)}</b>
         <span>
-          {article.source} · {formatDate(article.pubDate)}
+          {article.source} · {formatFreshAge(article.pubDate)}
         </span>
       </div>
     </button>
@@ -1427,8 +1427,14 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
           </span>
         )}
         <span>
-          <Clock size={13} /> {article.readTime || 2} min read
+          <Clock size={13} /> {formatFreshAge(article.pubDate)}
         </span>
+      </div>
+      <div className="publisherLine">
+        <span>
+          <CheckCircle2 size={14} /> {article.source}
+        </span>
+        <span>{formatDate(article.pubDate)}</span>
       </div>
       <button className="headline" onClick={() => openArticle(article)}>
         {displayTitle(article)}
@@ -1436,10 +1442,10 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
       <p>{displaySummary(article)}</p>
       <div className="trustRow">
         <span>
-          <ShieldCheck size={14} /> Trust {article.trustScore || 91}%
+          <ShieldCheck size={14} /> Source attributed
         </span>
         <span>
-          <CheckCircle2 size={14} /> {article.source}
+          <Clock size={14} /> {article.readTime || 2} min read
         </span>
       </div>
       <div className="cardActions">
@@ -1975,6 +1981,21 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function formatFreshAge(value) {
+  if (!value) return 'Latest';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+  return formatDate(value);
 }
 
 function formatLastUpdated(value) {
