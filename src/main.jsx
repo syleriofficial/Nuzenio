@@ -47,10 +47,22 @@ const categories = [
   ['video', 'Video'],
 ];
 
-const sectionRoutes = {
+const primarySectionRoutes = {
   local: '/local',
   live: '/live',
   video: '/video',
+};
+
+const categoryRoutes = {
+  ...primarySectionRoutes,
+  top: '/top-news',
+  world: '/world',
+  business: '/business',
+  tech: '/technology',
+  sports: '/sports',
+  entertainment: '/entertainment',
+  health: '/health',
+  science: '/science',
 };
 
 const countryNames = {
@@ -380,7 +392,7 @@ function readArticleIdFromUrl() {
 }
 
 function initialCategory() {
-  const routeCategory = Object.entries(sectionRoutes)
+  const routeCategory = Object.entries(categoryRoutes)
     .find(([, path]) => window.location.pathname === path)?.[0];
   if (routeCategory) return routeCategory;
   const urlCategory = readUrlParam('category');
@@ -411,8 +423,8 @@ function initialLocation() {
 function contextUrl({ category, location, language }) {
   const url = new URL(window.location.href);
   const currentArticle = readArticleIdFromUrl();
-  url.pathname = sectionRoutes[category] || '/';
-  if (sectionRoutes[category]) url.searchParams.delete('category');
+  url.pathname = categoryRoutes[category] || '/';
+  if (categoryRoutes[category]) url.searchParams.delete('category');
   else url.searchParams.set('category', category);
   url.searchParams.set('country', location.country);
   url.searchParams.set('language', language.code);
@@ -427,7 +439,7 @@ function contextUrl({ category, location, language }) {
 
 function homeContextUrl({ category, location, language }) {
   const url = contextUrl({ category, location, language });
-  url.pathname = sectionRoutes[category] || '/';
+  url.pathname = categoryRoutes[category] || '/';
   url.searchParams.delete('article');
   return url;
 }
@@ -787,7 +799,7 @@ function Header({
 
       <nav className="nav" aria-label="Primary navigation">
         <button
-          className={screen === 'home' && !sectionRoutes[category] ? 'active' : ''}
+          className={screen === 'home' && category === 'top' ? 'active' : ''}
           onClick={() => {
             setCategory('top');
             setScreen('home');
@@ -824,7 +836,7 @@ function Header({
         </button>
       </nav>
       <nav className="newsNav" aria-label="News sections">
-        {categories.filter(([key]) => !sectionRoutes[key]).map(([key, label]) => (
+        {categories.filter(([key]) => !primarySectionRoutes[key]).map(([key, label]) => (
           <button
             key={key}
             className={screen === 'home' && category === key ? 'active' : ''}
