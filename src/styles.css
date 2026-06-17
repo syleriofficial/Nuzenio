@@ -63,7 +63,9 @@ button {
   min-width: 204px;
   border: 0;
   background: transparent;
+  color: inherit;
   text-align: start;
+  text-decoration: none;
 }
 
 .logo {
@@ -184,7 +186,8 @@ button {
   overflow: auto;
 }
 
-.nav button {
+.nav button,
+.nav a {
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
@@ -192,6 +195,7 @@ button {
   font-weight: 900;
   padding: 8px 0;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .nav .active {
@@ -206,7 +210,8 @@ button {
   padding: 0 5vw 12px;
 }
 
-.newsNav button {
+.newsNav button,
+.newsNav a {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
@@ -214,6 +219,7 @@ button {
   padding: 9px 14px;
   font-weight: 900;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .newsNav .active {
@@ -292,15 +298,6 @@ button {
   padding: 0 5vw 96px;
 }
 
-.revenueStrip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: -6px 5vw 18px;
-}
-
-.revenueStrip div,
-.productTrustBar,
 .affiliateDisclosure,
 .revenueFunnel,
 .launchChecklist,
@@ -310,18 +307,6 @@ button {
   background: #fff;
 }
 
-.revenueStrip div {
-  display: grid;
-  gap: 3px;
-  padding: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-}
-
-.revenueStrip b {
-  font-size: 14px;
-}
-
-.revenueStrip span,
 .affiliateDisclosure,
 .moneyScore span {
   color: var(--muted);
@@ -335,16 +320,8 @@ button {
   gap: 24px;
 }
 
-.productTrustBar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 12px;
-}
-
 .locationBanner {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -354,6 +331,10 @@ button {
   border-radius: 8px;
   background: var(--blue-soft);
   color: #1e3a8a;
+}
+
+.appShell[data-local-page="true"] .locationBanner {
+  display: flex;
 }
 
 .locationBanner div {
@@ -396,15 +377,6 @@ button {
   color: #fff;
 }
 
-.productTrustBar div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #334155;
-  font-weight: 850;
-}
-
-.productTrustBar svg,
 .affiliateDisclosure {
   color: var(--blue);
 }
@@ -509,11 +481,13 @@ button {
   aspect-ratio: 16 / 9;
 }
 
-.featuredFrame iframe {
+.featuredFrame iframe,
+.featuredFrame video {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+  object-fit: cover;
 }
 
 .featuredBody {
@@ -868,11 +842,13 @@ button {
   border-bottom: 1px solid #111827;
 }
 
-.inlineVideo iframe {
+.inlineVideo iframe,
+.inlineVideo video {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+  object-fit: cover;
 }
 
 .videoBody {
@@ -1089,11 +1065,13 @@ button {
   aspect-ratio: 16 / 9;
 }
 
-.videoPlayer iframe {
+.videoPlayer iframe,
+.videoPlayer video {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+  object-fit: cover;
 }
 
 .infoGrid {
@@ -1490,11 +1468,6 @@ button {
     margin: 12px 4vw;
   }
 
-  .revenueStrip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin: 0 4vw 12px;
-  }
-
   .main,
   .single {
     padding: 0 4vw 86px;
@@ -1532,7 +1505,6 @@ button {
   .managerGrid,
   .stats,
   .infoGrid,
-  .productTrustBar,
   .explainerGrid,
   .relatedPanel > div {
     grid-template-columns: 1fr;
@@ -1627,7 +1599,8 @@ button {
     padding: 8px max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   }
 
-  .mobileNav button {
+  .mobileNav button,
+  .mobileNav a {
     display: grid;
     place-items: center;
     gap: 3px;
@@ -1636,5 +1609,6 @@ button {
     color: #475569;
     font-size: 11px;
     font-weight: 900;
+    text-decoration: none;
   }
 }

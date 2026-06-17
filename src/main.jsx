@@ -396,7 +396,7 @@ function initialCategory() {
     .find(([, path]) => window.location.pathname === path)?.[0];
   if (routeCategory) return routeCategory;
   const urlCategory = readUrlParam('category');
-  return categories.some(([key]) => key === urlCategory) ? urlCategory : 'local';
+  return categories.some(([key]) => key === urlCategory) ? urlCategory : 'top';
 }
 
 function initialLanguage() {
@@ -465,6 +465,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authNotice, setAuthNotice] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
 
   useEffect(() => {
     document.documentElement.dir = language.dir;
@@ -486,10 +487,13 @@ function App() {
   useEffect(() => {
     const url = contextUrl({ category, location, language });
     window.history.replaceState({}, '', url);
+    setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
   }, [category, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
     function syncArticleFromUrl() {
+      setIsLocalPage(window.location.pathname === categoryRoutes.local);
+      setCategory(initialCategory());
       const articleId = readArticleIdFromUrl();
       if (!articleId) {
         setSelected(null);
@@ -569,6 +573,15 @@ function App() {
   function updateLocation(next) {
     setLocation(next);
     writeLocal('nuzenio_location', next);
+  }
+
+  function navigateCategory(nextCategory) {
+    setScreen('home');
+    setCategory(nextCategory);
+    setMobileSearchOpen(false);
+    const url = homeContextUrl({ category: nextCategory, location, language });
+    window.history.pushState({}, '', url);
+    setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
   }
 
   async function loginWithGoogle() {
@@ -668,7 +681,7 @@ function App() {
   );
 
   return (
-    <div className="appShell">
+    <div className="appShell" data-section={category} data-local-page={isLocalPage ? 'true' : 'false'}>
       <Header
         authNotice={authNotice}
         category={category}
@@ -680,11 +693,10 @@ function App() {
         query={query}
         screen={screen}
         searchNews={searchNews}
-        setCategory={setCategory}
+        navigateCategory={navigateCategory}
         setLanguage={setLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
-        setScreen={setScreen}
         user={user}
       />
 
@@ -719,7 +731,7 @@ function App() {
         />
       )}
       <Footer copy={copy} />
-      <MobileNav copy={copy} setCategory={setCategory} setScreen={setScreen} setMobileSearchOpen={setMobileSearchOpen} />
+      <MobileNav copy={copy} navigateCategory={navigateCategory} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
 }
@@ -732,26 +744,33 @@ function Header({
   loginWithGoogle,
   logout,
   mobileSearchOpen,
+  navigateCategory,
   query,
   screen,
   searchNews,
-  setCategory,
   setLanguage,
   setMobileSearchOpen,
   setQuery,
-  setScreen,
   user,
 }) {
   return (
     <header className="header">
       <div className="topbar">
-        <button className="brand" onClick={() => setScreen('home')} aria-label="Nuzenio home">
+        <a
+          className="brand"
+          href={categoryRoutes.top}
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('top');
+          }}
+          aria-label="Nuzenio home"
+        >
           <div className="logo">N</div>
           <div>
             <h1>Nuzenio</h1>
             <small>{copy.tagline}</small>
           </div>
-        </button>
+        </a>
 
         <form className={`searchBox ${mobileSearchOpen ? 'isOpen' : ''}`} onSubmit={searchNews}>
           <Search size={18} />
@@ -798,55 +817,60 @@ function Header({
       {authNotice && <div className="authNotice">{authNotice}</div>}
 
       <nav className="nav" aria-label="Primary navigation">
-        <button
+        <a
+          href={categoryRoutes.top}
           className={screen === 'home' && category === 'top' ? 'active' : ''}
-          onClick={() => {
-            setCategory('top');
-            setScreen('home');
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('top');
           }}
         >
           {copy.home}
-        </button>
-        <button
+        </a>
+        <a
+          href={categoryRoutes.local}
           className={screen === 'home' && category === 'local' ? 'active' : ''}
-          onClick={() => {
-            setCategory('local');
-            setScreen('home');
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('local');
           }}
         >
           {copy.categories.local}
-        </button>
-        <button
+        </a>
+        <a
+          href={categoryRoutes.live}
           className={screen === 'home' && category === 'live' ? 'active' : ''}
-          onClick={() => {
-            setCategory('live');
-            setScreen('home');
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('live');
           }}
         >
           {copy.categories.live}
-        </button>
-        <button
+        </a>
+        <a
+          href={categoryRoutes.video}
           className={screen === 'home' && category === 'video' ? 'active' : ''}
-          onClick={() => {
-            setCategory('video');
-            setScreen('home');
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('video');
           }}
         >
           {copy.categories.video}
-        </button>
+        </a>
       </nav>
       <nav className="newsNav" aria-label="News sections">
         {categories.filter(([key]) => !primarySectionRoutes[key]).map(([key, label]) => (
-          <button
+          <a
             key={key}
+            href={categoryRoutes[key]}
             className={screen === 'home' && category === key ? 'active' : ''}
-            onClick={() => {
-              setScreen('home');
-              setCategory(key);
+            onClick={(event) => {
+              event.preventDefault();
+              navigateCategory(key);
             }}
           >
             {copy.categories[key] || label}
-          </button>
+          </a>
         ))}
       </nav>
     </header>
@@ -875,20 +899,19 @@ function Home({
     return (
       <>
         <BreakingStrip label={videoSectionLabel(category, copy).toUpperCase()} text={ticker || status} />
-        <RevenueStrip />
 
         <main className="main">
           <section>
-            <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
-            <ProductTrustBar />
             <div className="videoHero">
               <div>
                 <span className="badge">
-                  <PlayCircle size={15} /> YouTube live source
+                  <PlayCircle size={15} /> Approved live sources
                 </span>
                 <h2>{category === 'live' ? 'Live News' : 'News Videos'}</h2>
                 <p>
-                  Real YouTube {category === 'live' ? 'live streams' : 'videos'} loaded for your selected country and language. Watch inside Nuzenio.
+                  {category === 'live'
+                    ? 'Verified live news channels loaded for your selected country and language. Watch inside Nuzenio.'
+                    : 'Real news videos loaded for your selected country and language. Watch inside Nuzenio.'}
                 </p>
               </div>
               <b>{articles.length}</b>
@@ -906,7 +929,7 @@ function Home({
             <div className="sectionHead">
               <div>
                 <h2>{category === 'live' ? 'More Live News' : 'More Videos'}</h2>
-                <p>Playable YouTube video feed for your selected country and language.</p>
+                <p>Playable video feed for your selected country and language.</p>
               </div>
               <span>{status}</span>
             </div>
@@ -939,12 +962,10 @@ function Home({
   return (
     <>
       <BreakingStrip label={copy.breaking} text={ticker || status} />
-      <RevenueStrip />
 
       <main className="main">
         <section>
           <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
-          <ProductTrustBar />
 
           <div className="heroGrid">
             <button className="leadCard" onClick={() => lead && openArticle(lead)}>
@@ -953,7 +974,7 @@ function Home({
               </div>
               <div className="leadContent">
                 <div className="badge">
-                  <ShieldCheck size={15} /> Live RSS verified
+                  <ShieldCheck size={15} /> Source attributed
                 </div>
                 <h2>{displayTitle(lead) || 'Loading live lead story...'}</h2>
                 <p>{displaySummary(lead) || status}</p>
@@ -1043,12 +1064,7 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
     <section className="videoShowcase">
       <div className="featuredVideo">
         <div className="featuredFrame">
-          <iframe
-            title={displayTitle(featured)}
-            src={youtubeEmbedUrl(featured, { autoplay: false })}
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+          <LiveVideoPlayer article={featured} autoplay={false} />
         </div>
         <div className="featuredBody">
           <div className="cardTop">
@@ -1094,13 +1110,7 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   return (
     <article className={`videoCard ${isLive ? 'liveCard' : ''}`}>
       <div className="inlineVideo">
-        <iframe
-          title={displayTitle(article)}
-          src={youtubeEmbedUrl(article, { autoplay: false })}
-          loading="lazy"
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
+        <LiveVideoPlayer article={article} autoplay={false} lazy />
       </div>
       <div className="videoBody">
         <div className="cardTop">
@@ -1127,49 +1137,9 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   );
 }
 
-function RevenueStrip() {
-  return (
-    <section className="revenueStrip" aria-label="Nuzenio revenue and trust model">
-      <div>
-        <b>Live RSS</b>
-        <span>Publisher sourced</span>
-      </div>
-      <div>
-        <b>Ad policy</b>
-        <span>Scripts disabled</span>
-      </div>
-      <div>
-        <b>Affiliate policy</b>
-        <span>Approval required</span>
-      </div>
-      <div>
-        <b>AI layer</b>
-        <span>Summary and context</span>
-      </div>
-    </section>
-  );
-}
-
-function ProductTrustBar() {
-  return (
-    <div className="productTrustBar">
-      <div>
-        <ShieldCheck size={18} />
-        <span>Verified publisher attribution</span>
-      </div>
-      <div>
-        <Sparkles size={18} />
-        <span>AI summaries separated from source links</span>
-      </div>
-      <div>
-        <LinkIcon size={18} />
-        <span>Commercial links require admin approval</span>
-      </div>
-    </div>
-  );
-}
-
 function LocationBanner({ copy, location, setLocation, status }) {
+  if (window.location.pathname !== categoryRoutes.local) return null;
+
   function changeCountry(event) {
     const country = normalizeCountry(event.target.value);
     setLocation({ country, region: '', city: '', label: countryLabel(country), source: 'manual' });
@@ -1390,12 +1360,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         </div>
         {isVideo && (
           <div className="videoPlayer">
-            <iframe
-              title={displayTitle(article)}
-              src={youtubeEmbedUrl(article)}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+            <LiveVideoPlayer article={article} />
           </div>
         )}
         <div className="summaryPanel">
@@ -1468,8 +1433,8 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         <div className="sourceBox">
           <h3>{copy.sourceAttribution}</h3>
           <p>
-            This story is sourced from <b>{article.source}</b> via live RSS. Nuzenio links back to the original
-            publisher for the full report.
+            This story is sourced from <b>{article.source}</b> via {isVideo ? sourceProviderLabel(article) : 'live RSS'}.
+            Nuzenio links back to the original publisher for the full report.
           </p>
         </div>
         <AdSlot name="article-inline" label="Article advertising inventory" />
@@ -1489,7 +1454,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           </button>
         </div>
         <a className="original" href={article.link} target="_blank" rel="noreferrer">
-          {isVideo ? 'Watch on YouTube' : copy.readOriginal} <ExternalLink size={16} />
+          {isVideo ? 'Open original source' : copy.readOriginal} <ExternalLink size={16} />
         </a>
       </article>
     </div>
@@ -1743,36 +1708,33 @@ function Monetize() {
   );
 }
 
-function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
+function MobileNav({ copy, navigateCategory, setMobileSearchOpen }) {
   return (
     <div className="mobileNav">
-      <button onClick={() => setScreen('home')}>
+      <a href={categoryRoutes.top} onClick={(event) => {
+        event.preventDefault();
+        navigateCategory('top');
+      }}>
         <HomeIcon size={18} /> {copy.home}
-      </button>
-      <button
-        onClick={() => {
-          setCategory('local');
-          setScreen('home');
-        }}
-      >
+      </a>
+      <a href={categoryRoutes.local} onClick={(event) => {
+        event.preventDefault();
+        navigateCategory('local');
+      }}>
         <Globe2 size={18} /> {copy.categories.local}
-      </button>
-      <button
-        onClick={() => {
-          setCategory('live');
-          setScreen('home');
-        }}
-      >
+      </a>
+      <a href={categoryRoutes.live} onClick={(event) => {
+        event.preventDefault();
+        navigateCategory('live');
+      }}>
         <PlayCircle size={18} /> {copy.categories.live}
-      </button>
-      <button
-        onClick={() => {
-          setCategory('video');
-          setScreen('home');
-        }}
-      >
+      </a>
+      <a href={categoryRoutes.video} onClick={(event) => {
+        event.preventDefault();
+        navigateCategory('video');
+      }}>
         <PlayCircle size={18} /> {copy.categories.video}
-      </button>
+      </a>
       <button onClick={() => setMobileSearchOpen((value) => !value)}>
         <Search size={18} /> {copy.search}
       </button>
@@ -1817,7 +1779,7 @@ function displayFullBrief(article) {
 }
 
 function isVideoArticle(article) {
-  return ['live', 'video'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl);
+  return ['live', 'video'].includes(article?.category) && Boolean(article?.videoId || article?.embedUrl || article?.streamUrl);
 }
 
 function videoSectionLabel(category, copy) {
@@ -1825,16 +1787,59 @@ function videoSectionLabel(category, copy) {
   return copy.categories.video;
 }
 
-function youtubeEmbedUrl(article, options = {}) {
+function LiveVideoPlayer({ article, autoplay = true, lazy = false }) {
+  if (article?.streamUrl) {
+    return (
+      <video
+        title={displayTitle(article)}
+        src={article.streamUrl}
+        poster={videoThumbnail(article)}
+        controls
+        playsInline
+        muted={autoplay}
+        autoPlay={autoplay}
+        preload={lazy ? 'metadata' : 'auto'}
+      />
+    );
+  }
+
+  return (
+    <iframe
+      title={displayTitle(article)}
+      src={mediaEmbedUrl(article, { autoplay })}
+      loading={lazy ? 'lazy' : undefined}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowFullScreen
+    />
+  );
+}
+
+function mediaEmbedUrl(article, options = {}) {
   const autoplay = options.autoplay ?? true;
   const baseUrl = article?.embedUrl || `https://www.youtube-nocookie.com/embed/${article.videoId}`;
   const joiner = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${joiner}autoplay=${autoplay ? '1' : '0'}&rel=0&modestbranding=1`;
+  if (/player\.twitch\.tv/i.test(baseUrl)) {
+    return `${baseUrl}${joiner}autoplay=${autoplay ? 'true' : 'false'}`;
+  }
+  if (/youtube(?:-nocookie)?\.com/i.test(baseUrl)) {
+    return `${baseUrl}${joiner}autoplay=${autoplay ? '1' : '0'}&rel=0&modestbranding=1`;
+  }
+  return `${baseUrl}${joiner}autoplay=${autoplay ? '1' : '0'}`;
 }
 
 function videoThumbnail(article) {
   if (article?.image) return article.image;
   return article?.videoId ? `https://i.ytimg.com/vi/${article.videoId}/hqdefault.jpg` : '';
+}
+
+function sourceProviderLabel(article) {
+  const labels = {
+    youtube: 'YouTube',
+    twitch: 'Twitch',
+    official_embed: 'official publisher embed',
+    hls: 'official HLS stream',
+  };
+  return labels[article?.provider] || 'approved video source';
 }
 
 function buildKeyFacts(article) {

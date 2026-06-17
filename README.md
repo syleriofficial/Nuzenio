@@ -5,7 +5,7 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
-- YouTube-only Live News and Video sections with playable embedded videos
+- Live News and Video sections with playable embedded videos from approved sources
 - Clean section pages for `/local`, `/live`, and `/video`
 - SEO topic pages for `/top-news`, `/world`, `/business`, `/technology`, `/sports`, `/entertainment`, `/health`, and `/science`
 - English-first website experience with automatic local-country news
@@ -49,10 +49,32 @@ VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
 YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
+LIVE_NEWS_SOURCES=[]
+TWITCH_EMBED_PARENTS=nuzenio.com,<netlify-site-name>.netlify.app
 ```
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
+`LIVE_NEWS_SOURCES` is optional JSON for verified free live channels outside normal YouTube search. Only add official/publicly embeddable sources that the publisher allows. Supported providers are `youtube`, `twitch`, `official_embed`, and `hls`.
+
+Example `LIVE_NEWS_SOURCES` value:
+
+```json
+[
+  {
+    "id": "publisher-live",
+    "name": "Publisher News",
+    "title": "Publisher News Live",
+    "provider": "official_embed",
+    "country": "GLOBAL",
+    "language": "en",
+    "embedUrl": "https://publisher.example/embed/live",
+    "link": "https://publisher.example/live",
+    "active": true,
+    "priority": 100
+  }
+]
+```
 
 Recommended Supabase auth URLs:
 
