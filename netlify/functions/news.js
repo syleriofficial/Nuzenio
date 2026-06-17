@@ -378,13 +378,13 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 
   return responses
     .flat()
-    .map((item) => normalizeYouTubeApiItem(item, category, countryCode, Boolean(channelIds.length)))
+    .map((item) => normalizeYouTubeApiItem(item, category, countryCode, Boolean(channelIds.length), newsLanguage))
     .filter(Boolean)
     .filter((article) => category !== 'live' || isReadableVideoTitle(article.title))
     .filter((article) => category !== 'live' || hasNewsChannelSignal(article.title, article.source))
     .filter((article) => category !== 'video' || hasNewsChannelSignal(article.title, article.source))
     .filter((article, index, all) => all.findIndex((item) => item.videoId === article.videoId) === index)
-    .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
+    .sort((a, b) => (b.languageScore || 0) - (a.languageScore || 0) || new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
     .slice(0, 36);
 }
 
@@ -438,27 +438,27 @@ function liveNewsQuery(language = 'en') {
 
 function videoNewsQuery(language = 'en') {
   const terms = {
-    ar: 'فيديو أخبار اليوم تقارير أخبار عاجلة',
-    bn: 'আজকের সংবাদ ভিডিও ব্রেকিং নিউজ প্রতিবেদন',
-    de: 'nachrichten video heute breaking news bericht',
-    es: 'videos de noticias de hoy ultima hora informe',
-    fr: 'video actualites aujourd hui derniere minute reportage',
-    gu: 'આજના સમાચાર વિડિયો બ્રેકિંગ ન્યૂઝ રિપોર્ટ',
-    hi: 'आज की खबर वीडियो ब्रेकिंग न्यूज़ रिपोर्ट',
-    ja: '今日のニュース 動画 速報 レポート',
-    kn: 'ಇಂದಿನ ಸುದ್ದಿ ವಿಡಿಯೋ ಬ್ರೇಕಿಂಗ್ ನ್ಯೂಸ್ ವರದಿ',
-    ko: '오늘 뉴스 영상 속보 리포트',
-    ml: 'ഇന്നത്തെ വാർത്ത വീഡിയോ ബ്രേക്കിംഗ് ന്യൂസ് റിപ്പോർട്ട്',
-    mr: 'आजच्या बातम्या व्हिडिओ ब्रेकिंग न्यूज रिपोर्ट',
-    pa: 'ਅੱਜ ਦੀਆਂ ਖਬਰਾਂ ਵੀਡੀਓ ਬ੍ਰੇਕਿੰਗ ਨਿਊਜ਼ ਰਿਪੋਰਟ',
-    pt: 'videos de noticias de hoje ultimas noticias reportagem',
-    ru: 'видео новости сегодня срочные новости репортаж',
-    ta: 'இன்றைய செய்தி வீடியோ பிரேக்கிங் நியூஸ் அறிக்கை',
-    te: 'ఈరోజు వార్తలు వీడియో బ్రేకింగ్ న్యూస్ రిపోర్ట్',
-    ur: 'آج کی خبریں ویڈیو بریکنگ نیوز رپورٹ',
-    zh: '今日新闻 视频 突发新闻 报道',
+    ar: 'فيديو أخبار اليوم تقارير أخبار عاجلة قناة إخبارية',
+    bn: 'আজকের সংবাদ ভিডিও ব্রেকিং নিউজ প্রতিবেদন সংবাদ চ্যানেল',
+    de: 'nachrichten video heute breaking news bericht nachrichtensender',
+    es: 'videos de noticias de hoy ultima hora informe canal noticias',
+    fr: 'video actualites aujourd hui derniere minute reportage chaine info',
+    gu: 'આજના સમાચાર વિડિયો બ્રેકિંગ ન્યૂઝ રિપોર્ટ સમાચાર ચેનલ',
+    hi: 'आज की खबर वीडियो ब्रेकिंग न्यूज़ रिपोर्ट न्यूज़ चैनल',
+    ja: '今日のニュース 動画 速報 レポート ニュースチャンネル',
+    kn: 'ಇಂದಿನ ಸುದ್ದಿ ವಿಡಿಯೋ ಬ್ರೇಕಿಂಗ್ ನ್ಯೂಸ್ ವರದಿ ಸುದ್ದಿ ಚಾನೆಲ್',
+    ko: '오늘 뉴스 영상 속보 리포트 뉴스 채널',
+    ml: 'ഇന്നത്തെ വാർത്ത വീഡിയോ ബ്രേക്കിംഗ് ന്യൂസ് റിപ്പോർട്ട് വാർത്ത ചാനൽ',
+    mr: 'आजच्या बातम्या व्हिडिओ ब्रेकिंग न्यूज रिपोर्ट न्यूज चॅनेल',
+    pa: 'ਅੱਜ ਦੀਆਂ ਖਬਰਾਂ ਵੀਡੀਓ ਬ੍ਰੇਕਿੰਗ ਨਿਊਜ਼ ਰਿਪੋਰਟ ਨਿਊਜ਼ ਚੈਨਲ',
+    pt: 'videos de noticias de hoje ultimas noticias reportagem canal noticias',
+    ru: 'видео новости сегодня срочные новости репортаж новостной канал',
+    ta: 'இன்றைய செய்தி வீடியோ பிரேக்கிங் நியூஸ் அறிக்கை செய்தி சேனல்',
+    te: 'ఈరోజు వార్తలు వీడియో బ్రేకింగ్ న్యూస్ రిపోర్ట్ న్యూస్ ఛానల్',
+    ur: 'آج کی خبریں ویڈیو بریکنگ نیوز رپورٹ نیوز چینل',
+    zh: '今日新闻 视频 突发新闻 报道 新闻频道',
   };
-  return terms[language] || 'today news video latest headlines report';
+  return terms[language] || 'today news video latest headlines report news channel';
 }
 
 function youtubeChannelIds() {
@@ -468,7 +468,7 @@ function youtubeChannelIds() {
     .filter((item) => /^UC[\w-]{20,}$/.test(item));
 }
 
-function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode) {
+function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode, newsLanguage = 'en') {
   const videoId = item.id?.videoId;
   const snippet = item.snippet || {};
   if (!videoId || !snippet.title) return null;
@@ -495,6 +495,7 @@ function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode
     mediaType: category === 'live' ? 'live' : 'video',
     readTime: 1,
     trustScore: trustedChannelMode ? 98 : 95,
+    languageScore: languageRelevanceScore(`${title} ${source} ${snippet.description || ''}`, newsLanguage),
     summary,
     fullBrief: clean(snippet.description || summary),
     whatHappened: `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${source}.`,
@@ -502,6 +503,38 @@ function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode
       ? `This playable YouTube news video is loaded from a Nuzenio-approved YouTube channel with source attribution.`
       : `This playable YouTube news video is loaded through the official YouTube Data API with source attribution.`,
   };
+}
+
+function languageRelevanceScore(text = '', language = 'en') {
+  const value = text.toLowerCase();
+  const scripts = {
+    ar: /[\u0600-\u06ff]/,
+    bn: /[\u0980-\u09ff]/,
+    gu: /[\u0a80-\u0aff]/,
+    hi: /[\u0900-\u097f]/,
+    ja: /[\u3040-\u30ff\u3400-\u9fff]/,
+    kn: /[\u0c80-\u0cff]/,
+    ko: /[\uac00-\ud7af]/,
+    ml: /[\u0d00-\u0d7f]/,
+    mr: /[\u0900-\u097f]/,
+    pa: /[\u0a00-\u0a7f]/,
+    ru: /[\u0400-\u04ff]/,
+    ta: /[\u0b80-\u0bff]/,
+    te: /[\u0c00-\u0c7f]/,
+    ur: /[\u0600-\u06ff]/,
+    zh: /[\u3400-\u9fff]/,
+  };
+  const keywords = {
+    de: ['nachrichten', 'aktuell', 'bericht'],
+    en: ['news', 'headlines', 'report', 'breaking'],
+    es: ['noticias', 'ultima hora', 'informe'],
+    fr: ['actualites', 'info', 'reportage'],
+    pt: ['noticias', 'ultimas', 'reportagem'],
+  };
+  const scriptScore = scripts[language]?.test(text) ? 3 : 0;
+  const keywordScore = (keywords[language] || []).some((word) => value.includes(word)) ? 2 : 0;
+  const newsScore = hasNewsChannelSignal(text, '') ? 1 : 0;
+  return scriptScore + keywordScore + newsScore;
 }
 
 async function fetchYouTubeVideos({ category, country, language }) {
