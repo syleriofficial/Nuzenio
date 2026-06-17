@@ -16,7 +16,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - RTL document support for Urdu and Arabic
 - News language selector that reloads live RSS in the selected language
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
-- Admin dashboard for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
+- Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
 - Affiliate link manager structure with visible disclosure
 - SEO basics: meta tags, Open Graph tags, `robots.txt`, and `sitemap.xml`
 - Policy pages: privacy, terms, and affiliate disclosure

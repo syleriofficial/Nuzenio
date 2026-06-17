@@ -705,10 +705,6 @@ function App() {
           toggleSave={toggleSave}
         />
       )}
-      {screen === 'admin' && <Admin user={user} />}
-      {screen === 'analytics' && <Analytics articles={articles} history={history} savedIds={savedIds} />}
-      {screen === 'monetize' && <Monetize />}
-
       {selected && (
         <ArticleModal
           article={selected}
@@ -839,15 +835,6 @@ function Header({
         </button>
         <button className={screen === 'saved' ? 'active' : ''} onClick={() => setScreen('saved')}>
           {copy.saved}
-        </button>
-        <button className={screen === 'admin' ? 'active' : ''} onClick={() => setScreen('admin')}>
-          {copy.admin}
-        </button>
-        <button className={screen === 'analytics' ? 'active' : ''} onClick={() => setScreen('analytics')}>
-          {copy.analytics}
-        </button>
-        <button className={screen === 'monetize' ? 'active' : ''} onClick={() => setScreen('monetize')}>
-          {copy.monetize}
         </button>
       </nav>
       <nav className="newsNav" aria-label="News sections">
