@@ -1367,9 +1367,29 @@ button {
 .articleMeta {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--muted);
   flex-wrap: wrap;
+}
+
+.articleMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.articleMeta span:first-child,
+.articleMeta span:last-child {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
 }
 
 .summaryPanel {

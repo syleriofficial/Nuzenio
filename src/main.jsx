@@ -1551,7 +1551,16 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         </div>
         <h1>{displayTitle(article)}</h1>
         <div className="articleMeta">
-          {article.source} · {formatDate(article.pubDate)} · <ShieldCheck size={14} /> Verified RSS
+          <span>
+            <CheckCircle2 size={15} /> {article.source}
+          </span>
+          <span>
+            <Clock size={15} /> {formatFreshAge(article.pubDate)}
+          </span>
+          <span>{formatDate(article.pubDate)}</span>
+          <span>
+            <ShieldCheck size={15} /> Source attributed
+          </span>
         </div>
         {isVideo && (
           <div className="videoPlayer">
@@ -1629,7 +1638,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           <h3>{copy.sourceAttribution}</h3>
           <p>
             This story is sourced from <b>{article.source}</b> via {isVideo ? sourceProviderLabel(article) : 'live RSS'}.
-            Nuzenio links back to the original publisher for the full report.
+            Published {formatFreshAge(article.pubDate)}. Nuzenio links back to the original publisher for the full report.
           </p>
         </div>
         <AdSlot name="article-inline" label="Article advertising inventory" />
