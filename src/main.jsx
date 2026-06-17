@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -472,6 +472,7 @@ function App() {
   const [authNotice, setAuthNotice] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
+  const newsRequestId = useRef(0);
 
   useEffect(() => {
     document.documentElement.dir = language.dir;
@@ -538,13 +539,20 @@ function App() {
     city = location.city,
     newsLanguage = language.code,
   ) {
+    const requestId = newsRequestId.current + 1;
+    newsRequestId.current = requestId;
     setStatus('Loading live RSS news...');
+    setArticles([]);
     try {
       const cityParam = cat === 'local' && city ? `&city=${encodeURIComponent(city)}` : '';
       const regionParam = cat === 'local' && region ? `&region=${encodeURIComponent(region)}` : '';
       const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
-      const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}`);
+      const res = await fetch(
+        `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}`,
+        { cache: 'no-store' },
+      );
       const data = await res.json();
+      if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
       const place = cat === 'local' && data.city
@@ -560,6 +568,7 @@ function App() {
           : `${categoryLabel.toLowerCase()} articles`;
       setStatus(`${data.total} ${itemLabel} for ${place}`);
     } catch (error) {
+      if (requestId !== newsRequestId.current) return;
       setStatus(`Live API error: ${error.message}`);
     }
   }
@@ -567,16 +576,22 @@ function App() {
   async function searchNews(event) {
     event?.preventDefault();
     if (!query.trim()) return loadNews(category, location.country, location.region, location.city, language.code);
+    const requestId = newsRequestId.current + 1;
+    newsRequestId.current = requestId;
     setStatus('Searching live RSS news...');
+    setArticles([]);
     try {
       const res = await fetch(
         `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=${encodeURIComponent(language.code)}`,
+        { cache: 'no-store' },
       );
       const data = await res.json();
+      if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'Search failed');
       setArticles(data.articles || []);
       setStatus(`${data.total || 0} results for "${query.trim()}"`);
     } catch (error) {
+      if (requestId !== newsRequestId.current) return;
       setStatus(`Search error: ${error.message}`);
     }
   }
