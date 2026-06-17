@@ -2090,31 +2090,26 @@ function setCanonical(url) {
   canonical.setAttribute('href', url);
 }
 
-function setJsonLd(article, url) {
+function setJsonLd(article, url, { context, description, image, title }) {
   const existing = document.getElementById('nuzenio-jsonld');
   if (existing) existing.remove();
-  if (!article) return;
 
   const script = document.createElement('script');
   script.id = 'nuzenio-jsonld';
   script.type = 'application/ld+json';
-  script.textContent = JSON.stringify({
+  script.textContent = JSON.stringify(article ? {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: displayTitle(article),
     description: displaySummary(article),
     datePublished: article.pubDate || undefined,
     dateModified: article.pubDate || undefined,
-    image: seoImage(article),
+    image,
     mainEntityOfPage: url,
-    publisher: {
-      '@type': 'Organization',
-      name: 'Nuzenio',
-      url: 'https://nuzenio.com/',
-    },
+    publisher: organizationSchema(),
     isBasedOn: article.link,
     citation: article.source,
-  });
+  } : pageJsonLd(url, { context, description, image, title }));
   document.head.appendChild(script);
 }
 
@@ -2142,7 +2137,7 @@ function updatePageSeo(article, context) {
   setMeta('meta[name="twitter:description"]', 'content', description);
   setMeta('meta[name="twitter:image"]', 'content', image);
   setAlternateLinks(article ? null : context);
-  setJsonLd(article, canonicalUrl);
+  setJsonLd(article, canonicalUrl, { context, description, image, title });
 }
 
 function productionUrl(url) {
@@ -2207,6 +2202,58 @@ function pageSeoDescription({ category, location, language }) {
   }
   const action = isMediaPage ? 'Watch' : 'Read';
   return `${action} ${sectionTitle} for ${place} on Nuzenio with live RSS news, AI summaries, source attribution, video news, and live news in ${nativeLanguage}.`;
+}
+
+function pageJsonLd(url, { context, description, image, title }) {
+  const sectionTitle = sectionContent(context.category, uiCopy(context.language.code), context.location).title;
+  const place = pageSeoPlace(context.category, context.location);
+  const websiteId = `${productionOrigin}/#website`;
+  const organizationId = `${productionOrigin}/#organization`;
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': organizationId,
+        ...organizationSchema(),
+        logo: `${productionOrigin}/og-image.svg`,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': websiteId,
+        name: 'Nuzenio',
+        url: productionOrigin,
+        publisher: { '@id': organizationId },
+        inLanguage: context.language.code,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: title,
+        description,
+        image,
+        isPartOf: { '@id': websiteId },
+        publisher: { '@id': organizationId },
+        inLanguage: context.language.code,
+        about: sectionTitle,
+        spatialCoverage: {
+          '@type': 'Place',
+          name: place,
+        },
+      },
+    ],
+  };
+}
+
+function organizationSchema() {
+  return {
+    '@type': 'Organization',
+    name: 'Nuzenio',
+    url: productionOrigin,
+    sameAs: ['https://github.com/syleriofficial/Nuzenio'],
+  };
 }
 
 function pageSeoPlace(category, location) {
