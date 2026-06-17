@@ -958,8 +958,8 @@ function Home({
                 <h2>{category === 'live' ? 'Live News' : 'News Videos'}</h2>
                 <p>
                   {category === 'live'
-                    ? 'Verified live news channels loaded for your selected country and language. Watch inside Nuzenio.'
-                    : 'Real news videos loaded for your selected country and language. Watch inside Nuzenio.'}
+                    ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
+                    : `${language.native} news videos loaded from embeddable news sources for your selected country. Watch inside Nuzenio.`}
                 </p>
               </div>
               <b>{articles.length}</b>
@@ -977,7 +977,7 @@ function Home({
             <div className="sectionHead">
               <div>
                 <h2>{category === 'live' ? 'More Live News' : 'More Videos'}</h2>
-                <p>Playable video feed for your selected country and language.</p>
+                <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed.`}</p>
               </div>
               <span>{status}</span>
             </div>

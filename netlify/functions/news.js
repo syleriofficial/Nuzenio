@@ -376,6 +376,7 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
     .filter(Boolean)
     .filter((article) => category !== 'live' || isReadableVideoTitle(article.title))
     .filter((article) => category !== 'live' || hasNewsChannelSignal(article.title, article.source))
+    .filter((article) => category !== 'video' || hasNewsChannelSignal(article.title, article.source))
     .filter((article, index, all) => all.findIndex((item) => item.videoId === article.videoId) === index)
     .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
     .slice(0, 36);
@@ -384,7 +385,7 @@ async function fetchYouTubeApiVideos({ category, country, language }) {
 function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLanguage }) {
   const query = [
     channelId ? '' : countryLabel(countryCode),
-    category === 'live' ? liveNewsQuery(newsLanguage) : 'news latest video',
+    category === 'live' ? liveNewsQuery(newsLanguage) : videoNewsQuery(newsLanguage),
   ].filter(Boolean).join(' ');
   const params = new URLSearchParams({
     part: 'snippet',
@@ -426,6 +427,31 @@ function liveNewsQuery(language = 'en') {
     zh: '直播新闻频道 突发新闻',
   };
   return terms[language] || 'live news channel live tv breaking news';
+}
+
+function videoNewsQuery(language = 'en') {
+  const terms = {
+    ar: 'فيديو أخبار اليوم تقارير أخبار عاجلة',
+    bn: 'আজকের সংবাদ ভিডিও ব্রেকিং নিউজ প্রতিবেদন',
+    de: 'nachrichten video heute breaking news bericht',
+    es: 'videos de noticias de hoy ultima hora informe',
+    fr: 'video actualites aujourd hui derniere minute reportage',
+    gu: 'આજના સમાચાર વિડિયો બ્રેકિંગ ન્યૂઝ રિપોર્ટ',
+    hi: 'आज की खबर वीडियो ब्रेकिंग न्यूज़ रिपोर्ट',
+    ja: '今日のニュース 動画 速報 レポート',
+    kn: 'ಇಂದಿನ ಸುದ್ದಿ ವಿಡಿಯೋ ಬ್ರೇಕಿಂಗ್ ನ್ಯೂಸ್ ವರದಿ',
+    ko: '오늘 뉴스 영상 속보 리포트',
+    ml: 'ഇന്നത്തെ വാർത്ത വീഡിയോ ബ്രേക്കിംഗ് ന്യൂസ് റിപ്പോർട്ട്',
+    mr: 'आजच्या बातम्या व्हिडिओ ब्रेकिंग न्यूज रिपोर्ट',
+    pa: 'ਅੱਜ ਦੀਆਂ ਖਬਰਾਂ ਵੀਡੀਓ ਬ੍ਰੇਕਿੰਗ ਨਿਊਜ਼ ਰਿਪੋਰਟ',
+    pt: 'videos de noticias de hoje ultimas noticias reportagem',
+    ru: 'видео новости сегодня срочные новости репортаж',
+    ta: 'இன்றைய செய்தி வீடியோ பிரேக்கிங் நியூஸ் அறிக்கை',
+    te: 'ఈరోజు వార్తలు వీడియో బ్రేకింగ్ న్యూస్ రిపోర్ట్',
+    ur: 'آج کی خبریں ویڈیو بریکنگ نیوز رپورٹ',
+    zh: '今日新闻 视频 突发新闻 报道',
+  };
+  return terms[language] || 'today news video latest headlines report';
 }
 
 function youtubeChannelIds() {
@@ -490,7 +516,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
   const newsLanguage = normalizeLanguage(language);
   const query = [
     countryLabel(countryCode),
-    category === 'live' ? liveNewsQuery(newsLanguage) : 'news today video',
+    category === 'live' ? liveNewsQuery(newsLanguage) : videoNewsQuery(newsLanguage),
   ].join(' ');
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
   const html = await fetchText(url, 0, {
@@ -568,7 +594,7 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
     return `https://news.google.com/rss/search?q=${encodeURIComponent(localQuery)}&${params}`;
   }
   if (category === 'video') {
-    const videoQuery = ['site:youtube.com', 'video news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    const videoQuery = ['site:youtube.com/watch', videoNewsQuery(newsLanguage), countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(videoQuery)}&${params}`;
   }
   if (category === 'live') {
