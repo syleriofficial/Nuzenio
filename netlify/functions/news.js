@@ -10,6 +10,41 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
+const CATEGORY_SEARCH_TERMS = {
+  top: {
+    en: 'top news breaking headlines',
+    hi: 'आज की बड़ी खबर ताजा खबर ब्रेकिंग न्यूज़',
+  },
+  world: {
+    en: 'world news international breaking',
+    hi: 'दुनिया की खबर अंतरराष्ट्रीय समाचार',
+  },
+  business: {
+    en: 'business news market economy company',
+    hi: 'बिजनेस खबर बाजार अर्थव्यवस्था कंपनी',
+  },
+  tech: {
+    en: 'technology news AI smartphone startup',
+    hi: 'टेक्नोलॉजी खबर एआई मोबाइल स्टार्टअप',
+  },
+  sports: {
+    en: 'sports news match score cricket football',
+    hi: 'खेल समाचार मैच स्कोर क्रिकेट',
+  },
+  entertainment: {
+    en: 'entertainment news film bollywood celebrity',
+    hi: 'मनोरंजन खबर फिल्म बॉलीवुड',
+  },
+  health: {
+    en: 'health news medicine wellness study',
+    hi: 'स्वास्थ्य खबर बीमारी दवा सेहत अध्ययन',
+  },
+  science: {
+    en: 'science news space climate research discovery',
+    hi: 'विज्ञान खबर अंतरिक्ष जलवायु शोध खोज',
+  },
+};
+
 const VIDEO_CATEGORIES = new Set(['video', 'live']);
 const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS)]);
 const LIVE_SOURCE_PROVIDERS = new Set(['youtube', 'twitch', 'official_embed', 'hls']);
@@ -695,6 +730,18 @@ function localSearchQueries({ country, region, city }) {
   ];
 }
 
+function categorySearchQueries({ category, country, language }) {
+  const countryCode = normalizeCountry(country);
+  const terms = CATEGORY_SEARCH_TERMS[category] || CATEGORY_SEARCH_TERMS.top;
+  const languageTerms = terms[language] || terms.en;
+  const countryName = countryLabel(countryCode);
+  return [
+    `${languageTerms} ${countryName} when:1d`,
+    `${languageTerms} ${countryName} when:3d`,
+    `${languageTerms} when:7d`,
+  ];
+}
+
 async function fetchFreshLocalArticles({ country, region, city, language }) {
   const queries = localSearchQueries({ country, region, city });
   const batches = [];
@@ -704,6 +751,31 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
     batches.push(...parse(xml, 'local', country));
     const fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
     if (fresh.length >= 18) return fresh.slice(0, 60);
+  }
+
+  return sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 30))).slice(0, 60);
+}
+
+async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
+  if (q) {
+    return sortByNewest(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country));
+  }
+
+  if (category === 'local') {
+    return fetchFreshLocalArticles({ country, region, city, language });
+  }
+
+  const batches = [];
+  const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
+  batches.push(...parse(topicXml, category, country));
+  let fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+  if (fresh.length >= 24) return fresh.slice(0, 60);
+
+  for (const query of categorySearchQueries({ category, country, language })) {
+    const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
+    batches.push(...parse(xml, category, country));
+    fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+    if (fresh.length >= 24) return fresh.slice(0, 60);
   }
 
   return sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 30))).slice(0, 60);
@@ -744,9 +816,7 @@ export const handler = async (event) => {
       };
     }
 
-    const articles = !q && category === 'local'
-      ? await fetchFreshLocalArticles({ country, region, city, language })
-      : sortByNewest(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country));
+    const articles = await fetchFreshNewsArticles({ category, country, region, city, language, q });
 
     return {
       statusCode: 200,
@@ -761,7 +831,7 @@ export const handler = async (event) => {
         language,
         query: q || null,
         total: articles.length,
-        sourceType: !q && category === 'local' ? 'fresh-local-rss' : 'live-rss',
+        sourceType: !q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss',
         updatedAt: new Date().toISOString(),
         articles,
       }),
