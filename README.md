@@ -20,8 +20,8 @@ Production-oriented Netlify + Supabase AI news platform.
 - Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
 - Affiliate link manager structure with visible disclosure
 - SEO basics: meta tags, Open Graph tags, `robots.txt`, and `sitemap.xml`
-- Policy pages: privacy, terms, and affiliate disclosure
-- AdSense inventory areas with publisher scripts disabled until approval
+- Trust pages: about, sources, editorial policy, contact, privacy, terms, and affiliate disclosure
+- AdSense inventory areas prepared for approved publisher scripts
 - Mobile bottom navigation and readable article view
 
 ## Netlify settings
@@ -106,6 +106,8 @@ CNAME www   <netlify-site-name>.netlify.app
 ```text
 https://nuzenio.com
 https://nuzenio.com/api/news
+https://nuzenio.com/about.html
+https://nuzenio.com/contact.html
 https://nuzenio.com/privacy.html
 https://nuzenio.com/sitemap.xml
 ```
@@ -128,9 +130,9 @@ npm run build
 
 ## Monetization notes
 
-- Add AdSense publisher scripts only after approval.
+- Add AdSense publisher scripts after the site is approved and the final publisher ID is available.
 - Keep paid placements labeled and separate from editorial RSS stories.
-- Use `public/privacy.html`, `public/terms.html`, and `public/affiliate-disclosure.html` for review readiness.
+- Use the public trust pages in `public/` for review readiness.
 - Store approved partner links in `public.affiliate_links` and keep `enabled=false` until reviewed.
 
 ## Deploy

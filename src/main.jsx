@@ -1588,6 +1588,10 @@ function Footer({ copy }) {
   return (
     <footer className="footer">
       <b>Nuzenio</b>
+      <a href="/about.html">About</a>
+      <a href="/sources.html">Sources</a>
+      <a href="/editorial-policy.html">Editorial Policy</a>
+      <a href="/contact.html">Contact</a>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
       <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
