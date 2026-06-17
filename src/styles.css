@@ -656,12 +656,28 @@ button {
   text-align: start;
 }
 
-.videoQueue img {
+.videoQueue img,
+.videoQueue .videoThumbFallback {
   width: 86px;
   aspect-ratio: 16 / 9;
   border-radius: 8px;
   background: #020617;
   object-fit: cover;
+}
+
+.videoThumbFallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(37, 99, 235, 0.38), transparent 34%),
+    linear-gradient(135deg, #020617, #111827);
+}
+
+.compactThumbFallback svg {
+  opacity: 0.95;
 }
 
 .videoQueue b {
@@ -1155,7 +1171,8 @@ button {
   cursor: pointer;
 }
 
-.videoThumbButton img {
+.videoThumbButton img,
+.videoThumbButton .videoThumbFallback {
   width: 100%;
   height: 100%;
   object-fit: cover;

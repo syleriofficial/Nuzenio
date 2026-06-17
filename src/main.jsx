@@ -566,13 +566,7 @@ function App() {
         : cat === 'local' && data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      const categoryLabel = uiCopy(newsLanguage).categories?.[cat] || cat;
-      const itemLabel = cat === 'live'
-        ? 'live news streams'
-        : cat === 'video'
-          ? 'news videos'
-          : `${categoryLabel.toLowerCase()} articles`;
-      setStatus(`${data.total} ${itemLabel} for ${place}`);
+      setStatus(feedStatusText({ cat, copy: uiCopy(newsLanguage), place, total: data.total }));
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       setStatus(`Live API error: ${error.message}`);
@@ -956,7 +950,7 @@ function Home({
                 <span className="badge">
                   <PlayCircle size={15} /> {category === 'live' ? 'Approved live sources' : 'Recorded news videos'}
                 </span>
-                <h2>{category === 'live' ? 'Live News' : 'News Videos'}</h2>
+                <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
                 <p>
                   {category === 'live'
                     ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
@@ -988,7 +982,7 @@ function Home({
             <AdSlot name="top-native" label="Top advertising inventory" />
             <div className="sectionHead">
               <div>
-                <h2>{category === 'live' ? 'More Live News' : 'More Videos'}</h2>
+                <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
                 <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
               </div>
               <SectionStatus
@@ -1234,7 +1228,7 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
           <h3>Up next</h3>
           {queue.map((article) => (
             <button key={article.id} onClick={() => openArticle(article)}>
-              <img src={videoThumbnail(article)} alt="" loading="lazy" />
+              <VideoThumbMedia article={article} compact />
               <span>
                 <b>{displayTitle(article)}</b>
                 <small>{article.source}</small>
@@ -1247,6 +1241,20 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
   );
 }
 
+function VideoThumbMedia({ article, compact = false }) {
+  const thumbnail = videoThumbnail(article);
+
+  if (thumbnail) {
+    return <img src={thumbnail} alt="" loading="lazy" />;
+  }
+
+  return (
+    <div className={`videoThumbFallback ${compact ? 'compactThumbFallback' : ''}`} aria-hidden="true">
+      <PlayCircle size={compact ? 24 : 38} />
+    </div>
+  );
+}
+
 function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const isSaved = savedIds.includes(article.id);
   const isLive = article.category === 'live';
@@ -1254,7 +1262,7 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
     <article className={`videoCard ${isLive ? 'liveCard' : ''}`}>
       <div className="inlineVideo">
         <button className="videoThumbButton" onClick={() => openArticle(article)} aria-label={`Watch ${displayTitle(article)}`}>
-          <img src={videoThumbnail(article)} alt="" loading="lazy" />
+          <VideoThumbMedia article={article} />
           <span>
             <PlayCircle size={34} />
           </span>
@@ -1766,6 +1774,28 @@ function sectionContent(category, copy, location) {
     title: localizedSectionTitle(category, copy, label),
     intro: intros[category] || copy.latestIntro,
   };
+}
+
+function feedStatusText({ cat, copy, place, total }) {
+  if (copy === translations.hi) {
+    if (cat === 'live') return `${place} के लिए ${total} लाइव न्यूज़ स्ट्रीम`;
+    if (cat === 'video') return `${place} के लिए ${total} न्यूज़ वीडियो`;
+    return `${place} के लिए ${total} ताज़ा खबरें`;
+  }
+  if (copy === translations.ar) {
+    if (cat === 'live') return `${total} بثا إخباريا مباشرا لـ ${place}`;
+    if (cat === 'video') return `${total} فيديو إخباريا لـ ${place}`;
+    return `${total} خبرا حديثا لـ ${place}`;
+  }
+  if (copy === translations.es) {
+    if (cat === 'live') return `${total} canales de noticias en vivo para ${place}`;
+    if (cat === 'video') return `${total} videos de noticias para ${place}`;
+    return `${total} noticias recientes para ${place}`;
+  }
+  const categoryLabel = copy.categories?.[cat] || cat;
+  if (cat === 'live') return `${total} live news streams for ${place}`;
+  if (cat === 'video') return `${total} news videos for ${place}`;
+  return `${total} ${categoryLabel.toLowerCase()} articles for ${place}`;
 }
 
 function localizedSectionTitle(category, copy, label) {
