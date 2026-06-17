@@ -1800,6 +1800,7 @@ function feedStatusText({ cat, copy, place, total }) {
 
 function localizedSectionTitle(category, copy, label) {
   if (category === 'top') return copy.latestStories;
+  if (category === 'live' || category === 'video') return label;
   if (copy === translations.ar) return `أخبار ${label}`;
   if (copy === translations.hi) return `${label} खबरें`;
   if (copy === translations.es) return `Noticias de ${label}`;
@@ -2117,10 +2118,10 @@ function setJsonLd(article, url) {
 
 function updatePageSeo(article, context) {
   const url = article ? articleContextUrl(article, context) : homeContextUrl(context);
-  const title = article ? `${displayTitle(article)} | Nuzenio` : 'Nuzenio - Trusted News, Simplified';
+  const title = article ? `${displayTitle(article)} | Nuzenio` : pageSeoTitle(context);
   const description = article
     ? displaySummary(article)
-    : 'Nuzenio is an AI-powered multilingual news platform with trusted sources, summaries, saved articles and global news coverage.';
+    : pageSeoDescription(context);
   const image = seoImage(article);
 
   document.title = title;
@@ -2138,6 +2139,46 @@ function updatePageSeo(article, context) {
   setMeta('meta[name="twitter:description"]', 'content', description);
   setMeta('meta[name="twitter:image"]', 'content', image);
   setJsonLd(article, url.toString());
+}
+
+function pageSeoTitle({ category, location, language }) {
+  const copy = uiCopy(language.code);
+  const sectionTitle = sectionContent(category, copy, location).title;
+  const place = pageSeoPlace(category, location);
+  if (copy === translations.hi) return `${sectionTitle} - ${place} | Nuzenio`;
+  if (copy === translations.ar) return `${sectionTitle} - ${place} | Nuzenio`;
+  if (copy === translations.es) return `${sectionTitle} de ${place} | Nuzenio`;
+  return `${sectionTitle} for ${place} | Nuzenio`;
+}
+
+function pageSeoDescription({ category, location, language }) {
+  const copy = uiCopy(language.code);
+  const sectionTitle = sectionContent(category, copy, location).title;
+  const place = pageSeoPlace(category, location);
+  const nativeLanguage = language.native || language.name || language.code;
+  const isMediaPage = category === 'video' || category === 'live';
+
+  if (copy === translations.hi) {
+    const action = isMediaPage ? 'देखें' : 'पढ़ें';
+    return `${place} के लिए ${sectionTitle} ${action}। Nuzenio पर लाइव RSS खबरें, AI summary, source attribution, video और live news ${nativeLanguage} में देखें।`;
+  }
+  if (copy === translations.ar) {
+    const action = isMediaPage ? 'شاهد' : 'اقرأ';
+    return `${action} ${sectionTitle} لـ ${place} على Nuzenio مع أخبار RSS مباشرة وملخصات AI وإسناد المصادر والفيديو والبث المباشر باللغة ${nativeLanguage}.`;
+  }
+  if (copy === translations.es) {
+    const action = isMediaPage ? 'Mira' : 'Lee';
+    return `${action} ${sectionTitle} de ${place} en Nuzenio con noticias RSS en vivo, resumen de AI, atribución de fuentes, videos y noticias en directo en ${nativeLanguage}.`;
+  }
+  const action = isMediaPage ? 'Watch' : 'Read';
+  return `${action} ${sectionTitle} for ${place} on Nuzenio with live RSS news, AI summaries, source attribution, video news, and live news in ${nativeLanguage}.`;
+}
+
+function pageSeoPlace(category, location) {
+  if (category === 'local') {
+    return [location?.city, location?.region, countryLabel(location?.country || 'IN')].filter(Boolean).join(', ');
+  }
+  return countryLabel(location?.country || 'IN');
 }
 
 function seoImage(article) {
