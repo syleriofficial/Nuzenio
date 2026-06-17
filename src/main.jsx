@@ -961,6 +961,11 @@ function Home({
                     ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
                     : `${language.native} recorded news videos only. Live streams stay on the Live News page.`}
                 </p>
+                <div className="videoHeroMeta">
+                  <span>{language.native}</span>
+                  <span>{category === 'live' ? 'Live channels' : 'Recorded only'}</span>
+                  <span>Watch inside Nuzenio</span>
+                </div>
               </div>
               <b>{articles.length}</b>
             </div>
@@ -1158,7 +1163,12 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   return (
     <article className={`videoCard ${isLive ? 'liveCard' : ''}`}>
       <div className="inlineVideo">
-        <LiveVideoPlayer article={article} autoplay={false} lazy />
+        <button className="videoThumbButton" onClick={() => openArticle(article)} aria-label={`Watch ${displayTitle(article)}`}>
+          <img src={videoThumbnail(article)} alt="" loading="lazy" />
+          <span>
+            <PlayCircle size={34} />
+          </span>
+        </button>
       </div>
       <div className="videoBody">
         <div className="cardTop">
