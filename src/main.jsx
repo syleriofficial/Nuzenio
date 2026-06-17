@@ -422,14 +422,20 @@ function readUrlParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+function normalizedPathname() {
+  const path = window.location.pathname.replace(/\/+$/, '');
+  return path || '/';
+}
+
 function readArticleIdFromUrl() {
   const [, articleId] = window.location.pathname.match(/^\/article\/([^/]+)\/?$/) || [];
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
 }
 
 function initialCategory() {
+  const path = normalizedPathname();
   const routeCategory = Object.entries(categoryRoutes)
-    .find(([, path]) => window.location.pathname === path)?.[0];
+    .find(([, routePath]) => path === routePath)?.[0];
   if (routeCategory) return routeCategory;
   const urlCategory = readUrlParam('category');
   return categories.some(([key]) => key === urlCategory) ? urlCategory : 'top';
@@ -582,7 +588,12 @@ function App() {
         : data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      const itemLabel = cat === 'live' ? 'live news streams' : cat === 'video' ? 'live videos' : 'live articles';
+      const categoryLabel = uiCopy(newsLanguage).categories?.[cat] || cat;
+      const itemLabel = cat === 'live'
+        ? 'live news streams'
+        : cat === 'video'
+          ? 'news videos'
+          : `${categoryLabel.toLowerCase()} articles`;
       setStatus(`${data.total} ${itemLabel} for ${place}`);
     } catch (error) {
       setStatus(`Live API error: ${error.message}`);
@@ -930,6 +941,7 @@ function Home({
   toggleSave,
 }) {
   const isVideoSection = ['live', 'video'].includes(category);
+  const section = sectionContent(category, copy, location);
 
   if (isVideoSection) {
     return (
@@ -1041,8 +1053,8 @@ function Home({
 
           <div className="sectionHead">
             <div>
-              <h2>{copy.latestStories}</h2>
-              <p>{copy.latestIntro}</p>
+              <h2>{section.title}</h2>
+              <p>{section.intro}</p>
             </div>
             <span>{status}</span>
           </div>
@@ -1873,6 +1885,26 @@ function isVideoArticle(article) {
 function videoSectionLabel(category, copy) {
   if (category === 'live') return copy.categories.live;
   return copy.categories.video;
+}
+
+function sectionContent(category, copy, location) {
+  const label = copy.categories[category] || copy.latestStories;
+  const place = location?.label || countryLabel(location?.country || 'IN');
+  const intros = {
+    local: `Local headlines and nearby updates for ${place}. Change country, state, or city to tune this page.`,
+    top: 'Top headlines from the live news feed, refreshed for your selected country and language.',
+    world: 'Global headlines from the world news section, separated from local and business feeds.',
+    business: 'Business, markets, economy, companies, and money headlines from dedicated business sources.',
+    tech: 'Technology, startups, AI, gadgets, platforms, and science-adjacent innovation headlines.',
+    sports: 'Sports headlines, match updates, teams, leagues, and athlete news from the sports feed.',
+    entertainment: 'Entertainment, film, television, music, celebrity, and culture stories in one feed.',
+    health: 'Health, medicine, public health, wellness, and research headlines from the health feed.',
+    science: 'Science, space, climate, discoveries, and research headlines from the science feed.',
+  };
+  return {
+    title: category === 'top' ? copy.latestStories : `${label} News`,
+    intro: intros[category] || copy.latestIntro,
+  };
 }
 
 function LiveVideoPlayer({ article, autoplay = true, lazy = false }) {
