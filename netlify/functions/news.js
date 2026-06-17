@@ -40,7 +40,7 @@ const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Cache-Control': 'public, max-age=300, stale-while-revalidate=120',
+  'Cache-Control': 'public, max-age=180, stale-while-revalidate=60',
   'Content-Type': 'application/json; charset=utf-8',
 };
 
@@ -144,6 +144,31 @@ function parse(xml, category, country) {
 
 function isYouTubeArticle(article) {
   return /youtube/i.test(`${article.source} ${article.link} ${article.title}`);
+}
+
+function sortByNewest(articles) {
+  return [...articles].sort((a, b) => articleTime(b.pubDate) - articleTime(a.pubDate));
+}
+
+function articleTime(value = '') {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function isRecentArticle(article, days = 14) {
+  const time = articleTime(article.pubDate);
+  if (!time) return true;
+  return Date.now() - time <= days * 24 * 60 * 60 * 1000;
+}
+
+function dedupeArticles(articles) {
+  const seen = new Set();
+  return articles.filter((article) => {
+    const key = article.link || article.title;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function parseApprovedLiveSources() {
@@ -649,6 +674,41 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
   return `https://news.google.com/rss?${params}`;
 }
 
+function googleNewsSearchUrl({ country, language, q }) {
+  const countryCode = normalizeCountry(country);
+  const newsLanguage = normalizeLanguage(language);
+  const params = `hl=${newsLanguage}-${countryCode}&gl=${countryCode}&ceid=${countryCode}:${newsLanguage}`;
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${params}`;
+}
+
+function localSearchQueries({ country, region, city }) {
+  const countryCode = normalizeCountry(country);
+  const stateRegion = cleanRegion(region);
+  const cityArea = cleanRegion(city);
+  const place = [cityArea, stateRegion, countryLabel(countryCode)].filter(Boolean).join(' ');
+  const nearby = [cityArea, stateRegion].filter(Boolean).join(' ');
+  const base = place || countryLabel(countryCode);
+  return [
+    `${base} local news when:1d`,
+    `${base} latest news when:3d`,
+    nearby ? `${nearby} news when:7d` : `${base} news when:7d`,
+  ];
+}
+
+async function fetchFreshLocalArticles({ country, region, city, language }) {
+  const queries = localSearchQueries({ country, region, city });
+  const batches = [];
+
+  for (const query of queries) {
+    const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
+    batches.push(...parse(xml, 'local', country));
+    const fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+    if (fresh.length >= 18) return fresh.slice(0, 60);
+  }
+
+  return sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 30))).slice(0, 60);
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
@@ -684,9 +744,9 @@ export const handler = async (event) => {
       };
     }
 
-    const url = googleNewsUrl({ category, country, q, region, city, language });
-    const xml = await fetchText(url);
-    const articles = parse(xml, category, country);
+    const articles = !q && category === 'local'
+      ? await fetchFreshLocalArticles({ country, region, city, language })
+      : sortByNewest(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country));
 
     return {
       statusCode: 200,
@@ -701,7 +761,7 @@ export const handler = async (event) => {
         language,
         query: q || null,
         total: articles.length,
-        sourceType: 'live-rss',
+        sourceType: !q && category === 'local' ? 'fresh-local-rss' : 'live-rss',
         updatedAt: new Date().toISOString(),
         articles,
       }),
