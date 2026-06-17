@@ -149,6 +149,8 @@ const languages = [
   { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr' },
 ];
 
+const productionOrigin = 'https://nuzenio.com';
+
 const translations = {
   en: {
     tagline: 'AI multilingual news bridge',
@@ -2118,6 +2120,7 @@ function setJsonLd(article, url) {
 
 function updatePageSeo(article, context) {
   const url = article ? articleContextUrl(article, context) : homeContextUrl(context);
+  const canonicalUrl = productionUrl(url);
   const title = article ? `${displayTitle(article)} | Nuzenio` : pageSeoTitle(context);
   const description = article
     ? displaySummary(article)
@@ -2125,10 +2128,10 @@ function updatePageSeo(article, context) {
   const image = seoImage(article);
 
   document.title = title;
-  setCanonical(url.toString());
+  setCanonical(canonicalUrl);
   setMeta('meta[name="description"]', 'content', description);
   setMeta('meta[property="og:type"]', 'content', article ? 'article' : 'website');
-  setMeta('meta[property="og:url"]', 'content', url.toString());
+  setMeta('meta[property="og:url"]', 'content', canonicalUrl);
   setMeta('meta[property="og:title"]', 'content', title);
   setMeta('meta[property="og:description"]', 'content', description);
   setMeta('meta[property="og:image"]', 'content', image);
@@ -2138,7 +2141,39 @@ function updatePageSeo(article, context) {
   setMeta('meta[name="twitter:title"]', 'content', title);
   setMeta('meta[name="twitter:description"]', 'content', description);
   setMeta('meta[name="twitter:image"]', 'content', image);
-  setJsonLd(article, url.toString());
+  setAlternateLinks(article ? null : context);
+  setJsonLd(article, canonicalUrl);
+}
+
+function productionUrl(url) {
+  const output = new URL(url.toString());
+  output.protocol = 'https:';
+  output.hostname = 'nuzenio.com';
+  output.port = '';
+  return output.toString();
+}
+
+function setAlternateLinks(context) {
+  document.head.querySelectorAll('link[data-nuzenio-alternate="true"]').forEach((link) => link.remove());
+  if (!context) return;
+
+  for (const alternateLanguage of languages) {
+    const url = homeContextUrl({ ...context, language: alternateLanguage });
+    const link = document.createElement('link');
+    link.rel = 'alternate';
+    link.hreflang = alternateLanguage.code;
+    link.href = productionUrl(url);
+    link.dataset.nuzenioAlternate = 'true';
+    document.head.appendChild(link);
+  }
+
+  const defaultUrl = homeContextUrl({ ...context, language: languages[0] });
+  const defaultLink = document.createElement('link');
+  defaultLink.rel = 'alternate';
+  defaultLink.hreflang = 'x-default';
+  defaultLink.href = productionUrl(defaultUrl);
+  defaultLink.dataset.nuzenioAlternate = 'true';
+  document.head.appendChild(defaultLink);
 }
 
 function pageSeoTitle({ category, location, language }) {
@@ -2184,7 +2219,7 @@ function pageSeoPlace(category, location) {
 function seoImage(article) {
   const image = article?.image || videoThumbnail(article);
   if (image && /^https:\/\//i.test(image)) return image;
-  return `${window.location.origin}/og-image.svg`;
+  return `${productionOrigin}/og-image.svg`;
 }
 
 async function shareArticle(article) {
