@@ -2103,15 +2103,32 @@ function updatePageSeo(article, context) {
 }
 
 async function shareArticle(article) {
+  const shareUrl = shareArticleUrl(article).toString();
+  const shareText = `${article.source || 'Nuzenio'} · ${formatFreshAge(article.pubDate)}\n${displaySummary(article)}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: article.title, text: shareText, url: shareUrl });
+      return;
+    }
+    await navigator.clipboard?.writeText(shareUrl);
+  } catch {
+    await navigator.clipboard?.writeText(shareUrl);
+  }
+}
+
+function shareArticleUrl(article) {
   const url = new URL(window.location.href);
   url.pathname = `/article/${encodeURIComponent(article.id)}`;
   url.searchParams.delete('article');
-  const shareUrl = url.toString();
-  if (navigator.share) {
-    await navigator.share({ title: article.title, url: shareUrl });
-    return;
+  url.hash = '';
+  if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
+  if (!url.searchParams.get('language')) url.searchParams.set('language', document.documentElement.lang || 'en');
+  if (article.category && categoryRoutes[article.category]) {
+    url.searchParams.delete('category');
+  } else if (article.category) {
+    url.searchParams.set('category', article.category);
   }
-  await navigator.clipboard?.writeText(shareUrl);
+  return url;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
