@@ -199,11 +199,63 @@ function isRecentArticle(article, days = 14) {
 function dedupeArticles(articles) {
   const seen = new Set();
   return articles.filter((article) => {
-    const key = article.link || article.title;
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
+    const linkKey = normalizeUrlKey(article.link);
+    const titleKey = normalizeTitleKey(article.title);
+    const keys = [linkKey, titleKey].filter(Boolean);
+    if (!keys.length || keys.some((key) => seen.has(key))) return false;
+    keys.forEach((key) => seen.add(key));
     return true;
   });
+}
+
+function diversifySources(articles, perSourceLimit = 12) {
+  const counts = new Map();
+  const primary = [];
+  const overflow = [];
+
+  for (const article of articles) {
+    const source = normalizeSourceKey(article.source);
+    const count = counts.get(source) || 0;
+    counts.set(source, count + 1);
+    if (count < perSourceLimit) primary.push(article);
+    else overflow.push(article);
+  }
+
+  return [...primary, ...overflow];
+}
+
+function polishFeed(articles, { days = 14, perSourceLimit = 12 } = {}) {
+  return diversifySources(sortByNewest(dedupeArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
+}
+
+function normalizeUrlKey(value = '') {
+  if (!value) return '';
+  try {
+    const url = new URL(value);
+    url.searchParams.delete('utm_source');
+    url.searchParams.delete('utm_medium');
+    url.searchParams.delete('utm_campaign');
+    url.searchParams.delete('utm_content');
+    url.searchParams.delete('utm_term');
+    return `url:${url.origin}${url.pathname}${url.search}`;
+  } catch {
+    return `url:${String(value).trim()}`;
+  }
+}
+
+function normalizeTitleKey(value = '') {
+  const title = clean(value)
+    .replace(/\s+-\s+[^-]{2,80}$/u, '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return title.length >= 18 ? `title:${title.slice(0, 180)}` : '';
+}
+
+function normalizeSourceKey(value = '') {
+  return clean(value).toLowerCase().replace(/\s+/g, ' ').trim() || 'unknown';
 }
 
 function parseApprovedLiveSources() {
@@ -749,16 +801,16 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
   for (const query of queries) {
     const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
     batches.push(...parse(xml, 'local', country));
-    const fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+    const fresh = polishFeed(batches, { days: 14, perSourceLimit: 10 });
     if (fresh.length >= 18) return fresh.slice(0, 60);
   }
 
-  return sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 30))).slice(0, 60);
+  return polishFeed(batches, { days: 30, perSourceLimit: 10 }).slice(0, 60);
 }
 
 async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
-    return sortByNewest(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country));
+    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country), { days: 30 });
   }
 
   if (category === 'local') {
@@ -768,17 +820,17 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
   const batches = [];
   const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
   batches.push(...parse(topicXml, category, country));
-  let fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+  let fresh = polishFeed(batches, { days: 14 });
   if (fresh.length >= 24) return fresh.slice(0, 60);
 
   for (const query of categorySearchQueries({ category, country, language })) {
     const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
     batches.push(...parse(xml, category, country));
-    fresh = sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 14)));
+    fresh = polishFeed(batches, { days: 14 });
     if (fresh.length >= 24) return fresh.slice(0, 60);
   }
 
-  return sortByNewest(dedupeArticles(batches).filter((article) => isRecentArticle(article, 30))).slice(0, 60);
+  return polishFeed(batches, { days: 30 }).slice(0, 60);
 }
 
 export const handler = async (event) => {
