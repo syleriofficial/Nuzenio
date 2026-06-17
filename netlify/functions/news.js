@@ -293,6 +293,7 @@ function extractYouTubeVideos(html, category, country) {
         || 'YouTube',
     );
     if (category === 'live' && (!isReadableVideoTitle(title) || !isLiveNewsChannelResult(nearby, title, channel))) continue;
+    if (category === 'video' && (hasLiveVideoSignal(nearby, title, channel) || !hasNewsChannelSignal(title, channel))) continue;
     seen.add(videoId);
 
     const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
@@ -327,9 +328,14 @@ function extractYouTubeVideos(html, category, country) {
 }
 
 function isLiveNewsChannelResult(nearby = '', title = '', channel = '') {
-  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now/i.test(nearby)
+  return hasLiveVideoSignal(nearby, title, channel)
     && hasNewsChannelSignal(title, channel)
     && !/\b(streamed|premiered|replay|full match replay|music|lofi|gaming|gameplay|cricket live score)\b/i.test(`${title} ${channel}`);
+}
+
+function hasLiveVideoSignal(nearby = '', title = '', channel = '') {
+  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now|live now|live stream|live tv|watch live/i.test(nearby)
+    || /\b(live now|live stream|watch live|live tv|live news|breaking live)\b/i.test(`${title} ${channel}`);
 }
 
 function hasNewsChannelSignal(title = '', channel = '') {
@@ -401,6 +407,7 @@ function youtubeApiSearchUrl({ category, channelId, countryCode, key, newsLangua
   });
   if (channelId) params.set('channelId', channelId);
   if (category === 'live') params.set('eventType', 'live');
+  if (category === 'video') params.set('eventType', 'completed');
   return `https://www.googleapis.com/youtube/v3/search?${params}`;
 }
 
