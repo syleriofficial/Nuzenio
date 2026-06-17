@@ -948,7 +948,7 @@ function Home({
       <>
         <BreakingStrip label={videoSectionLabel(category, copy).toUpperCase()} text={ticker || status} />
 
-        <main className="main">
+        <main className={`main videoMain ${category === 'video' ? 'recordedVideoMain' : 'liveVideoMain'}`}>
           <section>
             <div className="videoHero">
               <div>
@@ -967,8 +967,12 @@ function Home({
                   <span>Watch inside Nuzenio</span>
                 </div>
               </div>
-              <b>{articles.length}</b>
+              <div className="videoHeroCount">
+                <b>{articles.length}</b>
+                <span>{category === 'live' ? 'live now' : 'videos'}</span>
+              </div>
             </div>
+            <VideoModeStrip category={category} language={language} location={location} status={status} />
             {articles.length > 0 && (
               <VideoShowcase
                 articles={articles}
@@ -1102,6 +1106,29 @@ function BreakingStrip({ label, text }) {
           <span>{tickerText}</span>
           <span aria-hidden="true">{tickerText}</span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function VideoModeStrip({ category, language, location, status }) {
+  return (
+    <div className="videoModeStrip">
+      <div>
+        <PlayCircle size={17} />
+        <span>{category === 'live' ? 'Live news channels' : 'Recorded video news'}</span>
+      </div>
+      <div>
+        <Languages size={17} />
+        <span>{language.native}</span>
+      </div>
+      <div>
+        <Globe2 size={17} />
+        <span>{countryLabel(location.country)}</span>
+      </div>
+      <div>
+        <ShieldCheck size={17} />
+        <span>{status}</span>
       </div>
     </div>
   );

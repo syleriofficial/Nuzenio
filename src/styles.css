@@ -526,6 +526,72 @@ button {
   font-size: 40px;
 }
 
+.videoHeroCount {
+  display: grid;
+  place-items: center;
+  min-width: 118px;
+  height: 118px;
+  border-radius: 8px;
+  background: #020617;
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.22);
+}
+
+.videoHeroCount b {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.videoHeroCount span {
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.recordedVideoMain .videoHero {
+  border-color: #bfdbfe;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 48%, #dbeafe 100%);
+}
+
+.liveVideoMain .videoHero {
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #fee2e2 100%);
+}
+
+.videoModeStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.videoModeStrip div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.videoModeStrip svg {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+
+.videoModeStrip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .videoShowcase {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -1627,10 +1693,19 @@ button {
     font-size: 32px;
   }
 
-  .videoHero > b {
+  .videoHero > b,
+  .videoHeroCount {
     min-width: 72px;
     height: 72px;
     font-size: 30px;
+  }
+
+  .videoHeroCount b {
+    font-size: 30px;
+  }
+
+  .videoModeStrip {
+    grid-template-columns: 1fr;
   }
 
   .videoShowcase {
