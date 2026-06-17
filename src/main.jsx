@@ -1086,7 +1086,6 @@ function Home({
         <aside className="rightRail">
           <Trending articles={articles} copy={copy} openArticle={openArticle} />
           <AISummaryBox copy={copy} />
-          <AffiliatePanel />
           <Newsletter copy={copy} language={language} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
@@ -1223,7 +1222,6 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
 }
 
 function LocationBanner({ copy, location, setLocation, status }) {
-  if (window.location.pathname !== categoryRoutes.local) return null;
   const [draft, setDraft] = useState(location);
   const presets = localPlacePresets[draft.country] || localPlacePresets.IN;
 
@@ -1275,6 +1273,8 @@ function LocationBanner({ copy, location, setLocation, status }) {
     setDraft(next);
     setLocation(next);
   }
+
+  if (window.location.pathname !== categoryRoutes.local) return null;
 
   return (
     <div className="locationBanner">
@@ -1420,18 +1420,6 @@ function AISummaryBox({ copy }) {
       </h3>
       <p>Article pages include summary, context, key facts, and source attribution.</p>
       <span className="statusPill">{copy.aiBrief}</span>
-    </div>
-  );
-}
-
-function AffiliatePanel() {
-  return (
-    <div className="railCard affiliatePanel">
-      <h3>
-        <LinkIcon size={18} /> Commercial Policy
-      </h3>
-      <p>Affiliate links are hidden until reviewed, labeled, and separated from editorial RSS coverage.</p>
-      <div className="affiliateDisclosure">Disclosure policy active</div>
     </div>
   );
 }
@@ -1895,7 +1883,7 @@ function AdSlot({ compact = false, label, name }) {
   return (
     <div className={`adSlot ${compact ? 'sideAd' : ''}`} data-ad-slot={name}>
       <span>{label}</span>
-      <small>Reserved ad inventory. Publisher script disabled until approval.</small>
+      <small>Advertisement space</small>
     </div>
   );
 }
@@ -1939,9 +1927,17 @@ function sectionContent(category, copy, location) {
     science: 'Science, space, climate, discoveries, and research headlines from the science feed.',
   };
   return {
-    title: category === 'top' ? copy.latestStories : `${label} News`,
+    title: localizedSectionTitle(category, copy, label),
     intro: intros[category] || copy.latestIntro,
   };
+}
+
+function localizedSectionTitle(category, copy, label) {
+  if (category === 'top') return copy.latestStories;
+  if (copy === translations.ar) return `أخبار ${label}`;
+  if (copy === translations.hi) return `${label} खबरें`;
+  if (copy === translations.es) return `Noticias de ${label}`;
+  return `${label} News`;
 }
 
 function LiveVideoPlayer({ article, autoplay = true, lazy = false }) {

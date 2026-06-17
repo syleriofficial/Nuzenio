@@ -1670,6 +1670,52 @@ button {
     width: 100%;
   }
 
+  .locationBanner {
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 14px;
+  }
+
+  .locationSummary {
+    gap: 5px;
+  }
+
+  .locationSummary strong {
+    font-size: 20px;
+  }
+
+  .locationSummary p {
+    font-size: 13px;
+  }
+
+  .locationPanel {
+    gap: 9px;
+  }
+
+  .locationControls {
+    gap: 8px;
+  }
+
+  .locationControls label {
+    gap: 3px;
+  }
+
+  .locationControls select,
+  .locationControls input,
+  .locationControls button {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .locationChips {
+    gap: 6px;
+  }
+
+  .locationChips button {
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+
   .heroGrid,
   .feedGrid,
   .videoGrid,
