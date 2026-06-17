@@ -93,6 +93,42 @@ const countryOptions = [
   'NZ', 'PH', 'PK', 'PL', 'PT', 'QA', 'RU', 'SA', 'SE', 'SG', 'TH', 'TR', 'TW', 'UA', 'US', 'VN', 'ZA',
 ].map((code) => ({ code, label: countryLabel(code) })).sort((a, b) => a.label.localeCompare(b.label));
 
+const localPlacePresets = {
+  IN: [
+    ['Bihar', 'Raxaul'],
+    ['Bihar', 'Patna'],
+    ['Delhi', 'New Delhi'],
+    ['Maharashtra', 'Mumbai'],
+    ['Karnataka', 'Bengaluru'],
+    ['West Bengal', 'Kolkata'],
+  ],
+  US: [
+    ['New York', 'New York'],
+    ['California', 'Los Angeles'],
+    ['Illinois', 'Chicago'],
+    ['Texas', 'Houston'],
+    ['Florida', 'Miami'],
+  ],
+  GB: [
+    ['England', 'London'],
+    ['Scotland', 'Edinburgh'],
+    ['Wales', 'Cardiff'],
+    ['Northern Ireland', 'Belfast'],
+  ],
+  CA: [
+    ['Ontario', 'Toronto'],
+    ['British Columbia', 'Vancouver'],
+    ['Quebec', 'Montreal'],
+    ['Alberta', 'Calgary'],
+  ],
+  AU: [
+    ['New South Wales', 'Sydney'],
+    ['Victoria', 'Melbourne'],
+    ['Queensland', 'Brisbane'],
+    ['Western Australia', 'Perth'],
+  ],
+};
+
 const languages = [
   { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
   { code: 'hi', label: 'Hindi', native: 'हिन्दी', dir: 'ltr' },
@@ -1139,60 +1175,112 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
 
 function LocationBanner({ copy, location, setLocation, status }) {
   if (window.location.pathname !== categoryRoutes.local) return null;
+  const [draft, setDraft] = useState(location);
+  const presets = localPlacePresets[draft.country] || localPlacePresets.IN;
+
+  useEffect(() => {
+    setDraft(location);
+  }, [location.country, location.region, location.city, location.label, location.source]);
 
   function changeCountry(event) {
     const country = normalizeCountry(event.target.value);
-    setLocation({ country, region: '', city: '', label: countryLabel(country), source: 'manual' });
+    setDraft({ country, region: '', city: '', label: countryLabel(country), source: 'manual' });
   }
 
   function changeRegion(event) {
     const region = event.target.value;
-    setLocation({
-      ...location,
+    setDraft({
+      ...draft,
       region,
-      label: placeLabel({ ...location, region }),
+      label: placeLabel({ ...draft, region }),
       source: 'manual',
     });
   }
 
   function changeCity(event) {
     const city = event.target.value;
-    setLocation({
-      ...location,
+    setDraft({
+      ...draft,
       city,
-      label: placeLabel({ ...location, city }),
+      label: placeLabel({ ...draft, city }),
       source: 'manual',
     });
   }
 
+  function applyDraft() {
+    setLocation({
+      ...draft,
+      label: placeLabel(draft),
+      source: 'manual',
+    });
+  }
+
+  function applyPreset(region, city) {
+    const next = {
+      country: draft.country,
+      region,
+      city,
+      label: placeLabel({ country: draft.country, region, city }),
+      source: 'preset',
+    };
+    setDraft(next);
+    setLocation(next);
+  }
+
   return (
     <div className="locationBanner">
-      <div>
-        <Globe2 size={18} />
-        <b>{copy.localNewsFor} {location.label}</b>
+      <div className="locationSummary">
+        <div>
+          <Globe2 size={20} />
+          <span>
+            <b>{copy.localNewsFor}</b>
+            <strong>{location.label}</strong>
+          </span>
+        </div>
+        <p>{locationSourceLabel(location.source)} · {status}</p>
       </div>
-      <div className="locationControls">
-        <span>{locationSourceLabel(location.source)} · {status}</span>
-        <select value={location.country} onChange={changeCountry} aria-label="Set news country">
-          {countryOptions.map((country) => (
-            <option key={country.code} value={country.code}>
-              {country.label}
-            </option>
+
+      <div className="locationPanel">
+        <div className="locationControls">
+          <label>
+            <span>Country</span>
+            <select value={draft.country} onChange={changeCountry} aria-label="Set news country">
+              {countryOptions.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{copy.stateRegion}</span>
+            <input
+              value={draft.region || ''}
+              onChange={changeRegion}
+              placeholder={copy.stateRegion}
+              aria-label="Set state or region for local news"
+            />
+          </label>
+          <label>
+            <span>{copy.cityArea}</span>
+            <input
+              value={draft.city || ''}
+              onChange={changeCity}
+              placeholder={copy.cityArea}
+              aria-label="Set city or nearby area for local news"
+            />
+          </label>
+          <button className="primaryAction" onClick={applyDraft}>Apply local news</button>
+          <button onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
+        </div>
+
+        <div className="locationChips" aria-label="Popular local news locations">
+          {presets.map(([region, city]) => (
+            <button key={`${region}-${city}`} onClick={() => applyPreset(region, city)}>
+              {city}
+            </button>
           ))}
-        </select>
-        <input
-          value={location.region || ''}
-          onChange={changeRegion}
-          placeholder={copy.stateRegion}
-          aria-label="Set state or region for local news"
-        />
-        <input
-          value={location.city || ''}
-          onChange={changeCity}
-          placeholder={copy.cityArea}
-          aria-label="Set city or nearby area for local news"
-        />
-        <button onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
+        </div>
       </div>
     </div>
   );
@@ -1905,7 +1993,7 @@ function detectLocaleCountry() {
 
 async function detectAccurateLocation(setLocation) {
   try {
-    const res = await fetch('/.netlify/functions/location');
+    const res = await fetch('/api/location');
     const data = await res.json();
     if (data.ok) {
       setLocation(formatLocation(data));
@@ -1919,7 +2007,7 @@ async function detectAccurateLocation(setLocation) {
     async (position) => {
       try {
         const res = await fetch(
-          `/.netlify/functions/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}`,
+          `/api/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}`,
         );
         const data = await res.json();
         if (data.ok) {
@@ -1954,6 +2042,8 @@ function placeLabel({ country, region = '', city = '' }) {
 function locationSourceLabel(source) {
   if (source === 'gps') return 'Detected from browser GPS';
   if (source === 'ip') return 'Detected from network location';
+  if (source === 'preset') return 'Selected from popular locations';
+  if (source === 'manual') return 'Set manually';
   if (source === 'fallback') return 'Using default location';
   return 'Detected from browser region';
 }
