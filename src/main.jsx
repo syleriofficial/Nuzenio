@@ -2072,6 +2072,7 @@ function setJsonLd(article, url) {
     description: displaySummary(article),
     datePublished: article.pubDate || undefined,
     dateModified: article.pubDate || undefined,
+    image: seoImage(article),
     mainEntityOfPage: url,
     publisher: {
       '@type': 'Organization',
@@ -2090,16 +2091,29 @@ function updatePageSeo(article, context) {
   const description = article
     ? displaySummary(article)
     : 'Nuzenio is an AI-powered multilingual news platform with trusted sources, summaries, saved articles and global news coverage.';
+  const image = seoImage(article);
 
   document.title = title;
   setCanonical(url.toString());
   setMeta('meta[name="description"]', 'content', description);
+  setMeta('meta[property="og:type"]', 'content', article ? 'article' : 'website');
   setMeta('meta[property="og:url"]', 'content', url.toString());
   setMeta('meta[property="og:title"]', 'content', title);
   setMeta('meta[property="og:description"]', 'content', description);
+  setMeta('meta[property="og:image"]', 'content', image);
+  setMeta('meta[property="article:published_time"]', 'content', article?.pubDate || '');
+  setMeta('meta[property="article:section"]', 'content', article?.category || context.category || 'top');
+  setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image');
   setMeta('meta[name="twitter:title"]', 'content', title);
   setMeta('meta[name="twitter:description"]', 'content', description);
+  setMeta('meta[name="twitter:image"]', 'content', image);
   setJsonLd(article, url.toString());
+}
+
+function seoImage(article) {
+  const image = article?.image || videoThumbnail(article);
+  if (image && /^https:\/\//i.test(image)) return image;
+  return `${window.location.origin}/og-image.svg`;
 }
 
 async function shareArticle(article) {
