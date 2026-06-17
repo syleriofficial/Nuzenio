@@ -15,6 +15,7 @@ import {
   Mail,
   Newspaper,
   PlayCircle,
+  RefreshCw,
   Search,
   Share2,
   ShieldCheck,
@@ -462,6 +463,8 @@ function App() {
   const [category, setCategory] = useState(initialCategory);
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState(initialLanguage);
   const [location, setLocation] = useState(initialLocation);
@@ -541,20 +544,23 @@ function App() {
   ) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
+    setIsLoadingNews(true);
     setStatus('Loading live RSS news...');
     setArticles([]);
     try {
       const cityParam = cat === 'local' && city ? `&city=${encodeURIComponent(city)}` : '';
       const regionParam = cat === 'local' && region ? `&region=${encodeURIComponent(region)}` : '';
       const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
+      const freshParam = `&fresh=${Date.now()}`;
       const res = await fetch(
-        `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}`,
+        `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}${freshParam}`,
         { cache: 'no-store' },
       );
       const data = await res.json();
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
+      setLastUpdated(new Date());
       const place = cat === 'local' && data.city
         ? `${data.city}, ${data.region ? `${data.region}, ` : ''}${countryLabel(data.country)}`
         : cat === 'local' && data.region
@@ -570,6 +576,8 @@ function App() {
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       setStatus(`Live API error: ${error.message}`);
+    } finally {
+      if (requestId === newsRequestId.current) setIsLoadingNews(false);
     }
   }
 
@@ -578,22 +586,30 @@ function App() {
     if (!query.trim()) return loadNews(category, location.country, location.region, location.city, language.code);
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
+    setIsLoadingNews(true);
     setStatus('Searching live RSS news...');
     setArticles([]);
     try {
       const res = await fetch(
-        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=${encodeURIComponent(language.code)}`,
+        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=${encodeURIComponent(language.code)}&fresh=${Date.now()}`,
         { cache: 'no-store' },
       );
       const data = await res.json();
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'Search failed');
       setArticles(data.articles || []);
+      setLastUpdated(new Date());
       setStatus(`${data.total || 0} results for "${query.trim()}"`);
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       setStatus(`Search error: ${error.message}`);
+    } finally {
+      if (requestId === newsRequestId.current) setIsLoadingNews(false);
     }
+  }
+
+  function refreshCurrentNews() {
+    loadNews(category, location.country, location.region, location.city, language.code);
   }
 
   function updateLocation(next) {
@@ -733,6 +749,8 @@ function App() {
           copy={copy}
           feed={feed}
           language={language}
+          isLoadingNews={isLoadingNews}
+          lastUpdated={lastUpdated}
           lead={lead}
           location={location}
           setLocation={updateLocation}
@@ -742,6 +760,7 @@ function App() {
           status={status}
           ticker={ticker}
           toggleSave={toggleSave}
+          refreshNews={refreshCurrentNews}
         />
       )}
       {selected && (
@@ -908,10 +927,13 @@ function Home({
   category,
   copy,
   feed,
+  isLoadingNews,
   language,
+  lastUpdated,
   lead,
   location,
   openArticle,
+  refreshNews,
   savedIds,
   setLocation,
   sideStories,
@@ -967,7 +989,12 @@ function Home({
                 <h2>{category === 'live' ? 'More Live News' : 'More Videos'}</h2>
                 <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
               </div>
-              <span>{status}</span>
+              <SectionStatus
+                isLoading={isLoadingNews}
+                lastUpdated={lastUpdated}
+                onRefresh={refreshNews}
+                status={status}
+              />
             </div>
             <div className="videoGrid">
               {articles.slice(1).map((article) => (
@@ -1044,7 +1071,12 @@ function Home({
               <h2>{section.title}</h2>
               <p>{section.intro}</p>
             </div>
-            <span>{status}</span>
+            <SectionStatus
+              isLoading={isLoadingNews}
+              lastUpdated={lastUpdated}
+              onRefresh={refreshNews}
+              status={status}
+            />
           </div>
 
           <div className="feedGrid">
@@ -1108,6 +1140,19 @@ function VideoModeStrip({ category, language, location, status }) {
         <ShieldCheck size={17} />
         <span>{status}</span>
       </div>
+    </div>
+  );
+}
+
+function SectionStatus({ isLoading, lastUpdated, onRefresh, status }) {
+  return (
+    <div className="sectionStatus">
+      <span>{status}</span>
+      {lastUpdated && <small>Updated {formatLastUpdated(lastUpdated)}</small>}
+      <button onClick={onRefresh} disabled={isLoading} aria-label="Refresh news">
+        <RefreshCw size={15} className={isLoading ? 'spinIcon' : ''} />
+        Refresh
+      </button>
     </div>
   );
 }
@@ -1890,6 +1935,15 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function formatLastUpdated(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 45) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function readLocal(key, fallback, legacyKey = '') {

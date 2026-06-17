@@ -839,6 +839,54 @@ button {
   font-weight: 850;
 }
 
+.sectionStatus {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: min(420px, 100%);
+  color: var(--muted);
+  text-align: end;
+}
+
+.sectionStatus span {
+  max-width: 100%;
+}
+
+.sectionStatus small {
+  color: #94a3b8;
+  font-weight: 850;
+}
+
+.sectionStatus button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 8px 11px;
+  font-weight: 950;
+}
+
+.sectionStatus button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.spinIcon {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .feedGrid,
 .infoGrid {
   display: grid;
@@ -1460,6 +1508,11 @@ button {
   .locationBanner {
     grid-template-columns: 1fr;
     align-items: flex-start;
+  }
+
+  .sectionStatus {
+    justify-content: flex-start;
+    text-align: start;
   }
 
   .locationControls {
