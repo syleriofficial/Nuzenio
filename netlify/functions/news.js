@@ -145,7 +145,8 @@ function extractImage(item) {
   return media?.[1] || enclosure?.[1] || '';
 }
 
-function parse(xml, category, country) {
+function parse(xml, category, country, language = 'en') {
+  const newsLanguage = normalizeLanguage(language);
   return (xml.match(/<item\b[\s\S]*?<\/item>/gi) || [])
     .slice(0, 60)
     .map((item, index) => {
@@ -170,7 +171,7 @@ function parse(xml, category, country) {
         summary,
         fullBrief,
         whatHappened: summary,
-        whyItMatters: buildWhyItMatters(category, source),
+        whyItMatters: buildWhyItMatters(category, source, newsLanguage),
       };
     })
     .filter((article) => article.title && article.link)
@@ -347,10 +348,10 @@ function normalizeApprovedLiveSource(source, { countryCode, newsLanguage, index 
     priority,
     languageScore: languageRelevanceScore(`${title} ${name} ${source.language || ''} ${source.summary || ''}`, newsLanguage)
       + (String(source.language || 'all').toLowerCase() === newsLanguage ? 5 : 0),
-    summary: clean(source.summary || `${name} live news stream`),
-    fullBrief: clean(source.description || source.summary || `${name} is available as an approved live news source on Nuzenio.`),
-    whatHappened: `Watch the live news stream from ${name}.`,
-    whyItMatters: `This stream is loaded from a Nuzenio-approved ${providerLabel(provider)} source with direct attribution.`,
+    summary: clean(source.summary || localizedLiveSummary(name, newsLanguage)),
+    fullBrief: clean(source.description || source.summary || localizedApprovedLiveBrief(name, newsLanguage)),
+    whatHappened: localizedLiveWhatHappened(name, newsLanguage),
+    whyItMatters: localizedApprovedLiveWhyItMatters(provider, newsLanguage),
   };
 }
 
@@ -385,7 +386,8 @@ function extractYouTubeChannelId(value = '') {
   return String(value).match(/\/channel\/(UC[\w-]{20,})/)?.[1] || '';
 }
 
-function extractYouTubeVideos(html, category, country) {
+function extractYouTubeVideos(html, category, country, language = 'en') {
+  const newsLanguage = normalizeLanguage(language);
   const idPattern = /"videoId":"([\w-]{11})"/g;
   const seen = new Set();
   const videos = [];
@@ -433,8 +435,8 @@ function extractYouTubeVideos(html, category, country) {
       trustScore: 90,
       summary,
       fullBrief: summary,
-      whatHappened: `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${channel}.`,
-      whyItMatters: `This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.`,
+      whatHappened: localizedVideoWhatHappened(category, channel, newsLanguage),
+      whyItMatters: localizedYouTubeSearchWhyItMatters(newsLanguage),
     });
   }
 
@@ -612,10 +614,8 @@ function normalizeYouTubeApiItem(item, category, countryCode, trustedChannelMode
     languageScore: languageRelevanceScore(`${title} ${source} ${snippet.description || ''}`, newsLanguage),
     summary,
     fullBrief: clean(snippet.description || summary),
-    whatHappened: `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${source}.`,
-    whyItMatters: trustedChannelMode
-      ? `This playable YouTube news video is loaded from a Nuzenio-approved YouTube channel with source attribution.`
-      : `This playable YouTube news video is loaded through the official YouTube Data API with source attribution.`,
+    whatHappened: localizedVideoWhatHappened(category, source, newsLanguage),
+    whyItMatters: localizedVideoWhyItMatters(trustedChannelMode, newsLanguage),
   };
 }
 
@@ -678,7 +678,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
     'Accept-Language': `${newsLanguage}-${countryCode},${newsLanguage};q=0.9,en;q=0.8`,
     'User-Agent': 'Mozilla/5.0 Nuzenio/1.0 (+https://nuzenio.com)',
   });
-  return { articles: extractYouTubeVideos(html, category, countryCode), sourceType: 'youtube-live-search' };
+  return { articles: extractYouTubeVideos(html, category, countryCode, newsLanguage), sourceType: 'youtube-live-search' };
 }
 
 function formatApiDate(value = '') {
@@ -696,9 +696,89 @@ function buildSummary(text) {
   return `${cleanText.slice(0, 257).trim()}...`;
 }
 
-function buildWhyItMatters(category, source) {
+function buildWhyItMatters(category, source, language = 'en') {
   const topic = category === 'top' || category === 'local' ? 'public interest' : category;
+  if (language === 'hi') {
+    const hindiTopic = category === 'top' || category === 'local' ? 'जनहित' : category;
+    return `यह ${hindiTopic} खबर ${source} से ट्रैक की गई है क्योंकि इसका असर पाठकों, बाजार, नीति, संस्कृति या रोजमर्रा के फैसलों पर पड़ सकता है।`;
+  }
+  if (language === 'ar') {
+    return `يتم تتبع هذا الخبر من ${source} لأنه قد يؤثر في القراء أو الأسواق أو السياسات أو الثقافة أو القرارات اليومية.`;
+  }
+  if (language === 'es') {
+    return `Esta noticia se sigue desde ${source} porque puede afectar a lectores, mercados, políticas, cultura o decisiones diarias.`;
+  }
   return `This ${topic} report is being tracked from ${source} because it may affect readers, markets, policy, culture, or daily decisions.`;
+}
+
+function localizedLiveSummary(name, language = 'en') {
+  if (language === 'hi') return `${name} लाइव न्यूज़ स्ट्रीम`;
+  if (language === 'ar') return `بث إخباري مباشر من ${name}`;
+  if (language === 'es') return `Transmisión de noticias en vivo de ${name}`;
+  return `${name} live news stream`;
+}
+
+function localizedApprovedLiveBrief(name, language = 'en') {
+  if (language === 'hi') return `${name} Nuzenio पर स्वीकृत लाइव न्यूज़ स्रोत के रूप में उपलब्ध है।`;
+  if (language === 'ar') return `${name} متاح على Nuzenio كمصدر إخباري مباشر معتمد.`;
+  if (language === 'es') return `${name} está disponible en Nuzenio como fuente aprobada de noticias en vivo.`;
+  return `${name} is available as an approved live news source on Nuzenio.`;
+}
+
+function localizedLiveWhatHappened(name, language = 'en') {
+  if (language === 'hi') return `${name} का लाइव न्यूज़ स्ट्रीम देखें।`;
+  if (language === 'ar') return `شاهد البث الإخباري المباشر من ${name}.`;
+  if (language === 'es') return `Mira la transmisión de noticias en vivo de ${name}.`;
+  return `Watch the live news stream from ${name}.`;
+}
+
+function localizedApprovedLiveWhyItMatters(provider, language = 'en') {
+  const label = providerLabel(provider);
+  if (language === 'hi') return `यह स्ट्रीम सीधे स्रोत attribution के साथ Nuzenio-approved ${label} स्रोत से लोड की गई है।`;
+  if (language === 'ar') return `يتم تحميل هذا البث من مصدر ${label} معتمد في Nuzenio مع إسناد مباشر للمصدر.`;
+  if (language === 'es') return `Esta transmisión se carga desde una fuente ${label} aprobada por Nuzenio con atribución directa.`;
+  return `This stream is loaded from a Nuzenio-approved ${label} source with direct attribution.`;
+}
+
+function localizedVideoWhatHappened(category, source, language = 'en') {
+  if (language === 'hi') return `${source} का ${category === 'live' ? 'लाइव ' : ''}YouTube न्यूज़ वीडियो देखें।`;
+  if (language === 'ar') return `شاهد فيديو أخبار ${category === 'live' ? 'مباشرا ' : ''}على YouTube من ${source}.`;
+  if (language === 'es') return `Mira este video de noticias ${category === 'live' ? 'en vivo ' : ''}de YouTube de ${source}.`;
+  return `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${source}.`;
+}
+
+function localizedVideoWhyItMatters(trustedChannelMode, language = 'en') {
+  if (language === 'hi') {
+    return trustedChannelMode
+      ? 'यह playable YouTube न्यूज़ वीडियो Nuzenio-approved YouTube channel से source attribution के साथ लोड किया गया है।'
+      : 'यह playable YouTube न्यूज़ वीडियो official YouTube Data API से source attribution के साथ लोड किया गया है।';
+  }
+  if (language === 'ar') {
+    return trustedChannelMode
+      ? 'يتم تحميل فيديو الأخبار القابل للتشغيل من قناة YouTube معتمدة في Nuzenio مع إسناد المصدر.'
+      : 'يتم تحميل فيديو الأخبار القابل للتشغيل عبر واجهة YouTube Data API الرسمية مع إسناد المصدر.';
+  }
+  if (language === 'es') {
+    return trustedChannelMode
+      ? 'Este video de noticias reproducible se carga desde un canal de YouTube aprobado por Nuzenio con atribución de fuente.'
+      : 'Este video de noticias reproducible se carga mediante la API oficial de YouTube Data con atribución de fuente.';
+  }
+  return trustedChannelMode
+    ? 'This playable YouTube news video is loaded from a Nuzenio-approved YouTube channel with source attribution.'
+    : 'This playable YouTube news video is loaded through the official YouTube Data API with source attribution.';
+}
+
+function localizedYouTubeSearchWhyItMatters(language = 'en') {
+  if (language === 'hi') {
+    return 'यह YouTube न्यूज़ वीडियो Nuzenio के अंदर सीधे source attribution और original YouTube link के साथ दिखाया गया है।';
+  }
+  if (language === 'ar') {
+    return 'يتم عرض فيديو الأخبار من YouTube داخل Nuzenio مع إسناد مباشر للمصدر ورابط YouTube الأصلي.';
+  }
+  if (language === 'es') {
+    return 'Este video de noticias de YouTube se muestra dentro de Nuzenio con atribución directa y enlace al video original.';
+  }
+  return 'This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.';
 }
 
 function normalizeCountry(country = 'IN') {
@@ -800,7 +880,7 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
 
   for (const query of queries) {
     const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
-    batches.push(...parse(xml, 'local', country));
+    batches.push(...parse(xml, 'local', country, language));
     const fresh = polishFeed(batches, { days: 14, perSourceLimit: 10 });
     if (fresh.length >= 18) return fresh.slice(0, 60);
   }
@@ -810,7 +890,7 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
 
 async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
-    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country), { days: 30 });
+    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: 30 });
   }
 
   if (category === 'local') {
@@ -819,13 +899,13 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
 
   const batches = [];
   const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
-  batches.push(...parse(topicXml, category, country));
+  batches.push(...parse(topicXml, category, country, language));
   let fresh = polishFeed(batches, { days: 14 });
   if (fresh.length >= 24) return fresh.slice(0, 60);
 
   for (const query of categorySearchQueries({ category, country, language })) {
     const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
-    batches.push(...parse(xml, category, country));
+    batches.push(...parse(xml, category, country, language));
     fresh = polishFeed(batches, { days: 14 });
     if (fresh.length >= 24) return fresh.slice(0, 60);
   }
