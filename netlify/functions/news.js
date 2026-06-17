@@ -172,7 +172,7 @@ function approvedLiveSources({ country, language }) {
     })
     .map((source, index) => normalizeApprovedLiveSource(source, { countryCode, newsLanguage, index }))
     .filter(Boolean)
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+    .sort((a, b) => (b.languageScore || 0) - (a.languageScore || 0) || (b.priority || 0) - (a.priority || 0))
     .slice(0, 24);
 }
 
@@ -233,6 +233,8 @@ function normalizeApprovedLiveSource(source, { countryCode, newsLanguage, index 
     readTime: 1,
     trustScore: 99,
     priority,
+    languageScore: languageRelevanceScore(`${title} ${name} ${source.language || ''} ${source.summary || ''}`, newsLanguage)
+      + (String(source.language || 'all').toLowerCase() === newsLanguage ? 5 : 0),
     summary: clean(source.summary || `${name} live news stream`),
     fullBrief: clean(source.description || source.summary || `${name} is available as an approved live news source on Nuzenio.`),
     whatHappened: `Watch the live news stream from ${name}.`,
@@ -638,7 +640,7 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
     return `https://news.google.com/rss/search?q=${encodeURIComponent(videoQuery)}&${params}`;
   }
   if (category === 'live') {
-    const liveQuery = ['site:youtube.com/watch', 'live news', countryLabel(countryCode)].filter(Boolean).join(' ');
+    const liveQuery = ['site:youtube.com/watch', liveNewsQuery(newsLanguage), countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(liveQuery)}&${params}`;
   }
   if (TOPICS[category]) {
