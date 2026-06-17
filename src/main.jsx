@@ -470,9 +470,9 @@ function contextUrl({ category, location, language }) {
   else url.searchParams.set('category', category);
   url.searchParams.set('country', location.country);
   url.searchParams.set('language', language.code);
-  if (location.region) url.searchParams.set('region', location.region);
+  if (category === 'local' && location.region) url.searchParams.set('region', location.region);
   else url.searchParams.delete('region');
-  if (location.city) url.searchParams.set('city', location.city);
+  if (category === 'local' && location.city) url.searchParams.set('city', location.city);
   else url.searchParams.delete('city');
   if (currentArticle) url.pathname = `/article/${encodeURIComponent(currentArticle)}`;
   url.searchParams.delete('article');
@@ -576,16 +576,16 @@ function App() {
   ) {
     setStatus('Loading live RSS news...');
     try {
-      const cityParam = city ? `&city=${encodeURIComponent(city)}` : '';
-      const regionParam = region ? `&region=${encodeURIComponent(region)}` : '';
+      const cityParam = cat === 'local' && city ? `&city=${encodeURIComponent(city)}` : '';
+      const regionParam = cat === 'local' && region ? `&region=${encodeURIComponent(region)}` : '';
       const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
       const res = await fetch(`/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
-      const place = data.city
+      const place = cat === 'local' && data.city
         ? `${data.city}, ${data.region ? `${data.region}, ` : ''}${countryLabel(data.country)}`
-        : data.region
+        : cat === 'local' && data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
       const categoryLabel = uiCopy(newsLanguage).categories?.[cat] || cat;
@@ -953,7 +953,7 @@ function Home({
             <div className="videoHero">
               <div>
                 <span className="badge">
-                  <PlayCircle size={15} /> Approved live sources
+                  <PlayCircle size={15} /> {category === 'live' ? 'Approved live sources' : 'Recorded news videos'}
                 </span>
                 <h2>{category === 'live' ? 'Live News' : 'News Videos'}</h2>
                 <p>
