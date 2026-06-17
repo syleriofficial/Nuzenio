@@ -650,7 +650,6 @@ function App() {
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
-  const savedArticles = articles.filter((article) => savedIds.includes(article.id));
   const ticker = useMemo(
     () => articles.slice(0, 6).map((article) => article.title).join(' | '),
     [articles],
@@ -692,16 +691,6 @@ function App() {
           sideStories={sideStories}
           status={status}
           ticker={ticker}
-          toggleSave={toggleSave}
-        />
-      )}
-      {screen === 'saved' && (
-        <Saved
-          articles={savedArticles}
-          copy={copy}
-          history={history}
-          openArticle={openArticle}
-          savedIds={savedIds}
           toggleSave={toggleSave}
         />
       )}
@@ -832,9 +821,6 @@ function Header({
           }}
         >
           {copy.categories.video}
-        </button>
-        <button className={screen === 'saved' ? 'active' : ''} onClick={() => setScreen('saved')}>
-          {copy.saved}
         </button>
       </nav>
       <nav className="newsNav" aria-label="News sections">
@@ -1774,9 +1760,6 @@ function MobileNav({ copy, setCategory, setScreen, setMobileSearchOpen }) {
         }}
       >
         <PlayCircle size={18} /> {copy.categories.video}
-      </button>
-      <button onClick={() => setScreen('saved')}>
-        <Bookmark size={18} /> {copy.saved}
       </button>
       <button onClick={() => setMobileSearchOpen((value) => !value)}>
         <Search size={18} /> {copy.search}
