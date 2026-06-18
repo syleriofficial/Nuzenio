@@ -485,12 +485,20 @@ function App() {
     updateGoogleConsent(nextConsent);
     if (nextConsent === 'granted') {
       trackEvent('analytics_consent_granted', { method: 'banner' });
+      trackCurrentPageView();
     }
   }
 
   function reopenAnalyticsConsent() {
     setAnalyticsConsent('');
     writeLocal('nuzenio_analytics_consent', '');
+  }
+
+  function trackCurrentPageView() {
+    const context = { category, isRootHome, location, language };
+    const url = selected ? articleContextUrl(selected, context) : contextUrlForSeo(context);
+    const title = selected ? `${displayTitle(selected)} | Nuzenio` : pageSeoTitle(context);
+    trackPageView(productionUrl(url), title);
   }
 
   async function loginWithGoogle() {
