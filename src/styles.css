@@ -1774,10 +1774,17 @@ button {
   color: var(--text);
 }
 
-.footer a {
+.footer a,
+.footer button {
   color: var(--blue);
   font-weight: 900;
   text-decoration: none;
+}
+
+.footer button {
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .mobileNav {

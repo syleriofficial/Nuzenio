@@ -488,6 +488,11 @@ function App() {
     }
   }
 
+  function reopenAnalyticsConsent() {
+    setAnalyticsConsent('');
+    writeLocal('nuzenio_analytics_consent', '');
+  }
+
   async function loginWithGoogle() {
     if (!supabase) {
       setAuthNotice('Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Google login.');
@@ -655,7 +660,7 @@ function App() {
       {!analyticsConsent && (
         <AnalyticsConsentBanner onAccept={() => chooseAnalyticsConsent('granted')} onDecline={() => chooseAnalyticsConsent('denied')} />
       )}
-      <Footer copy={copy} />
+      <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
@@ -1728,7 +1733,7 @@ function MobileNav({ copy, navigateCategory, navigateHome, setMobileSearchOpen }
   );
 }
 
-function Footer({ copy }) {
+function Footer({ copy, onPrivacySettings }) {
   return (
     <footer className="footer">
       <b>Nuzenio</b>
@@ -1739,6 +1744,7 @@ function Footer({ copy }) {
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
       <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
+      <button onClick={onPrivacySettings}>Privacy settings</button>
       <span>{copy.tagline}</span>
     </footer>
   );
