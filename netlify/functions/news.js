@@ -75,7 +75,7 @@ const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Cache-Control': 'public, max-age=180, stale-while-revalidate=60',
+  'Cache-Control': 'no-store, max-age=0, must-revalidate',
   'Content-Type': 'application/json; charset=utf-8',
 };
 

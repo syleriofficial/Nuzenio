@@ -27,7 +27,7 @@
 [[headers]]
   for = "/api/news"
   [headers.values]
-    Cache-Control = "public, max-age=180, stale-while-revalidate=60"
+    Cache-Control = "no-store, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/api/location"
