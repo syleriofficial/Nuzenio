@@ -1059,15 +1059,6 @@ function Home({
 
       <main className="main">
         <section>
-          {isRootHome && (
-            <RootHomePanel
-              copy={copy}
-              language={language}
-              location={location}
-              navigateCategory={navigateCategory}
-              status={status}
-            />
-          )}
           <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
 
           <div className="heroGrid">
@@ -1159,42 +1150,6 @@ function BreakingStrip({ label, text }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function RootHomePanel({ copy, language, location, navigateCategory, status }) {
-  const homeUrl = 'https://nuzenio.com';
-  const place = countryLabel(location.country);
-  return (
-    <section className="rootHomePanel" aria-label="Nuzenio home">
-      <div className="rootHomeCopy">
-        <span className="badge">
-          <ShieldCheck size={15} /> Nuzenio
-        </span>
-        <h2>{homeUrl}</h2>
-        <p>Global news home for {place}, tuned to {language.native}.</p>
-        <div className="rootHomeActions">
-          <button className="primaryAction" onClick={() => navigateCategory('top')}>
-            <Newspaper size={16} /> {copy.categories.top}
-          </button>
-          <button onClick={() => navigateCategory('local')}>
-            <Globe2 size={16} /> {copy.categories.local}
-          </button>
-          <button onClick={() => navigateCategory('live')}>
-            <PlayCircle size={16} /> {copy.categories.live}
-          </button>
-          <button onClick={() => navigateCategory('video')}>
-            <PlayCircle size={16} /> {copy.categories.video}
-          </button>
-        </div>
-      </div>
-      <div className="rootHomeSignal">
-        <b>Nuzenio.com</b>
-        <span>{place}</span>
-        <span>{language.native}</span>
-        <small>{status}</small>
-      </div>
-    </section>
   );
 }
 

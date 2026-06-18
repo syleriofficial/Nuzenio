@@ -467,89 +467,6 @@ button {
   margin-top: 12px;
 }
 
-.rootHomePanel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 18px;
-  margin: 12px 0 18px;
-  padding: 24px;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-
-.rootHomeCopy {
-  display: grid;
-  align-content: center;
-  gap: 12px;
-}
-
-.rootHomeCopy h2 {
-  margin: 0;
-  color: var(--red);
-  font-size: 42px;
-  line-height: 1.05;
-}
-
-.rootHomeCopy p {
-  max-width: 660px;
-  margin: 0;
-  color: #475569;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.rootHomeActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 4px;
-}
-
-.rootHomeActions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: #1f2937;
-  padding: 9px 12px;
-  font-weight: 950;
-}
-
-.rootHomeActions .primaryAction {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: #fff;
-}
-
-.rootHomeSignal {
-  display: grid;
-  align-content: center;
-  gap: 9px;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid #fee2e2;
-  border-radius: 8px;
-  background: var(--red-soft);
-}
-
-.rootHomeSignal b {
-  color: #9f1239;
-  font-size: 24px;
-}
-
-.rootHomeSignal span,
-.rootHomeSignal small {
-  min-width: 0;
-  color: #475569;
-  font-weight: 850;
-  overflow-wrap: anywhere;
-}
-
 .videoHero {
   display: flex;
   align-items: center;
@@ -1858,33 +1775,12 @@ button {
   }
 
   .heroGrid,
-  .rootHomePanel,
   .feedGrid,
   .videoGrid,
   .infoGrid,
   .explainerGrid,
   .relatedPanel > div {
     grid-template-columns: 1fr;
-  }
-
-  .rootHomePanel {
-    gap: 14px;
-    padding: 18px;
-  }
-
-  .rootHomeCopy h2 {
-    font-size: 30px;
-    overflow-wrap: anywhere;
-  }
-
-  .rootHomeActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .rootHomeActions button {
-    justify-content: center;
-    min-width: 0;
   }
 
   .videoHero {
