@@ -365,6 +365,18 @@ function App() {
     updatePageSeo(selected, { category, isRootHome, location, language });
   }, [selected, category, isRootHome, location.country, location.region, location.city]);
 
+  useEffect(() => {
+    document.body.classList.toggle('articleModalOpen', Boolean(selected));
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') closeArticle();
+    }
+    if (selected) window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.classList.remove('articleModalOpen');
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [selected]);
+
   async function loadNews(
     cat = 'local',
     country = location.country,
@@ -1597,7 +1609,13 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
   const related = buildRelatedArticles(article, articles, 4);
   return (
     <div className="modalOverlay" onClick={onClose}>
-      <article className="articleModal" onClick={(event) => event.stopPropagation()}>
+      <article
+        className="articleModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="article-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
         <button className="close" onClick={onClose} aria-label="Close article">
           <X size={20} />
         </button>
@@ -1605,7 +1623,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         <div className="articleTopline">
           <span className="category">{article.category?.toUpperCase()}</span>
         </div>
-        <h1>{displayTitle(article)}</h1>
+        <h1 id="article-modal-title">{displayTitle(article)}</h1>
         <div className="articleMeta">
           <span>
             <CheckCircle2 size={15} /> {article.source}
