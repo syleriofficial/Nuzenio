@@ -285,8 +285,28 @@ function first(item, tag) {
 
 function extractImage(item) {
   const media = item.match(/<media:content[^>]+url=["']([^"']+)["']/i);
+  const thumbnail = item.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
   const enclosure = item.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
-  return media?.[1] || enclosure?.[1] || '';
+  const rawHtml = decodeHtml(item);
+  const htmlImage = rawHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return normalizeImageUrl(media?.[1] || thumbnail?.[1] || enclosure?.[1] || htmlImage?.[1] || '');
+}
+
+function decodeHtml(value = '') {
+  return String(value)
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function normalizeImageUrl(value = '') {
+  const url = decodeHtml(value).trim();
+  if (!url) return '';
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('http://')) return `https://${url.slice(7)}`;
+  return /^https:\/\//i.test(url) ? url : '';
 }
 
 function parse(xml, category, country, language = 'en') {
@@ -1047,8 +1067,7 @@ function normalizeCategory(category = 'local') {
 }
 
 function normalizeLanguage(language = 'en') {
-  const value = language.toLowerCase();
-  return /^[a-z]{2}$/.test(value) ? value : 'en';
+  return 'en';
 }
 
 function googleNewsUrl({ category, country, q, region, city, language }) {
