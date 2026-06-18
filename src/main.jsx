@@ -1648,7 +1648,13 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
             <Share2 size={16} /> Share
           </button>
         </div>
-        <a className="original" href={article.link} target="_blank" rel="noreferrer">
+        <a
+          className="original"
+          href={article.link}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackEvent('publisher_outbound_click', articleEventParams(article))}
+        >
           {isVideo ? 'Open original source' : copy.readOriginal} <ExternalLink size={16} />
         </a>
       </article>
