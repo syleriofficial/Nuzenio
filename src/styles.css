@@ -1784,6 +1784,55 @@ button {
   display: none;
 }
 
+.consentBanner {
+  position: fixed;
+  inset-inline: 5vw;
+  bottom: 18px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  padding: 14px;
+  backdrop-filter: blur(14px);
+}
+
+.consentBanner b {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.consentBanner p {
+  max-width: 640px;
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.consentActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.consentActions button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 12px;
+  font-weight: 900;
+}
+
 @media (max-width: 1120px) {
   .main {
     grid-template-columns: 1fr;
@@ -2039,5 +2088,17 @@ button {
     font-size: 11px;
     font-weight: 900;
     text-decoration: none;
+  }
+
+  .consentBanner {
+    inset-inline: 4vw;
+    bottom: 76px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .consentActions,
+  .consentActions button {
+    width: 100%;
   }
 }

@@ -290,6 +290,7 @@ function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
   const [isRootHome, setIsRootHome] = useState(() => isRootHomePath());
+  const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
   const newsRequestId = useRef(0);
 
   useEffect(() => {
@@ -299,6 +300,10 @@ function App() {
     localStorage.removeItem('nuzenio_news_language');
     localStorage.removeItem('newssetu_news_language');
   }, []);
+
+  useEffect(() => {
+    updateGoogleConsent(analyticsConsent);
+  }, [analyticsConsent]);
 
   useEffect(() => {
     if (!['manual', 'link'].includes(location.source)) {
@@ -474,6 +479,15 @@ function App() {
     });
   }
 
+  function chooseAnalyticsConsent(nextConsent) {
+    setAnalyticsConsent(nextConsent);
+    writeLocal('nuzenio_analytics_consent', nextConsent);
+    updateGoogleConsent(nextConsent);
+    if (nextConsent === 'granted') {
+      trackEvent('analytics_consent_granted', { method: 'banner' });
+    }
+  }
+
   async function loginWithGoogle() {
     if (!supabase) {
       setAuthNotice('Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Google login.');
@@ -638,8 +652,26 @@ function App() {
           toggleSave={toggleSave}
         />
       )}
+      {!analyticsConsent && (
+        <AnalyticsConsentBanner onAccept={() => chooseAnalyticsConsent('granted')} onDecline={() => chooseAnalyticsConsent('denied')} />
+      )}
       <Footer copy={copy} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
+    </div>
+  );
+}
+
+function AnalyticsConsentBanner({ onAccept, onDecline }) {
+  return (
+    <div className="consentBanner" role="dialog" aria-label="Analytics privacy choice">
+      <div>
+        <b>Privacy choice</b>
+        <p>Nuzenio uses Google Analytics to understand page views, searches, and article engagement. You can keep browsing without analytics cookies.</p>
+      </div>
+      <div className="consentActions">
+        <button className="primaryAction" onClick={onAccept}>Accept analytics</button>
+        <button onClick={onDecline}>Keep private</button>
+      </div>
     </div>
   );
 }
@@ -2124,6 +2156,17 @@ function trackEvent(name, params = {}) {
   window.gtag('event', name, {
     send_to: 'G-7TQQHY9XDV',
     ...params,
+  });
+}
+
+function updateGoogleConsent(consent) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  const granted = consent === 'granted';
+  window.gtag('consent', 'update', {
+    analytics_storage: granted ? 'granted' : 'denied',
+    ad_storage: granted ? 'granted' : 'denied',
+    ad_user_data: granted ? 'granted' : 'denied',
+    ad_personalization: granted ? 'granted' : 'denied',
   });
 }
 
