@@ -235,6 +235,10 @@ button {
   background: var(--red-soft);
 }
 
+.header .breaking {
+  margin: 0 5vw 12px;
+}
+
 .breaking b {
   align-self: stretch;
   display: grid;

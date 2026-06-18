@@ -741,11 +741,16 @@ function App() {
     () => articles.slice(0, 6).map((article) => article.title).join(' | '),
     [articles],
   );
+  const breakingLabel = ['live', 'video'].includes(category)
+    ? videoSectionLabel(category, copy).toUpperCase()
+    : copy.breaking;
 
   return (
     <div className="appShell" data-section={category} data-local-page={isLocalPage ? 'true' : 'false'}>
       <Header
         authNotice={authNotice}
+        breakingLabel={breakingLabel}
+        breakingText={ticker || status}
         category={category}
         copy={copy}
         language={language}
@@ -772,17 +777,14 @@ function App() {
           feed={feed}
           language={language}
           isLoadingNews={isLoadingNews}
-          isRootHome={isRootHome}
           lastUpdated={lastUpdated}
           lead={lead}
           location={location}
-          navigateCategory={navigateCategory}
           setLocation={updateLocation}
           openArticle={openArticle}
           savedIds={savedIds}
           sideStories={sideStories}
           status={status}
-          ticker={ticker}
           toggleSave={toggleSave}
           refreshNews={refreshCurrentNews}
         />
@@ -807,6 +809,8 @@ function App() {
 
 function Header({
   authNotice,
+  breakingLabel,
+  breakingText,
   category,
   copy,
   language,
@@ -929,6 +933,7 @@ function Header({
           {copy.categories.video}
         </a>
       </nav>
+      <BreakingStrip label={breakingLabel} text={breakingText} />
       <nav className="newsNav" aria-label="News sections">
         {categories.filter(([key]) => !primarySectionRoutes[key]).map(([key, label]) => (
           <a
@@ -953,20 +958,17 @@ function Home({
   category,
   copy,
   feed,
-  isRootHome,
   isLoadingNews,
   language,
   lastUpdated,
   lead,
   location,
-  navigateCategory,
   openArticle,
   refreshNews,
   savedIds,
   setLocation,
   sideStories,
   status,
-  ticker,
   toggleSave,
 }) {
   const isVideoSection = ['live', 'video'].includes(category);
@@ -974,133 +976,47 @@ function Home({
 
   if (isVideoSection) {
     return (
-      <>
-        <BreakingStrip label={videoSectionLabel(category, copy).toUpperCase()} text={ticker || status} />
-
-        <main className={`main videoMain ${category === 'video' ? 'recordedVideoMain' : 'liveVideoMain'}`}>
-          <section>
-            <div className="videoHero">
-              <div>
-                <span className="badge">
-                  <PlayCircle size={15} /> {category === 'live' ? 'Approved live sources' : 'Recorded news videos'}
-                </span>
-                <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
-                <p>
-                  {category === 'live'
-                    ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
-                    : `${language.native} recorded news videos only. Live streams stay on the Live News page.`}
-                </p>
-                <div className="videoHeroMeta">
-                  <span>{language.native}</span>
-                  <span>{category === 'live' ? 'Live channels' : 'Recorded only'}</span>
-                  <span>Watch inside Nuzenio</span>
-                </div>
-              </div>
-              <div className="videoHeroCount">
-                <b>{articles.length}</b>
-                <span>{category === 'live' ? 'live now' : 'videos'}</span>
-              </div>
-            </div>
-            <VideoModeStrip category={category} language={language} location={location} status={status} />
-            {articles.length > 0 ? (
-              <VideoShowcase
-                articles={articles}
-                copy={copy}
-                openArticle={openArticle}
-                savedIds={savedIds}
-                toggleSave={toggleSave}
-              />
-            ) : isLoadingNews ? (
-              <VideoShowcaseSkeleton />
-            ) : null}
-            <AdSlot name="top-native" label="Top advertising inventory" />
-            <div className="sectionHead">
-              <div>
-                <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
-                <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
-              </div>
-              <SectionStatus
-                isLoading={isLoadingNews}
-                lastUpdated={lastUpdated}
-                onRefresh={refreshNews}
-                status={status}
-              />
-            </div>
-            <div className="videoGrid">
-              {articles.slice(1).map((article) => (
-                <VideoCard
-                  key={article.id}
-                  article={article}
-                  copy={copy}
-                  openArticle={openArticle}
-                  savedIds={savedIds}
-                  toggleSave={toggleSave}
-                />
-              ))}
-              {isLoadingNews && articles.length === 0 && <LoadingCards type="video" count={6} />}
-              {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
-            </div>
-          </section>
-
-          <aside className="rightRail">
-            <Trending articles={articles} copy={copy} openArticle={openArticle} />
-            <AISummaryBox copy={copy} />
-            <Newsletter copy={copy} language={language} />
-            <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
-          </aside>
-        </main>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <BreakingStrip label={copy.breaking} text={ticker || status} />
-
-      <main className="main">
+      <main className={`main videoMain ${category === 'video' ? 'recordedVideoMain' : 'liveVideoMain'}`}>
         <section>
-          <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
-
-          <div className="heroGrid">
-            <button className="leadCard" onClick={() => lead && openArticle(lead)}>
-              <div className="leadVisual">
-                <Newspaper size={112} />
+          <div className="videoHero">
+            <div>
+              <span className="badge">
+                <PlayCircle size={15} /> {category === 'live' ? 'Approved live sources' : 'Recorded news videos'}
+              </span>
+              <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
+              <p>
+                {category === 'live'
+                  ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
+                  : `${language.native} recorded news videos only. Live streams stay on the Live News page.`}
+              </p>
+              <div className="videoHeroMeta">
+                <span>{language.native}</span>
+                <span>{category === 'live' ? 'Live channels' : 'Recorded only'}</span>
+                <span>Watch inside Nuzenio</span>
               </div>
-              <div className="leadContent">
-                <div className="badge">
-                  <ShieldCheck size={15} /> Source attributed
-                </div>
-                <h2>{displayTitle(lead) || 'Loading live lead story...'}</h2>
-                <p>{displaySummary(lead) || status}</p>
-                <div className="leadActions">
-                  <span>
-                    <Sparkles size={15} /> {copy.aiBriefReady}
-                  </span>
-                  <span>
-                    {copy.readStory} <ChevronRight size={15} />
-                  </span>
-                </div>
-              </div>
-            </button>
-
-            <div className="sideList">
-              {sideStories.map((article) => (
-                <SmallStory
-                  key={article.id}
-                  article={article}
-                  copy={copy}
-                  openArticle={openArticle}
-                />
-              ))}
+            </div>
+            <div className="videoHeroCount">
+              <b>{articles.length}</b>
+              <span>{category === 'live' ? 'live now' : 'videos'}</span>
             </div>
           </div>
-
+          <VideoModeStrip category={category} language={language} location={location} status={status} />
+          {articles.length > 0 ? (
+            <VideoShowcase
+              articles={articles}
+              copy={copy}
+              openArticle={openArticle}
+              savedIds={savedIds}
+              toggleSave={toggleSave}
+            />
+          ) : isLoadingNews ? (
+            <VideoShowcaseSkeleton />
+          ) : null}
           <AdSlot name="top-native" label="Top advertising inventory" />
-
           <div className="sectionHead">
             <div>
-              <h2>{section.title}</h2>
-              <p>{section.intro}</p>
+              <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
+              <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
             </div>
             <SectionStatus
               isLoading={isLoadingNews}
@@ -1109,10 +1025,9 @@ function Home({
               status={status}
             />
           </div>
-
-          <div className="feedGrid">
-            {feed.map((article) => (
-              <ArticleCard
+          <div className="videoGrid">
+            {articles.slice(1).map((article) => (
+              <VideoCard
                 key={article.id}
                 article={article}
                 copy={copy}
@@ -1121,7 +1036,7 @@ function Home({
                 toggleSave={toggleSave}
               />
             ))}
-            {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
+            {isLoadingNews && articles.length === 0 && <LoadingCards type="video" count={6} />}
             {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
           </div>
         </section>
@@ -1133,7 +1048,86 @@ function Home({
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
-    </>
+    );
+  }
+
+  return (
+    <main className="main">
+      <section>
+        <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
+
+        <div className="heroGrid">
+          <button className="leadCard" onClick={() => lead && openArticle(lead)}>
+            <div className="leadVisual">
+              <Newspaper size={112} />
+            </div>
+            <div className="leadContent">
+              <div className="badge">
+                <ShieldCheck size={15} /> Source attributed
+              </div>
+              <h2>{displayTitle(lead) || 'Loading live lead story...'}</h2>
+              <p>{displaySummary(lead) || status}</p>
+              <div className="leadActions">
+                <span>
+                  <Sparkles size={15} /> {copy.aiBriefReady}
+                </span>
+                <span>
+                  {copy.readStory} <ChevronRight size={15} />
+                </span>
+              </div>
+            </div>
+          </button>
+
+          <div className="sideList">
+            {sideStories.map((article) => (
+              <SmallStory
+                key={article.id}
+                article={article}
+                copy={copy}
+                openArticle={openArticle}
+              />
+            ))}
+          </div>
+        </div>
+
+        <AdSlot name="top-native" label="Top advertising inventory" />
+
+        <div className="sectionHead">
+          <div>
+            <h2>{section.title}</h2>
+            <p>{section.intro}</p>
+          </div>
+          <SectionStatus
+            isLoading={isLoadingNews}
+            lastUpdated={lastUpdated}
+            onRefresh={refreshNews}
+            status={status}
+          />
+        </div>
+
+        <div className="feedGrid">
+          {feed.map((article) => (
+            <ArticleCard
+              key={article.id}
+              article={article}
+              copy={copy}
+              openArticle={openArticle}
+              savedIds={savedIds}
+              toggleSave={toggleSave}
+            />
+          ))}
+          {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
+          {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+        </div>
+      </section>
+
+      <aside className="rightRail">
+        <Trending articles={articles} copy={copy} openArticle={openArticle} />
+        <AISummaryBox copy={copy} />
+        <Newsletter copy={copy} language={language} />
+        <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
+      </aside>
+    </main>
   );
 }
 
