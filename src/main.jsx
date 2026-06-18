@@ -2142,6 +2142,8 @@ function pageJsonLd(url, { context, description, image, title }) {
         url: productionOrigin,
         publisher: { '@id': organizationId },
         inLanguage: context.language.code,
+        availableLanguage: ['en'],
+        hasPart: siteNavigationSchema(),
         potentialAction: {
           '@type': 'SearchAction',
           target: `${productionOrigin}/top-news?q={search_term_string}`,
@@ -2164,7 +2166,55 @@ function pageJsonLd(url, { context, description, image, title }) {
           name: place,
         },
       },
+      breadcrumbSchema(context, url, title),
     ],
+  };
+}
+
+function siteNavigationSchema() {
+  return [
+    ['Top News', '/top-news'],
+    ['Local News', '/local'],
+    ['World News', '/world'],
+    ['Business News', '/business'],
+    ['Technology News', '/technology'],
+    ['Sports News', '/sports'],
+    ['Entertainment News', '/entertainment'],
+    ['Health News', '/health'],
+    ['Science News', '/science'],
+    ['Live News', '/live'],
+    ['Video News', '/video'],
+  ].map(([name, path]) => ({
+    '@type': 'SiteNavigationElement',
+    name,
+    url: `${productionOrigin}${path}`,
+  }));
+}
+
+function breadcrumbSchema(context, url, title) {
+  const items = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Nuzenio',
+      item: productionOrigin,
+    },
+  ];
+
+  if (!context.isRootHome) {
+    items.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: sectionContent(context.category, uiCopy(context.language.code), context.location).title,
+      item: url,
+    });
+  }
+
+  return {
+    '@type': 'BreadcrumbList',
+    '@id': `${url}#breadcrumb`,
+    name: title,
+    itemListElement: items,
   };
 }
 

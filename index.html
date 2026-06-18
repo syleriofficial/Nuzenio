@@ -55,6 +55,21 @@
           "alternateName": "Nuzenio News",
           "url": "https://nuzenio.com/",
           "publisher": { "@id": "https://nuzenio.com/#organization" },
+          "inLanguage": "en",
+          "availableLanguage": ["en"],
+          "hasPart": [
+            { "@type": "SiteNavigationElement", "name": "Top News", "url": "https://nuzenio.com/top-news" },
+            { "@type": "SiteNavigationElement", "name": "Local News", "url": "https://nuzenio.com/local" },
+            { "@type": "SiteNavigationElement", "name": "World News", "url": "https://nuzenio.com/world" },
+            { "@type": "SiteNavigationElement", "name": "Business News", "url": "https://nuzenio.com/business" },
+            { "@type": "SiteNavigationElement", "name": "Technology News", "url": "https://nuzenio.com/technology" },
+            { "@type": "SiteNavigationElement", "name": "Sports News", "url": "https://nuzenio.com/sports" },
+            { "@type": "SiteNavigationElement", "name": "Entertainment News", "url": "https://nuzenio.com/entertainment" },
+            { "@type": "SiteNavigationElement", "name": "Health News", "url": "https://nuzenio.com/health" },
+            { "@type": "SiteNavigationElement", "name": "Science News", "url": "https://nuzenio.com/science" },
+            { "@type": "SiteNavigationElement", "name": "Live News", "url": "https://nuzenio.com/live" },
+            { "@type": "SiteNavigationElement", "name": "Video News", "url": "https://nuzenio.com/video" }
+          ],
           "potentialAction": {
             "@type": "SearchAction",
             "target": "https://nuzenio.com/top-news?q={search_term_string}",
@@ -69,6 +84,19 @@
           "operatingSystem": "Any",
           "url": "https://nuzenio.com/",
           "description": "Nuzenio is an English news web app for local, global, live, and video news."
+        },
+        {
+          "@type": "BreadcrumbList",
+          "@id": "https://nuzenio.com/#breadcrumb",
+          "name": "Nuzenio Home",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Nuzenio",
+              "item": "https://nuzenio.com/"
+            }
+          ]
         }
       ]
     }
