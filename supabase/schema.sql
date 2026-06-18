@@ -194,8 +194,11 @@ using (public.is_admin());
 
 create index if not exists saved_articles_user_idx on public.saved_articles(user_id, created_at desc);
 create index if not exists reading_history_user_idx on public.reading_history(user_id, read_at desc);
+create index if not exists reading_history_article_idx on public.reading_history(article_id, read_at desc);
 create index if not exists newsletter_language_idx on public.newsletter_subscribers(language, created_at desc);
 create index if not exists analytics_event_idx on public.analytics_events(event_name, created_at desc);
+create index if not exists analytics_category_idx on public.analytics_events(category, created_at desc);
+create index if not exists analytics_article_idx on public.analytics_events(article_id, created_at desc);
 create index if not exists affiliate_category_idx on public.affiliate_links(category, enabled);
 
 create or replace function public.touch_updated_at()
@@ -228,6 +231,48 @@ drop trigger if exists affiliate_links_touch_updated_at on public.affiliate_link
 create trigger affiliate_links_touch_updated_at
 before update on public.affiliate_links
 for each row execute function public.touch_updated_at();
+
+create or replace function public.cleanup_old_events(days_to_keep integer default 180)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Admin role required';
+  end if;
+
+  delete from public.analytics_events
+  where created_at < now() - make_interval(days => greatest(days_to_keep, 30));
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
+
+create or replace function public.cleanup_old_reading_history(days_to_keep integer default 365)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Admin role required';
+  end if;
+
+  delete from public.reading_history
+  where read_at < now() - make_interval(days => greatest(days_to_keep, 90));
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
 
 insert into public.rss_sources (name, category, url, language, country)
 values
