@@ -115,6 +115,24 @@ as $$
   );
 $$;
 
+drop policy if exists "Profiles are readable by owner" on public.profiles;
+drop policy if exists "Users update own profile" on public.profiles;
+drop policy if exists "Users can manage own saved articles" on public.saved_articles;
+drop policy if exists "Users can manage own reading history" on public.reading_history;
+drop policy if exists "Anyone can subscribe to newsletter" on public.newsletter_subscribers;
+drop policy if exists "Subscribers can read own email row" on public.newsletter_subscribers;
+drop policy if exists "RSS sources are publicly readable" on public.rss_sources;
+drop policy if exists "Ad slots are publicly readable" on public.adsense_slots;
+drop policy if exists "Approved affiliate links are publicly readable" on public.affiliate_links;
+drop policy if exists "Users can insert analytics events" on public.analytics_events;
+drop policy if exists "Admins can manage profiles" on public.profiles;
+drop policy if exists "Admins can manage rss sources" on public.rss_sources;
+drop policy if exists "Admins can manage ad slots" on public.adsense_slots;
+drop policy if exists "Admins can manage affiliate links" on public.affiliate_links;
+drop policy if exists "Admins can read newsletter subscribers" on public.newsletter_subscribers;
+drop policy if exists "Admins can manage newsletter subscribers" on public.newsletter_subscribers;
+drop policy if exists "Admins can read analytics events" on public.analytics_events;
+
 create policy "Profiles are readable by owner"
 on public.profiles for select using (auth.uid() = id);
 
@@ -165,9 +183,10 @@ on public.affiliate_links for all
 using (public.is_admin())
 with check (public.is_admin());
 
-create policy "Admins can read newsletter subscribers"
-on public.newsletter_subscribers for select
-using (public.is_admin());
+create policy "Admins can manage newsletter subscribers"
+on public.newsletter_subscribers for all
+using (public.is_admin())
+with check (public.is_admin());
 
 create policy "Admins can read analytics events"
 on public.analytics_events for select
