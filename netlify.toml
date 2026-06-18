@@ -31,7 +31,25 @@
     Cache-Control = "public, max-age=86400"
 
 [[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
   for = "/icon.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/og-image.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
     Cache-Control = "public, max-age=86400"
