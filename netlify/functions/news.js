@@ -408,11 +408,11 @@ function extractYouTubeVideos(html, category, country, language = 'en') {
         || nearby.match(/"shortBylineText":\{"runs":\[\{"text":"([^"]+)"/)?.[1]
         || 'YouTube',
     );
-    if (category === 'live' && (!isReadableVideoTitle(title) || !isLiveNewsChannelResult(nearby, title, channel))) continue;
-    if (category === 'video' && (hasLiveVideoSignal(nearby, title, channel) || !hasNewsChannelSignal(title, channel))) continue;
+    const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
+    if (category === 'live' && (!isReadableVideoTitle(title) || !isLiveNewsChannelResult(nearby, title, channel, published))) continue;
+    if (category === 'video' && (!isRecordedNewsVideoResult(nearby, title, channel, published))) continue;
     seen.add(videoId);
 
-    const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
     const linkPath = `/watch?v=${videoId}`;
     const link = `https://www.youtube.com${linkPath}`;
     const summary = `${channel} · ${published}`;
@@ -443,15 +443,31 @@ function extractYouTubeVideos(html, category, country, language = 'en') {
   return videos;
 }
 
-function isLiveNewsChannelResult(nearby = '', title = '', channel = '') {
+function isLiveNewsChannelResult(nearby = '', title = '', channel = '', published = '') {
   return hasLiveVideoSignal(nearby, title, channel)
     && hasNewsChannelSignal(title, channel)
-    && !/\b(streamed|premiered|replay|full match replay|music|lofi|gaming|gameplay|cricket live score)\b/i.test(`${title} ${channel}`);
+    && !isRecordedOrReplayVideo(nearby, title, channel, published);
+}
+
+function isRecordedNewsVideoResult(nearby = '', title = '', channel = '', published = '') {
+  return hasNewsChannelSignal(title, channel)
+    && isReadableVideoTitle(title)
+    && !hasLiveVideoSignal(nearby, title, channel)
+    && !isLiveTitleSignal(title, channel)
+    && !isRecordedOrReplayVideo(nearby, title, channel, published);
 }
 
 function hasLiveVideoSignal(nearby = '', title = '', channel = '') {
-  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now|live now|live stream|live tv|watch live/i.test(nearby)
-    || /\b(live now|live stream|watch live|live tv|live news|breaking live)\b/i.test(`${title} ${channel}`);
+  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now|live now|live stream|live tv|tv live|watch live/i.test(nearby)
+    || /\b(live now|live stream|watch live|live tv|tv live|live news|breaking live)\b/i.test(`${title} ${channel}`);
+}
+
+function isLiveTitleSignal(title = '', channel = '') {
+  return /\b(live|live tv|tv live|live news|watch live|breaking live)\b/i.test(`${title} ${channel}`);
+}
+
+function isRecordedOrReplayVideo(nearby = '', title = '', channel = '', published = '') {
+  return /\b(streamed|premiered|replay|full match replay|lofi|gaming|gameplay|cricket live score)\b/i.test(`${nearby} ${title} ${channel} ${published}`);
 }
 
 function hasNewsChannelSignal(title = '', channel = '') {
