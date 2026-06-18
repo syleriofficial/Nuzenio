@@ -725,6 +725,53 @@ button {
   object-fit: cover;
 }
 
+.newsFallbackVisual {
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(225, 29, 72, 0.08), transparent 42%),
+    linear-gradient(135deg, #eff6ff 0%, #ffffff 48%, #f8fafc 100%);
+  color: #1e3a8a;
+  text-align: center;
+}
+
+.newsFallbackVisual svg {
+  color: var(--red);
+}
+
+.newsFallbackVisual span {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.newsFallbackVisual b {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 80%;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.largeFallback b {
+  font-size: 34px;
+}
+
+.smallFallback {
+  padding: 8px;
+}
+
+.smallFallback span {
+  font-size: 10px;
+}
+
 .leadContent {
   position: absolute;
   inset-inline: 22px;
@@ -909,12 +956,19 @@ button {
 }
 
 .miniThumb {
+  overflow: hidden;
   display: grid;
   place-items: center;
   height: 72px;
   border-radius: 8px;
   background: var(--blue-soft);
   color: var(--blue);
+}
+
+.miniThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .smallStory b {
@@ -1073,6 +1127,12 @@ button {
 
 .articleCard:hover .articleThumb img {
   transform: scale(1.025);
+}
+
+.articleCard:hover .articleThumb .newsFallbackVisual {
+  background:
+    linear-gradient(135deg, rgba(225, 29, 72, 0.12), transparent 42%),
+    linear-gradient(135deg, #dbeafe 0%, #ffffff 48%, #f8fafc 100%);
 }
 
 .skeletonCard {

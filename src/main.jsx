@@ -934,7 +934,7 @@ function Home({
               {lead?.image ? (
                 <img src={lead.image} alt="" loading="eager" />
               ) : (
-                <Newspaper size={112} />
+                <NewsFallbackVisual article={lead} size="large" />
               )}
             </div>
             <div className="leadContent">
@@ -1405,7 +1405,11 @@ function SmallStory({ article, copy, openArticle }) {
   return (
     <a className="smallStory" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
       <div className="miniThumb">
-        <Globe2 size={28} />
+        {article.image ? (
+          <img src={article.image} alt="" loading="lazy" />
+        ) : (
+          <NewsFallbackVisual article={article} size="small" />
+        )}
       </div>
       <div>
         <b>{displayTitle(article)}</b>
@@ -1422,11 +1426,13 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const image = article.image || videoThumbnail(article);
   return (
     <article className="articleCard">
-      {image && (
-        <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
+      <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
+        {image ? (
           <img src={image} alt="" loading="lazy" />
-        </a>
-      )}
+        ) : (
+          <NewsFallbackVisual article={article} />
+        )}
+      </a>
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
         {['live', 'video'].includes(article.category) && (
@@ -1471,6 +1477,18 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
         {copy.readStory} <ChevronRight size={14} />
       </a>
     </article>
+  );
+}
+
+function NewsFallbackVisual({ article, size = 'default' }) {
+  const category = article?.category || 'news';
+  const source = article?.source || 'Nuzenio';
+  return (
+    <div className={`newsFallbackVisual ${size === 'large' ? 'largeFallback' : ''} ${size === 'small' ? 'smallFallback' : ''}`}>
+      <Newspaper size={size === 'small' ? 20 : 34} />
+      <span>{category.toUpperCase()}</span>
+      {size !== 'small' && <b>{source}</b>}
+    </div>
   );
 }
 
