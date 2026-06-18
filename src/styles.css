@@ -712,6 +712,19 @@ button {
   color: #dbeafe;
 }
 
+.leadVisual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0.24));
+}
+
+.leadVisual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .leadContent {
   position: absolute;
   inset-inline: 22px;
@@ -756,6 +769,99 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.trustStrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.trustStrip div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e3a8a;
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.trustStrip svg {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+
+.trustStrip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickSectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.quickSectionCard {
+  display: grid;
+  gap: 8px;
+  min-height: 158px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 16px;
+  text-decoration: none;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.quickSectionCard:hover {
+  border-color: #bfdbfe;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+}
+
+.quickSectionCard > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.quickSectionCard b {
+  font-size: 18px;
+}
+
+.quickSectionCard p {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 42px;
+  margin: 0;
+  color: #475569;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.quickSectionCard small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+  font-weight: 950;
 }
 
 .leadActions span,
@@ -946,6 +1052,27 @@ button {
 
 .articleCard {
   padding: 16px;
+}
+
+.articleThumb {
+  display: block;
+  overflow: hidden;
+  margin: -16px -16px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #e2e8f0;
+  aspect-ratio: 16 / 8.8;
+}
+
+.articleThumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 180ms ease;
+}
+
+.articleCard:hover .articleThumb img {
+  transform: scale(1.025);
 }
 
 .skeletonCard {
@@ -1278,6 +1405,20 @@ button {
   padding: 0;
 }
 
+.articleModal .original {
+  position: sticky;
+  bottom: 0;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 18px;
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 -8px 24px rgba(37, 99, 235, 0.16);
+}
+
 .railCard {
   padding: 16px;
 }
@@ -1287,6 +1428,27 @@ button {
   align-items: center;
   gap: 8px;
   margin: 0 0 12px;
+}
+
+.topicRail > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.topicRail a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d4ed8;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 950;
+  text-decoration: none;
 }
 
 .trend {
@@ -1797,6 +1959,15 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .trustStrip,
+  .quickSectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .trustStrip div {
+    min-height: 44px;
+  }
+
   .videoShowcase {
     grid-template-columns: 1fr;
   }
@@ -1816,6 +1987,10 @@ button {
 
   .leadCard {
     min-height: 396px;
+  }
+
+  .quickSectionCard {
+    min-height: 132px;
   }
 
   .leadContent {

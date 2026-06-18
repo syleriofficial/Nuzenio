@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
   Bookmark,
+  BriefcaseBusiness,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -20,8 +21,11 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
+  Trophy,
   TrendingUp,
   X,
+  Zap,
 } from 'lucide-react';
 import './styles.css';
 
@@ -758,6 +762,9 @@ function Home({
 }) {
   const isVideoSection = ['live', 'video'].includes(category);
   const section = sectionContent(category, copy, location);
+  const localPreview = articles.find((article) => article.category === 'local') || articles[1];
+  const videoPreview = articles.find((article) => article.category === 'video' || isVideoArticle(article)) || articles[2];
+  const livePreview = articles.find((article) => article.category === 'live') || articles[3];
 
   if (isVideoSection) {
     return (
@@ -829,6 +836,7 @@ function Home({
         <aside className="rightRail">
           <Trending articles={articles} copy={copy} openArticle={openArticle} />
           <AISummaryBox copy={copy} />
+          <TopicRail />
           <Newsletter copy={copy} language={language} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
@@ -848,7 +856,11 @@ function Home({
             onClick={(event) => lead && openArticleFromLink(event, lead, openArticle)}
           >
             <div className="leadVisual">
-              <Newspaper size={112} />
+              {lead?.image ? (
+                <img src={lead.image} alt="" loading="eager" />
+              ) : (
+                <Newspaper size={112} />
+              )}
             </div>
             <div className="leadContent">
               <div className="badge">
@@ -878,6 +890,16 @@ function Home({
             ))}
           </div>
         </div>
+
+        <TrustStrip articles={articles} lastUpdated={lastUpdated} location={location} />
+
+        <QuickSectionGrid
+          copy={copy}
+          localPreview={localPreview}
+          livePreview={livePreview}
+          openArticle={openArticle}
+          videoPreview={videoPreview}
+        />
 
         <AdSlot name="top-native" label="Top advertising inventory" />
 
@@ -913,10 +935,85 @@ function Home({
       <aside className="rightRail">
         <Trending articles={articles} copy={copy} openArticle={openArticle} />
         <AISummaryBox copy={copy} />
+        <TopicRail />
         <Newsletter copy={copy} language={language} />
         <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
+  );
+}
+
+function TrustStrip({ articles, lastUpdated, location }) {
+  const publishers = new Set(articles.map((article) => article.source).filter(Boolean)).size;
+  return (
+    <div className="trustStrip" aria-label="Nuzenio trust signals">
+      <div>
+        <ShieldCheck size={18} />
+        <span>Publisher sourced</span>
+      </div>
+      <div>
+        <Globe2 size={18} />
+        <span>{location.label || countryLabel(location.country)} coverage</span>
+      </div>
+      <div>
+        <Zap size={18} />
+        <span>{articles.length} live stories</span>
+      </div>
+      <div>
+        <CheckCircle2 size={18} />
+        <span>{publishers || 'Verified'} sources</span>
+      </div>
+      <div>
+        <Clock size={18} />
+        <span>{lastUpdated ? `Updated ${formatLastUpdated(lastUpdated)}` : 'Refreshing live'}</span>
+      </div>
+    </div>
+  );
+}
+
+function QuickSectionGrid({ copy, localPreview, livePreview, openArticle, videoPreview }) {
+  const cards = [
+    {
+      title: copy.categories.local,
+      text: localPreview ? displayTitle(localPreview) : 'Nearby headlines tuned by location.',
+      href: categoryRoutes.local,
+      icon: Globe2,
+      article: localPreview,
+    },
+    {
+      title: copy.categories.video,
+      text: videoPreview ? displayTitle(videoPreview) : 'Watch recorded news videos inside Nuzenio.',
+      href: categoryRoutes.video,
+      icon: PlayCircle,
+      article: videoPreview,
+    },
+    {
+      title: copy.categories.live,
+      text: livePreview ? displayTitle(livePreview) : 'Live news channels from approved sources.',
+      href: categoryRoutes.live,
+      icon: Zap,
+      article: livePreview,
+    },
+  ];
+
+  return (
+    <div className="quickSectionGrid" aria-label="Featured Nuzenio sections">
+      {cards.map(({ article, href, icon: Icon, text, title }) => (
+        <a
+          key={title}
+          className="quickSectionCard"
+          href={article ? articleHref(article) : href}
+          onClick={(event) => article && openArticleFromLink(event, article, openArticle)}
+        >
+          <span>
+            <Icon size={20} />
+          </span>
+          <b>{title}</b>
+          <p>{text}</p>
+          <small>Open <ChevronRight size={14} /></small>
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -1247,8 +1344,14 @@ function SmallStory({ article, copy, openArticle }) {
 
 function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
   const isSaved = savedIds.includes(article.id);
+  const image = article.image || videoThumbnail(article);
   return (
     <article className="articleCard">
+      {image && (
+        <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
+          <img src={image} alt="" loading="lazy" />
+        </a>
+      )}
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
         {['live', 'video'].includes(article.category) && (
@@ -1320,6 +1423,30 @@ function AISummaryBox({ copy }) {
       </h3>
       <p>Article pages include summary, context, key facts, and source attribution.</p>
       <span className="statusPill">{copy.aiBrief}</span>
+    </div>
+  );
+}
+
+function TopicRail() {
+  const topics = [
+    { label: 'Business', icon: BriefcaseBusiness, path: categoryRoutes.business },
+    { label: 'Technology', icon: Zap, path: categoryRoutes.tech },
+    { label: 'Sports', icon: Trophy, path: categoryRoutes.sports },
+    { label: 'Health', icon: Stethoscope, path: categoryRoutes.health },
+  ];
+
+  return (
+    <div className="railCard topicRail">
+      <h3>
+        <Newspaper size={18} /> Explore
+      </h3>
+      <div>
+        {topics.map(({ icon: Icon, label, path }) => (
+          <a key={label} href={path}>
+            <Icon size={16} /> {label}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
