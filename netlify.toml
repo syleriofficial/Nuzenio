@@ -25,6 +25,18 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/icon.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/api/news"
   [headers.values]
     Cache-Control = "no-store, max-age=0, must-revalidate"
