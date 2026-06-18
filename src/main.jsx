@@ -2067,6 +2067,16 @@ function updatePageSeo(article, context) {
   setMeta('meta[name="twitter:image"]', 'content', image);
   setAlternateLinks(article ? null : context);
   setJsonLd(article, canonicalUrl, { context, description, image, title });
+  trackPageView(canonicalUrl, title);
+}
+
+function trackPageView(url, title) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  window.gtag('event', 'page_view', {
+    page_location: url,
+    page_title: title,
+    send_to: 'G-7TQQHY9XDV',
+  });
 }
 
 function contextUrlForSeo(context) {
