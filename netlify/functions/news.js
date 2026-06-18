@@ -12,36 +12,180 @@ const TOPICS = {
 
 const CATEGORY_SEARCH_TERMS = {
   top: {
+    ar: 'أهم الأخبار العاجلة اليوم',
+    bn: 'সর্বশেষ প্রধান খবর ব্রেকিং নিউজ',
+    de: 'aktuelle top nachrichten eilnachrichten',
     en: 'top news breaking headlines',
+    es: 'noticias principales ultima hora titulares',
+    fr: 'principales actualites derniere minute titres',
+    gu: 'તાજા મુખ્ય સમાચાર બ્રેકિંગ ન્યૂઝ',
     hi: 'आज की बड़ी खबर ताजा खबर ब्रेकिंग न्यूज़',
+    ja: '最新 主要 ニュース 速報',
+    kn: 'ಇತ್ತೀಚಿನ ಪ್ರಮುಖ ಸುದ್ದಿ ಬ್ರೇಕಿಂಗ್ ನ್ಯೂಸ್',
+    ko: '최신 주요 뉴스 속보',
+    ml: 'പുതിയ പ്രധാന വാർത്ത ബ്രേക്കിംഗ് ന്യൂസ്',
+    mr: 'ताज्या मुख्य बातम्या ब्रेकिंग न्यूज',
+    pa: 'ਤਾਜ਼ਾ ਮੁੱਖ ਖ਼ਬਰਾਂ ਬ੍ਰੇਕਿੰਗ ਨਿਊਜ਼',
+    pt: 'principais noticias de hoje ultimas noticias',
+    ru: 'главные новости сегодня срочные новости',
+    ta: 'சமீபத்திய முக்கிய செய்திகள் பிரேக்கிங் நியூஸ்',
+    te: 'తాజా ప్రధాన వార్తలు బ్రేకింగ్ న్యూస్',
+    ur: 'تازہ اہم خبریں بریکنگ نیوز',
+    zh: '最新 头条 新闻 突发 新闻',
   },
   world: {
+    ar: 'أخبار العالم الأخبار الدولية العاجلة',
+    bn: 'বিশ্ব সংবাদ আন্তর্জাতিক ব্রেকিং খবর',
+    de: 'weltnachrichten internationale nachrichten aktuell',
     en: 'world news international breaking',
+    es: 'noticias mundiales internacionales ultima hora',
+    fr: 'actualites monde internationales derniere minute',
+    gu: 'વિશ્વ સમાચાર આંતરરાષ્ટ્રીય તાજા સમાચાર',
     hi: 'दुनिया की खबर अंतरराष्ट्रीय समाचार',
+    ja: '世界 ニュース 国際 速報',
+    kn: 'ವಿಶ್ವ ಸುದ್ದಿ ಅಂತರಾಷ್ಟ್ರೀಯ ಸುದ್ದಿ',
+    ko: '세계 뉴스 국제 속보',
+    ml: 'ലോക വാർത്ത അന്താരാഷ്ട്ര വാർത്ത',
+    mr: 'जागतिक बातम्या आंतरराष्ट्रीय बातम्या',
+    pa: 'ਵਿਸ਼ਵ ਖ਼ਬਰਾਂ ਅੰਤਰਰਾਸ਼ਟਰੀ ਖ਼ਬਰਾਂ',
+    pt: 'noticias do mundo internacionais ultimas',
+    ru: 'мировые новости международные новости',
+    ta: 'உலக செய்திகள் சர்வதேச செய்திகள்',
+    te: 'ప్రపంచ వార్తలు అంతర్జాతీయ వార్తలు',
+    ur: 'دنیا کی خبریں بین الاقوامی خبریں',
+    zh: '世界 新闻 国际 新闻 速報',
   },
   business: {
+    ar: 'أخبار الأعمال الأسواق الاقتصاد الشركات',
+    bn: 'ব্যবসা খবর বাজার অর্থনীতি কোম্পানি',
+    de: 'wirtschaft nachrichten markt unternehmen',
     en: 'business news market economy company',
+    es: 'noticias negocios mercado economia empresas',
+    fr: 'actualites economie marche entreprises',
+    gu: 'બિઝનેસ સમાચાર બજાર અર્થતંત્ર કંપની',
     hi: 'बिजनेस खबर बाजार अर्थव्यवस्था कंपनी',
+    ja: 'ビジネス ニュース 市場 経済 企業',
+    kn: 'ವ್ಯಾಪಾರ ಸುದ್ದಿ ಮಾರುಕಟ್ಟೆ ಆರ್ಥಿಕತೆ ಕಂಪನಿ',
+    ko: '비즈니스 뉴스 시장 경제 기업',
+    ml: 'ബിസിനസ് വാർത്ത വിപണി സമ്പദ്‌വ്യവസ്ഥ കമ്പനി',
+    mr: 'व्यवसाय बातम्या बाजार अर्थव्यवस्था कंपनी',
+    pa: 'ਕਾਰੋਬਾਰ ਖ਼ਬਰਾਂ ਮਾਰਕੀਟ ਅਰਥਵਿਵਸਥਾ ਕੰਪਨੀ',
+    pt: 'noticias negocios mercado economia empresas',
+    ru: 'бизнес новости рынок экономика компании',
+    ta: 'வணிக செய்திகள் சந்தை பொருளாதாரம் நிறுவனம்',
+    te: 'బిజినెస్ వార్తలు మార్కెట్ ఆర్థిక వ్యవస్థ కంపెనీ',
+    ur: 'کاروباری خبریں مارکیٹ معیشت کمپنی',
+    zh: '商业 新闻 市场 经济 公司',
   },
   tech: {
+    ar: 'أخبار التكنولوجيا الذكاء الاصطناعي الهواتف الشركات الناشئة',
+    bn: 'প্রযুক্তি খবর AI স্মার্টফোন স্টার্টআপ',
+    de: 'technologie nachrichten KI smartphone startups',
     en: 'technology news AI smartphone startup',
+    es: 'noticias tecnologia IA smartphone startups',
+    fr: 'actualites technologie IA smartphone startups',
+    gu: 'ટેકનોલોજી સમાચાર AI સ્માર્ટફોન સ્ટાર્ટઅપ',
     hi: 'टेक्नोलॉजी खबर एआई मोबाइल स्टार्टअप',
+    ja: 'テクノロジー ニュース AI スマートフォン スタートアップ',
+    kn: 'ತಂತ್ರಜ್ಞಾನ ಸುದ್ದಿ AI ಸ್ಮಾರ್ಟ್‌ಫೋನ್ ಸ್ಟಾರ್ಟಪ್',
+    ko: '기술 뉴스 AI 스마트폰 스타트업',
+    ml: 'ടെക്നോളജി വാർത്ത AI സ്മാർട്ട്ഫോൺ സ്റ്റാർട്ടപ്പ്',
+    mr: 'तंत्रज्ञान बातम्या AI स्मार्टफोन स्टार्टअप',
+    pa: 'ਤਕਨਾਲੋਜੀ ਖ਼ਬਰਾਂ AI ਸਮਾਰਟਫੋਨ ਸਟਾਰਟਅਪ',
+    pt: 'noticias tecnologia IA smartphone startups',
+    ru: 'технологии новости ИИ смартфоны стартапы',
+    ta: 'தொழில்நுட்ப செய்திகள் AI ஸ்மார்ட்போன் ஸ்டார்ட்அப்',
+    te: 'టెక్నాలజీ వార్తలు AI స్మార్ట్‌ఫోన్ స్టార్టప్',
+    ur: 'ٹیکنالوجی خبریں AI اسمارٹ فون اسٹارٹ اپ',
+    zh: '科技 新闻 AI 智能手机 创业公司',
   },
   sports: {
+    ar: 'أخبار الرياضة مباراة نتيجة كرة القدم كريكيت',
+    bn: 'খেলার খবর ম্যাচ স্কোর ক্রিকেট ফুটবল',
+    de: 'sport nachrichten spiel ergebnis fußball cricket',
     en: 'sports news match score cricket football',
+    es: 'noticias deportes partido marcador futbol cricket',
+    fr: 'actualites sport match score football cricket',
+    gu: 'રમતગમત સમાચાર મેચ સ્કોર ક્રિકેટ ફૂટબોલ',
     hi: 'खेल समाचार मैच स्कोर क्रिकेट',
+    ja: 'スポーツ ニュース 試合 結果 サッカー クリケット',
+    kn: 'ಕ್ರೀಡೆ ಸುದ್ದಿ ಪಂದ್ಯ ಸ್ಕೋರ್ ಕ್ರಿಕೆಟ್ ಫುಟ್ಬಾಲ್',
+    ko: '스포츠 뉴스 경기 점수 축구 크리켓',
+    ml: 'കായിക വാർത്ത മത്സരം സ്കോർ ക്രിക്കറ്റ് ഫുട്ബോൾ',
+    mr: 'क्रीडा बातम्या सामना स्कोर क्रिकेट फुटबॉल',
+    pa: 'ਖੇਡ ਖ਼ਬਰਾਂ ਮੈਚ ਸਕੋਰ ਕ੍ਰਿਕਟ ਫੁੱਟਬਾਲ',
+    pt: 'noticias esportes jogo placar futebol cricket',
+    ru: 'спорт новости матч счет футбол крикет',
+    ta: 'விளையாட்டு செய்திகள் போட்டி ஸ்கோர் கிரிக்கெட் கால்பந்து',
+    te: 'క్రీడా వార్తలు మ్యాచ్ స్కోర్ క్రికెట్ ఫుట్‌బాల్',
+    ur: 'کھیل خبریں میچ اسکور کرکٹ فٹبال',
+    zh: '体育 新闻 比赛 比分 足球 板球',
   },
   entertainment: {
+    ar: 'أخبار الترفيه السينما المشاهير',
+    bn: 'বিনোদন খবর সিনেমা সেলিব্রিটি',
+    de: 'unterhaltung nachrichten film promi',
     en: 'entertainment news film bollywood celebrity',
+    es: 'noticias entretenimiento cine celebridades',
+    fr: 'actualites divertissement cinema celebrites',
+    gu: 'મનોરંજન સમાચાર ફિલ્મ સેલિબ્રિટી',
     hi: 'मनोरंजन खबर फिल्म बॉलीवुड',
+    ja: 'エンタメ ニュース 映画 芸能人',
+    kn: 'ಮನರಂಜನೆ ಸುದ್ದಿ ಸಿನಿಮಾ ಸೆಲೆಬ್ರಿಟಿ',
+    ko: '엔터테인먼트 뉴스 영화 연예인',
+    ml: 'വിനോദ വാർത്ത സിനിമ സെലിബ്രിറ്റി',
+    mr: 'मनोरंजन बातम्या चित्रपट सेलिब्रिटी',
+    pa: 'ਮਨੋਰੰਜਨ ਖ਼ਬਰਾਂ ਫਿਲਮ ਸੈਲੀਬ੍ਰਿਟੀ',
+    pt: 'noticias entretenimento cinema celebridades',
+    ru: 'развлечения новости кино знаменитости',
+    ta: 'பொழுதுபோக்கு செய்திகள் திரைப்படம் பிரபலங்கள்',
+    te: 'వినోద వార్తలు సినిమా సెలబ్రిటీ',
+    ur: 'تفریح خبریں فلم مشہور شخصیات',
+    zh: '娱乐 新闻 电影 名人',
   },
   health: {
+    ar: 'أخبار الصحة الطب العافية دراسة',
+    bn: 'স্বাস্থ্য খবর চিকিৎসা সুস্থতা গবেষণা',
+    de: 'gesundheit nachrichten medizin studie',
     en: 'health news medicine wellness study',
+    es: 'noticias salud medicina bienestar estudio',
+    fr: 'actualites sante medecine bien etre etude',
+    gu: 'આરોગ્ય સમાચાર દવા તંદુરસ્તી અભ્યાસ',
     hi: 'स्वास्थ्य खबर बीमारी दवा सेहत अध्ययन',
+    ja: '健康 ニュース 医療 研究',
+    kn: 'ಆರೋಗ್ಯ ಸುದ್ದಿ ಔಷಧಿ ಅಧ್ಯಯನ',
+    ko: '건강 뉴스 의학 연구',
+    ml: 'ആരോഗ്യ വാർത്ത മരുന്ന് പഠനം',
+    mr: 'आरोग्य बातम्या औषध आरोग्य अभ्यास',
+    pa: 'ਸਿਹਤ ਖ਼ਬਰਾਂ ਦਵਾਈ ਅਧਿਐਨ',
+    pt: 'noticias saude medicina bem estar estudo',
+    ru: 'здоровье новости медицина исследование',
+    ta: 'சுகாதார செய்திகள் மருந்து ஆய்வு',
+    te: 'ఆరోగ్య వార్తలు వైద్యం అధ్యయనం',
+    ur: 'صحت خبریں دوا تحقیق',
+    zh: '健康 新闻 医学 研究',
   },
   science: {
+    ar: 'أخبار العلوم الفضاء المناخ البحث اكتشاف',
+    bn: 'বিজ্ঞান খবর মহাকাশ জলবায়ু গবেষণা আবিষ্কার',
+    de: 'wissenschaft nachrichten weltraum klima forschung entdeckung',
     en: 'science news space climate research discovery',
+    es: 'noticias ciencia espacio clima investigacion descubrimiento',
+    fr: 'actualites science espace climat recherche decouverte',
+    gu: 'વિજ્ઞાન સમાચાર અંતરિક્ષ હવામાન સંશોધન શોધ',
     hi: 'विज्ञान खबर अंतरिक्ष जलवायु शोध खोज',
+    ja: '科学 ニュース 宇宙 気候 研究 発見',
+    kn: 'ವಿಜ್ಞಾನ ಸುದ್ದಿ ಬಾಹ್ಯಾಕಾಶ ಹವಾಮಾನ ಸಂಶೋಧನೆ ಕಂಡುಹಿಡಿತ',
+    ko: '과학 뉴스 우주 기후 연구 발견',
+    ml: 'ശാസ്ത്ര വാർത്ത ബഹിരാകാശം കാലാവസ്ഥ ഗവേഷണം കണ്ടെത്തൽ',
+    mr: 'विज्ञान बातम्या अवकाश हवामान संशोधन शोध',
+    pa: 'ਵਿਗਿਆਨ ਖ਼ਬਰਾਂ ਅੰਤਰਿਕਸ਼ ਜਲਵਾਯੂ ਖੋਜ',
+    pt: 'noticias ciencia espaco clima pesquisa descoberta',
+    ru: 'наука новости космос климат исследование открытие',
+    ta: 'அறிவியல் செய்திகள் விண்வெளி காலநிலை ஆராய்ச்சி கண்டுபிடிப்பு',
+    te: 'సైన్స్ వార్తలు అంతరిక్షం వాతావరణం పరిశోధన ఆవిష్కరణ',
+    ur: 'سائنس خبریں خلا آب و ہوا تحقیق دریافت',
+    zh: '科学 新闻 太空 气候 研究 发现',
   },
 };
 
@@ -390,6 +534,7 @@ function extractYouTubeVideos(html, category, country, language = 'en') {
   const newsLanguage = normalizeLanguage(language);
   const idPattern = /"videoId":"([\w-]{11})"/g;
   const seen = new Set();
+  const seenTitles = new Set();
   const videos = [];
   let match;
 
@@ -411,7 +556,10 @@ function extractYouTubeVideos(html, category, country, language = 'en') {
     const published = cleanJsonText(nearby.match(/"publishedTimeText":\{"simpleText":"([^"]+)"/)?.[1] || 'Latest');
     if (category === 'live' && (!isReadableVideoTitle(title) || !isLiveNewsChannelResult(nearby, title, channel, published))) continue;
     if (category === 'video' && (!isRecordedNewsVideoResult(nearby, title, channel, published))) continue;
+    const titleKey = normalizeTitleKey(title);
+    if (titleKey && seenTitles.has(titleKey)) continue;
     seen.add(videoId);
+    if (titleKey) seenTitles.add(titleKey);
 
     const linkPath = `/watch?v=${videoId}`;
     const link = `https://www.youtube.com${linkPath}`;
@@ -446,6 +594,7 @@ function extractYouTubeVideos(html, category, country, language = 'en') {
 function isLiveNewsChannelResult(nearby = '', title = '', channel = '', published = '') {
   return hasLiveVideoSignal(nearby, title, channel)
     && hasNewsChannelSignal(title, channel)
+    && isReadableVideoTitle(title)
     && !isRecordedOrReplayVideo(nearby, title, channel, published);
 }
 
@@ -458,12 +607,16 @@ function isRecordedNewsVideoResult(nearby = '', title = '', channel = '', publis
 }
 
 function hasLiveVideoSignal(nearby = '', title = '', channel = '') {
-  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now|live now|live stream|live tv|tv live|watch live/i.test(nearby)
-    || /\b(live now|live stream|watch live|live tv|tv live|live news|breaking live)\b/i.test(`${title} ${channel}`);
+  const text = `${nearby} ${title} ${channel}`;
+  return /BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"|>LIVE<|watching now|live now|live stream|live tv|tv live|watch live/i.test(text)
+    || /\b(live now|live stream|watch live|live tv|tv live|live news|breaking live|en direct|directo|ao vivo|em directo|en vivo|canli|canlı|livestream)\b/i.test(text)
+    || /(مباشر|بث مباشر|على الهواء|लाइव|সরাসরি|நேரலை|ప్రత్యక్ష|ಲೈವ್|ലൈവ്|ਲਾਈਵ|براہ راست|生放送|ライブ配信|直播|실시간|라이브)/i.test(text);
 }
 
 function isLiveTitleSignal(title = '', channel = '') {
-  return /\b(live|live tv|tv live|live news|watch live|breaking live)\b/i.test(`${title} ${channel}`);
+  const text = `${title} ${channel}`;
+  return /\b(live|live tv|tv live|live news|watch live|breaking live|en direct|directo|ao vivo|em directo|en vivo|livestream)\b/i.test(text)
+    || /(مباشر|بث مباشر|على الهواء|लाइव|সরাসরি|நேரலை|ప్రత్యక్ష|ಲೈವ್|ലൈവ്|ਲਾਈਵ|براہ راست|生放送|ライブ配信|直播|실시간|라이브)/i.test(text);
 }
 
 function isRecordedOrReplayVideo(nearby = '', title = '', channel = '', published = '') {
@@ -477,7 +630,18 @@ function hasNewsChannelSignal(title = '', channel = '') {
 }
 
 function isReadableVideoTitle(title = '') {
-  return title.split(/\s+/).length >= 4 && !/^(verified|live|news)$/i.test(title.trim());
+  const cleanTitle = title.trim();
+  return cleanTitle.split(/\s+/).length >= 4
+    && !/^(verified|live|news)$/i.test(cleanTitle)
+    && !isDurationOnlyTitle(cleanTitle)
+    && !/^\d{1,2}:\d{2}(:\d{2})?$/.test(cleanTitle);
+}
+
+function isDurationOnlyTitle(title = '') {
+  return /^\d+\s+(second|seconds|minute|minutes|hour|hours)(,\s*\d+\s+(second|seconds|minute|minutes|hour|hours))*$/i.test(title)
+    || /^\d+\s+(seconde|secondes|minute|minutes|heure|heures)(,?\s*(et)?\s*\d+\s+(seconde|secondes|minute|minutes|heure|heures))*$/i.test(title)
+    || /^\d+\s*(segundo|segundos|minuto|minutos|hora|horas|sekunde|sekunden|minute|minuten|stunde|stunden)(,?\s*(y|e|und)?\s*\d+\s*(segundo|segundos|minuto|minutos|hora|horas|sekunde|sekunden|minute|minuten|stunde|stunden))*$/i.test(title)
+    || /^\d+\s*(ثانية|ثواني|دقيقة|دقائق|ساعة|ساعات)(\s*و\s*\d+\s*(ثانية|ثواني|دقيقة|دقائق|ساعة|ساعات))*$/i.test(title);
 }
 
 function cleanJsonText(value = '') {
@@ -593,6 +757,31 @@ function videoNewsQuery(language = 'en') {
   return terms[language] || 'today news video latest headlines report news channel';
 }
 
+function recordedVideoNewsQuery(language = 'en') {
+  const terms = {
+    ar: 'تقرير إخباري فيديو أخبار اليوم تحليل',
+    bn: 'আজকের সংবাদ প্রতিবেদন ভিডিও বিশ্লেষণ',
+    de: 'nachrichten bericht video analyse heute',
+    es: 'reporte de noticias video analisis hoy',
+    fr: 'reportage actualites video analyse aujourd hui',
+    gu: 'સમાચાર રિપોર્ટ વિડિયો વિશ્લેષણ આજે',
+    hi: 'आज की खबर रिपोर्ट वीडियो विश्लेषण',
+    ja: '今日 ニュース レポート 動画 解説',
+    kn: 'ಇಂದಿನ ಸುದ್ದಿ ವರದಿ ವಿಡಿಯೋ ವಿಶ್ಲೇಷಣೆ',
+    ko: '오늘 뉴스 리포트 영상 분석',
+    ml: 'ഇന്നത്തെ വാർത്ത റിപ്പോർട്ട് വീഡിയോ വിശകലനം',
+    mr: 'आजच्या बातम्या रिपोर्ट व्हिडिओ विश्लेषण',
+    pa: 'ਅੱਜ ਦੀ ਖ਼ਬਰ ਰਿਪੋਰਟ ਵੀਡੀਓ ਵਿਸ਼ਲੇਸ਼ਣ',
+    pt: 'reportagem noticias video analise hoje',
+    ru: 'новости репортаж видео анализ сегодня',
+    ta: 'இன்றைய செய்தி அறிக்கை வீடியோ பகுப்பாய்வு',
+    te: 'ఈరోజు వార్తలు రిపోర్ట్ వీడియో విశ్లేషణ',
+    ur: 'آج کی خبر رپورٹ ویڈیو تجزیہ',
+    zh: '今日 新闻 报道 视频 分析',
+  };
+  return terms[language] || 'latest news report video analysis today';
+}
+
 function youtubeChannelIds() {
   return (process.env.YOUTUBE_NEWS_CHANNEL_IDS || '')
     .split(',')
@@ -684,17 +873,37 @@ async function fetchYouTubeVideos({ category, country, language }) {
 
   const countryCode = normalizeCountry(country);
   const newsLanguage = normalizeLanguage(language);
-  const query = [
-    countryLabel(countryCode),
-    category === 'live' ? liveNewsQuery(newsLanguage) : videoNewsQuery(newsLanguage),
-  ].join(' ');
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
-  const html = await fetchText(url, 0, {
-    Accept: 'text/html,application/xhtml+xml',
-    'Accept-Language': `${newsLanguage}-${countryCode},${newsLanguage};q=0.9,en;q=0.8`,
-    'User-Agent': 'Mozilla/5.0 Nuzenio/1.0 (+https://nuzenio.com)',
-  });
-  return { articles: extractYouTubeVideos(html, category, countryCode, newsLanguage), sourceType: 'youtube-live-search' };
+  const queries = youtubeFallbackQueries(category, countryCode, newsLanguage);
+
+  for (const query of queries) {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=${newsLanguage}&gl=${countryCode}`;
+    const html = await fetchText(url, 0, {
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': `${newsLanguage}-${countryCode},${newsLanguage};q=0.9,en;q=0.8`,
+      'User-Agent': 'Mozilla/5.0 Nuzenio/1.0 (+https://nuzenio.com)',
+    });
+    const articles = extractYouTubeVideos(html, category, countryCode, newsLanguage);
+    if (articles.length) return { articles, sourceType: 'youtube-live-search' };
+  }
+
+  return { articles: [], sourceType: 'youtube-live-search' };
+}
+
+function youtubeFallbackQueries(category, countryCode, newsLanguage) {
+  const countryName = countryLabel(countryCode);
+  if (category === 'live') {
+    return [
+      [countryName, liveNewsQuery(newsLanguage)].join(' '),
+      [countryName, 'live news channel live tv breaking news'].join(' '),
+      'international live news channel live tv breaking news',
+    ];
+  }
+  return [
+    [countryName, videoNewsQuery(newsLanguage)].join(' '),
+    [countryName, recordedVideoNewsQuery(newsLanguage)].join(' '),
+    [countryName, 'latest news report headlines interview analysis'].join(' '),
+    'international news report latest headlines analysis',
+  ];
 }
 
 function formatApiDate(value = '') {
