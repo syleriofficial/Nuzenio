@@ -2166,19 +2166,9 @@ function setJsonLd(article, url, { context, description, image, title }) {
   const script = document.createElement('script');
   script.id = 'nuzenio-jsonld';
   script.type = 'application/ld+json';
-  script.textContent = JSON.stringify(article ? {
-    '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
-    headline: displayTitle(article),
-    description: displaySummary(article),
-    datePublished: article.pubDate || undefined,
-    dateModified: article.pubDate || undefined,
-    image,
-    mainEntityOfPage: url,
-    publisher: organizationSchema(),
-    isBasedOn: article.link,
-    citation: article.source,
-  } : pageJsonLd(url, { context, description, image, title }));
+  script.textContent = JSON.stringify(article
+    ? articleJsonLd(article, url, { context, description, image, title })
+    : pageJsonLd(url, { context, description, image, title }));
   document.head.appendChild(script);
 }
 
@@ -2340,6 +2330,51 @@ function pageJsonLd(url, { context, description, image, title }) {
   };
 }
 
+function articleJsonLd(article, url, { context, description, image, title }) {
+  const organizationId = `${productionOrigin}/#organization`;
+  const websiteId = `${productionOrigin}/#website`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': organizationId,
+        ...organizationSchema(),
+      },
+      {
+        '@type': 'WebSite',
+        '@id': websiteId,
+        name: 'Nuzenio',
+        url: productionOrigin,
+        publisher: { '@id': organizationId },
+        inLanguage: context.language.code,
+      },
+      {
+        '@type': 'NewsArticle',
+        '@id': `${url}#article`,
+        headline: displayTitle(article),
+        description,
+        datePublished: article.pubDate || undefined,
+        dateModified: article.pubDate || undefined,
+        image,
+        url,
+        mainEntityOfPage: url,
+        isPartOf: { '@id': websiteId },
+        publisher: { '@id': organizationId },
+        author: {
+          '@type': 'Organization',
+          name: article.source || 'RSS publisher',
+        },
+        articleSection: article.category || context.category || 'top',
+        inLanguage: context.language.code,
+        isBasedOn: article.link,
+        citation: article.source,
+      },
+      breadcrumbSchema(context, url, title, article),
+    ],
+  };
+}
+
 function siteNavigationSchema() {
   return [
     ['Top News', '/top-news'],
@@ -2360,7 +2395,7 @@ function siteNavigationSchema() {
   }));
 }
 
-function breadcrumbSchema(context, url, title) {
+function breadcrumbSchema(context, url, title, article = null) {
   const items = [
     {
       '@type': 'ListItem',
@@ -2371,10 +2406,20 @@ function breadcrumbSchema(context, url, title) {
   ];
 
   if (!context.isRootHome) {
+    const sectionUrl = productionUrl(homeContextUrl(context));
     items.push({
       '@type': 'ListItem',
       position: 2,
       name: sectionContent(context.category, uiCopy(context.language.code), context.location).title,
+      item: article ? sectionUrl : url,
+    });
+  }
+
+  if (article) {
+    items.push({
+      '@type': 'ListItem',
+      position: items.length + 1,
+      name: displayTitle(article),
       item: url,
     });
   }
