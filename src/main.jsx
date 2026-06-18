@@ -394,6 +394,10 @@ function normalizedPathname() {
   return path || '/';
 }
 
+function isRootHomePath() {
+  return normalizedPathname() === '/' && !readArticleIdFromUrl();
+}
+
 function readArticleIdFromUrl() {
   const [, articleId] = window.location.pathname.match(/^\/article\/([^/]+)\/?$/) || [];
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
@@ -477,6 +481,7 @@ function App() {
   const [authNotice, setAuthNotice] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
+  const [isRootHome, setIsRootHome] = useState(() => isRootHomePath());
   const newsRequestId = useRef(0);
 
   useEffect(() => {
@@ -497,13 +502,18 @@ function App() {
   }, [category, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
+    if (isRootHome && category === 'top') {
+      setIsLocalPage(false);
+      return;
+    }
     const url = contextUrl({ category, location, language });
     window.history.replaceState({}, '', url);
     setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
-  }, [category, location.country, location.region, location.city, language.code]);
+  }, [category, isRootHome, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
     function syncArticleFromUrl() {
+      setIsRootHome(isRootHomePath());
       setIsLocalPage(window.location.pathname === categoryRoutes.local);
       setCategory(initialCategory());
       const articleId = readArticleIdFromUrl();
@@ -534,8 +544,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    updatePageSeo(selected, { category, location, language });
-  }, [selected, category, location.country, location.region, location.city, language.code]);
+    updatePageSeo(selected, { category, isRootHome, location, language });
+  }, [selected, category, isRootHome, location.country, location.region, location.city, language.code]);
 
   async function loadNews(
     cat = 'local',
@@ -615,11 +625,21 @@ function App() {
 
   function navigateCategory(nextCategory) {
     setScreen('home');
+    setIsRootHome(false);
     setCategory(nextCategory);
     setMobileSearchOpen(false);
     const url = homeContextUrl({ category: nextCategory, location, language });
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
+  }
+
+  function navigateHome() {
+    setScreen('home');
+    setCategory('top');
+    setIsRootHome(true);
+    setIsLocalPage(false);
+    setMobileSearchOpen(false);
+    window.history.pushState({}, '', '/');
   }
 
   async function loginWithGoogle() {
@@ -700,13 +720,17 @@ function App() {
 
   function pushArticleUrl(article) {
     const url = articleContextUrl(article, { category, location, language });
+    setIsRootHome(false);
     window.history.pushState({}, '', url);
   }
 
   function closeArticle() {
     setSelected(null);
-    const url = homeContextUrl({ category, location, language });
-    window.history.replaceState({}, '', url);
+    if (isRootHome && category === 'top') {
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+    window.history.replaceState({}, '', homeContextUrl({ category, location, language }));
   }
 
   const copy = uiCopy(language.code);
@@ -728,10 +752,12 @@ function App() {
         loginWithGoogle={loginWithGoogle}
         logout={logout}
         mobileSearchOpen={mobileSearchOpen}
+        isRootHome={isRootHome}
         query={query}
         screen={screen}
         searchNews={searchNews}
         navigateCategory={navigateCategory}
+        navigateHome={navigateHome}
         setLanguage={setLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
@@ -746,9 +772,11 @@ function App() {
           feed={feed}
           language={language}
           isLoadingNews={isLoadingNews}
+          isRootHome={isRootHome}
           lastUpdated={lastUpdated}
           lead={lead}
           location={location}
+          navigateCategory={navigateCategory}
           setLocation={updateLocation}
           openArticle={openArticle}
           savedIds={savedIds}
@@ -772,7 +800,7 @@ function App() {
         />
       )}
       <Footer copy={copy} />
-      <MobileNav copy={copy} navigateCategory={navigateCategory} setMobileSearchOpen={setMobileSearchOpen} />
+      <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
 }
@@ -785,7 +813,9 @@ function Header({
   loginWithGoogle,
   logout,
   mobileSearchOpen,
+  isRootHome,
   navigateCategory,
+  navigateHome,
   query,
   screen,
   searchNews,
@@ -799,10 +829,10 @@ function Header({
       <div className="topbar">
         <a
           className="brand"
-          href={categoryRoutes.top}
+          href="/"
           onClick={(event) => {
             event.preventDefault();
-            navigateCategory('top');
+            navigateHome();
           }}
           aria-label="Nuzenio home"
         >
@@ -859,11 +889,11 @@ function Header({
 
       <nav className="nav" aria-label="Primary navigation">
         <a
-          href={categoryRoutes.top}
-          className={screen === 'home' && category === 'top' ? 'active' : ''}
+          href="/"
+          className={screen === 'home' && isRootHome ? 'active' : ''}
           onClick={(event) => {
             event.preventDefault();
-            navigateCategory('top');
+            navigateHome();
           }}
         >
           {copy.home}
@@ -904,7 +934,7 @@ function Header({
           <a
             key={key}
             href={categoryRoutes[key]}
-            className={screen === 'home' && category === key ? 'active' : ''}
+            className={screen === 'home' && category === key && !(isRootHome && key === 'top') ? 'active' : ''}
             onClick={(event) => {
               event.preventDefault();
               navigateCategory(key);
@@ -923,11 +953,13 @@ function Home({
   category,
   copy,
   feed,
+  isRootHome,
   isLoadingNews,
   language,
   lastUpdated,
   lead,
   location,
+  navigateCategory,
   openArticle,
   refreshNews,
   savedIds,
@@ -1027,6 +1059,15 @@ function Home({
 
       <main className="main">
         <section>
+          {isRootHome && (
+            <RootHomePanel
+              copy={copy}
+              language={language}
+              location={location}
+              navigateCategory={navigateCategory}
+              status={status}
+            />
+          )}
           <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
 
           <div className="heroGrid">
@@ -1118,6 +1159,42 @@ function BreakingStrip({ label, text }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function RootHomePanel({ copy, language, location, navigateCategory, status }) {
+  const homeUrl = 'https://nuzenio.com';
+  const place = countryLabel(location.country);
+  return (
+    <section className="rootHomePanel" aria-label="Nuzenio home">
+      <div className="rootHomeCopy">
+        <span className="badge">
+          <ShieldCheck size={15} /> Nuzenio
+        </span>
+        <h2>{homeUrl}</h2>
+        <p>Global news home for {place}, tuned to {language.native}.</p>
+        <div className="rootHomeActions">
+          <button className="primaryAction" onClick={() => navigateCategory('top')}>
+            <Newspaper size={16} /> {copy.categories.top}
+          </button>
+          <button onClick={() => navigateCategory('local')}>
+            <Globe2 size={16} /> {copy.categories.local}
+          </button>
+          <button onClick={() => navigateCategory('live')}>
+            <PlayCircle size={16} /> {copy.categories.live}
+          </button>
+          <button onClick={() => navigateCategory('video')}>
+            <PlayCircle size={16} /> {copy.categories.video}
+          </button>
+        </div>
+      </div>
+      <div className="rootHomeSignal">
+        <b>Nuzenio.com</b>
+        <span>{place}</span>
+        <span>{language.native}</span>
+        <small>{status}</small>
+      </div>
+    </section>
   );
 }
 
@@ -1675,12 +1752,12 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
   );
 }
 
-function MobileNav({ copy, navigateCategory, setMobileSearchOpen }) {
+function MobileNav({ copy, navigateCategory, navigateHome, setMobileSearchOpen }) {
   return (
     <div className="mobileNav">
-      <a href={categoryRoutes.top} onClick={(event) => {
+      <a href="/" onClick={(event) => {
         event.preventDefault();
-        navigateCategory('top');
+        navigateHome();
       }}>
         <HomeIcon size={18} /> {copy.home}
       </a>
@@ -2114,7 +2191,7 @@ function setJsonLd(article, url, { context, description, image, title }) {
 }
 
 function updatePageSeo(article, context) {
-  const url = article ? articleContextUrl(article, context) : homeContextUrl(context);
+  const url = article ? articleContextUrl(article, context) : contextUrlForSeo(context);
   const canonicalUrl = productionUrl(url);
   const title = article ? `${displayTitle(article)} | Nuzenio` : pageSeoTitle(context);
   const description = article
@@ -2140,6 +2217,13 @@ function updatePageSeo(article, context) {
   setJsonLd(article, canonicalUrl, { context, description, image, title });
 }
 
+function contextUrlForSeo(context) {
+  if (context.isRootHome) {
+    return new URL('/', window.location.href);
+  }
+  return homeContextUrl(context);
+}
+
 function productionUrl(url) {
   const output = new URL(url.toString());
   output.protocol = 'https:';
@@ -2151,6 +2235,16 @@ function productionUrl(url) {
 function setAlternateLinks(context) {
   document.head.querySelectorAll('link[data-nuzenio-alternate="true"]').forEach((link) => link.remove());
   if (!context) return;
+
+  if (context.isRootHome) {
+    const rootLink = document.createElement('link');
+    rootLink.rel = 'alternate';
+    rootLink.hreflang = 'x-default';
+    rootLink.href = `${productionOrigin}/`;
+    rootLink.dataset.nuzenioAlternate = 'true';
+    document.head.appendChild(rootLink);
+    return;
+  }
 
   for (const alternateLanguage of languages) {
     const url = homeContextUrl({ ...context, language: alternateLanguage });
@@ -2171,7 +2265,8 @@ function setAlternateLinks(context) {
   document.head.appendChild(defaultLink);
 }
 
-function pageSeoTitle({ category, location, language }) {
+function pageSeoTitle({ category, isRootHome, location, language }) {
+  if (isRootHome) return 'Nuzenio - Global News Home';
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
@@ -2181,7 +2276,10 @@ function pageSeoTitle({ category, location, language }) {
   return `${sectionTitle} for ${place} | Nuzenio`;
 }
 
-function pageSeoDescription({ category, location, language }) {
+function pageSeoDescription({ category, isRootHome, location, language }) {
+  if (isRootHome) {
+    return 'Nuzenio is the global news home for live RSS headlines, local news, video news, live news, multilingual reading, and AI context.';
+  }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
@@ -2205,7 +2303,9 @@ function pageSeoDescription({ category, location, language }) {
 }
 
 function pageJsonLd(url, { context, description, image, title }) {
-  const sectionTitle = sectionContent(context.category, uiCopy(context.language.code), context.location).title;
+  const sectionTitle = context.isRootHome
+    ? 'Global News Home'
+    : sectionContent(context.category, uiCopy(context.language.code), context.location).title;
   const place = pageSeoPlace(context.category, context.location);
   const websiteId = `${productionOrigin}/#website`;
   const organizationId = `${productionOrigin}/#organization`;
