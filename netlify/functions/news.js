@@ -192,6 +192,7 @@ const CATEGORY_SEARCH_TERMS = {
 const VIDEO_CATEGORIES = new Set(['video', 'live']);
 const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS)]);
 const LIVE_SOURCE_PROVIDERS = new Set(['youtube', 'twitch', 'official_embed', 'hls']);
+const MAX_RSS_AGE_DAYS = 14;
 
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
@@ -1147,14 +1148,14 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
     if (fresh.length >= 18) return fresh.slice(0, 60);
   }
 
-  const finalArticles = polishFeed(batches, { days: 30, perSourceLimit: 10 }).slice(0, 60);
+  const finalArticles = polishFeed(batches, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 10 }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
 }
 
 async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
-    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: 30 });
+    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: MAX_RSS_AGE_DAYS });
   }
 
   if (category === 'local') {
@@ -1184,7 +1185,7 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
     if (fresh.length >= 24) return fresh.slice(0, 60);
   }
 
-  const finalArticles = polishFeed(batches, { days: 30 }).slice(0, 60);
+  const finalArticles = polishFeed(batches, { days: MAX_RSS_AGE_DAYS }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
 }
