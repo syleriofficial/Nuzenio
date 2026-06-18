@@ -893,15 +893,23 @@ function categorySearchQueries({ category, country, language }) {
 async function fetchFreshLocalArticles({ country, region, city, language }) {
   const queries = localSearchQueries({ country, region, city });
   const batches = [];
+  let lastError = null;
 
   for (const query of queries) {
-    const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
-    batches.push(...parse(xml, 'local', country, language));
+    try {
+      const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
+      batches.push(...parse(xml, 'local', country, language));
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
     const fresh = polishFeed(batches, { days: 14, perSourceLimit: 10 });
     if (fresh.length >= 18) return fresh.slice(0, 60);
   }
 
-  return polishFeed(batches, { days: 30, perSourceLimit: 10 }).slice(0, 60);
+  const finalArticles = polishFeed(batches, { days: 30, perSourceLimit: 10 }).slice(0, 60);
+  if (!finalArticles.length && lastError) throw lastError;
+  return finalArticles;
 }
 
 async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
@@ -914,19 +922,31 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
   }
 
   const batches = [];
-  const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
-  batches.push(...parse(topicXml, category, country, language));
+  let lastError = null;
+  try {
+    const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
+    batches.push(...parse(topicXml, category, country, language));
+  } catch (error) {
+    lastError = error;
+  }
   let fresh = polishFeed(batches, { days: 14 });
   if (fresh.length >= 24) return fresh.slice(0, 60);
 
   for (const query of categorySearchQueries({ category, country, language })) {
-    const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
-    batches.push(...parse(xml, category, country, language));
+    try {
+      const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
+      batches.push(...parse(xml, category, country, language));
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
     fresh = polishFeed(batches, { days: 14 });
     if (fresh.length >= 24) return fresh.slice(0, 60);
   }
 
-  return polishFeed(batches, { days: 30 }).slice(0, 60);
+  const finalArticles = polishFeed(batches, { days: 30 }).slice(0, 60);
+  if (!finalArticles.length && lastError) throw lastError;
+  return finalArticles;
 }
 
 export const handler = async (event) => {
