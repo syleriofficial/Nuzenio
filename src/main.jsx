@@ -1057,7 +1057,11 @@ function Home({
         <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
 
         <div className="heroGrid">
-          <button className="leadCard" onClick={() => lead && openArticle(lead)}>
+          <a
+            className="leadCard"
+            href={lead ? articleHref(lead) : '#'}
+            onClick={(event) => lead && openArticleFromLink(event, lead, openArticle)}
+          >
             <div className="leadVisual">
               <Newspaper size={112} />
             </div>
@@ -1076,7 +1080,7 @@ function Home({
                 </span>
               </div>
             </div>
-          </button>
+          </a>
 
           <div className="sideList">
             {sideStories.map((article) => (
@@ -1255,13 +1259,13 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
         <div className="videoQueue">
           <h3>Up next</h3>
           {queue.map((article) => (
-            <button key={article.id} onClick={() => openArticle(article)}>
+            <a key={article.id} href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
               <VideoThumbMedia article={article} compact />
               <span>
                 <b>{displayTitle(article)}</b>
                 <small>{article.source}</small>
               </span>
-            </button>
+            </a>
           ))}
         </div>
       )}
@@ -1289,21 +1293,26 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   return (
     <article className={`videoCard ${isLive ? 'liveCard' : ''}`}>
       <div className="inlineVideo">
-        <button className="videoThumbButton" onClick={() => openArticle(article)} aria-label={`Watch ${displayTitle(article)}`}>
+        <a
+          className="videoThumbButton"
+          href={articleHref(article)}
+          onClick={(event) => openArticleFromLink(event, article, openArticle)}
+          aria-label={`Watch ${displayTitle(article)}`}
+        >
           <VideoThumbMedia article={article} />
           <span>
             <PlayCircle size={34} />
           </span>
-        </button>
+        </a>
       </div>
       <div className="videoBody">
         <div className="cardTop">
           <span className="category">{isLive ? 'LIVE' : 'VIDEO'}</span>
           <span>{article.source}</span>
         </div>
-        <button className="headline" onClick={() => openArticle(article)}>
+        <a className="headline" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
           {displayTitle(article)}
-        </button>
+        </a>
         <p>{displaySummary(article)}</p>
         <div className="cardActions">
           <button className="primaryAction" onClick={() => openArticle(article)}>
@@ -1437,7 +1446,7 @@ function LocationBanner({ copy, location, setLocation, status }) {
 
 function SmallStory({ article, copy, openArticle }) {
   return (
-    <button className="smallStory" onClick={() => openArticle(article)}>
+    <a className="smallStory" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
       <div className="miniThumb">
         <Globe2 size={28} />
       </div>
@@ -1447,7 +1456,7 @@ function SmallStory({ article, copy, openArticle }) {
           {article.source} · {formatFreshAge(article.pubDate)}
         </span>
       </div>
-    </button>
+    </a>
   );
 }
 
@@ -1472,9 +1481,9 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
         </span>
         <span>{formatDate(article.pubDate)}</span>
       </div>
-      <button className="headline" onClick={() => openArticle(article)}>
+      <a className="headline" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
         {displayTitle(article)}
-      </button>
+      </a>
       <p>{displaySummary(article)}</p>
       <div className="trustRow">
         <span>
@@ -1495,9 +1504,9 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
           <Share2 size={15} /> Share
         </button>
       </div>
-      <button className="sourceAction" onClick={() => openArticle(article)}>
+      <a className="sourceAction" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
         {copy.readStory} <ChevronRight size={14} />
-      </button>
+      </a>
     </article>
   );
 }
@@ -1509,10 +1518,10 @@ function Trending({ articles, copy, openArticle }) {
         <TrendingUp size={18} /> {copy.trending}
       </h3>
       {articles.slice(0, 5).map((article, index) => (
-        <button className="trend" key={article.id} onClick={() => openArticle(article)}>
+        <a className="trend" key={article.id} href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
           <b>{index + 1}</b>
           <span>{displayTitle(article)}</span>
-        </button>
+        </a>
       ))}
     </div>
   );
@@ -2345,6 +2354,21 @@ function shareArticleUrl(article) {
     url.searchParams.set('category', article.category);
   }
   return url;
+}
+
+function articleHref(article) {
+  const url = new URL(`/article/${encodeURIComponent(article.id)}`, window.location.origin);
+  url.searchParams.set('country', article.country || 'IN');
+  url.searchParams.set('language', document.documentElement.lang || 'en');
+  if (article.category && !categoryRoutes[article.category]) {
+    url.searchParams.set('category', article.category);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
+function openArticleFromLink(event, article, openArticle) {
+  event.preventDefault();
+  openArticle(article);
 }
 
 createRoot(document.getElementById('root')).render(<App />);

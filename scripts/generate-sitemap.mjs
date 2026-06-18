@@ -18,6 +18,7 @@ const categories = [
 
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
 const languages = ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur', 'ar', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ko'];
+const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
   { country: 'IN', region: 'Bihar', city: 'Raxaul' },
@@ -66,7 +67,7 @@ function url(path = '', params = {}) {
 }
 
 function entry(loc, changefreq = 'hourly', priority = '0.70') {
-  return `  <url><loc>${escapeXml(loc)}</loc><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`;
+  return `  <url><loc>${escapeXml(loc)}</loc><lastmod>${lastmod}</lastmod><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`;
 }
 
 const entries = [];

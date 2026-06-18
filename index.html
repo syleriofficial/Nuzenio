@@ -4,8 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="theme-color" content="#ffffff"/>
-  <meta name="robots" content="index, follow"/>
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+  <meta name="application-name" content="Nuzenio"/>
   <link rel="canonical" href="https://nuzenio.com/"/>
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml"/>
   <title>Nuzenio - Trusted News, Simplified</title>
   <meta name="description" content="Nuzenio is an AI-powered multilingual news platform with trusted sources, summaries, saved articles and global news coverage."/>
   <meta property="og:type" content="website"/>
@@ -14,10 +17,38 @@
   <meta property="og:description" content="Live RSS news, AI summaries, multilingual reading, saved articles, newsletter, and trusted source attribution."/>
   <meta property="og:image" content="https://nuzenio.com/og-image.svg"/>
   <meta property="og:site_name" content="Nuzenio"/>
+  <meta property="og:locale" content="en_US"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="Nuzenio - AI Multilingual News"/>
   <meta name="twitter:description" content="Live multilingual news with AI summaries and verified source attribution."/>
   <meta name="twitter:image" content="https://nuzenio.com/og-image.svg"/>
+  <script type="application/ld+json" id="nuzenio-initial-jsonld">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://nuzenio.com/#organization",
+          "name": "Nuzenio",
+          "url": "https://nuzenio.com/",
+          "logo": "https://nuzenio.com/og-image.svg",
+          "sameAs": ["https://github.com/syleriofficial/Nuzenio"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://nuzenio.com/#website",
+          "name": "Nuzenio",
+          "url": "https://nuzenio.com/",
+          "publisher": { "@id": "https://nuzenio.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://nuzenio.com/top-news?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+  </script>
 </head>
 <body>
   <div id="root"></div>

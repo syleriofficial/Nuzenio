@@ -647,7 +647,8 @@ button {
   margin: 0 0 10px;
 }
 
-.videoQueue button {
+.videoQueue button,
+.videoQueue a {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);
   gap: 10px;
@@ -658,6 +659,7 @@ button {
   color: var(--text);
   padding: 11px 0;
   text-align: start;
+  text-decoration: none;
 }
 
 .videoQueue img,
@@ -702,13 +704,16 @@ button {
 
 .leadCard {
   position: relative;
+  display: block;
   min-height: 438px;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 42%, #e0f2fe 100%);
   box-shadow: var(--shadow);
+  color: var(--text);
   text-align: start;
+  text-decoration: none;
 }
 
 .leadVisual {
@@ -804,7 +809,9 @@ button {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  color: var(--text);
   text-align: start;
+  text-decoration: none;
 }
 
 .miniThumb {
@@ -1255,6 +1262,7 @@ button {
 }
 
 .headline {
+  display: block;
   margin: 12px 0 0;
   padding: 0;
   border: 0;
@@ -1264,6 +1272,7 @@ button {
   font-weight: 950;
   line-height: 1.28;
   text-align: start;
+  text-decoration: none;
 }
 
 .trustRow {
@@ -1299,8 +1308,10 @@ button {
   border: 0;
   border-top: 1px solid #eef2f7;
   background: transparent;
+  color: var(--text);
   padding: 12px 0;
   text-align: start;
+  text-decoration: none;
 }
 
 .trend span {
