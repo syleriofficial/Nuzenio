@@ -1634,6 +1634,42 @@ button {
   color: #166534;
 }
 
+.articleActionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.articleActionBar button,
+.articleActionBar a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  padding: 9px 12px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.articleActionBar a {
+  background: var(--blue);
+  color: #fff;
+}
+
+.articleActionBar button:hover {
+  background: #eff6ff;
+}
+
+.articleActionBar a:hover {
+  background: #1d4ed8;
+}
+
 .summaryPanel {
   margin: 22px 0;
   border: 1px solid #bfdbfe;

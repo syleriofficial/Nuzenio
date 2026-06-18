@@ -1618,6 +1618,22 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
             <ShieldCheck size={15} /> Source attributed
           </span>
         </div>
+        <div className="articleActionBar" aria-label="Article actions">
+          <button onClick={() => toggleSave(article)}>
+            <Bookmark size={16} /> {savedIds.includes(article.id) ? copy.saved : copy.save}
+          </button>
+          <button onClick={() => shareArticle(article)}>
+            <Share2 size={16} /> Share
+          </button>
+          <a
+            href={article.link}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackEvent('publisher_outbound_click', articleEventParams(article))}
+          >
+            <ExternalLink size={16} /> Publisher
+          </a>
+        </div>
         {isVideo && (
           <div className="videoPlayer">
             <LiveVideoPlayer article={article} />
