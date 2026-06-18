@@ -1586,29 +1586,36 @@ function TopicRail() {
 function Newsletter({ copy, language }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function subscribe(event) {
     event.preventDefault();
+    if (isSubmitting) return;
     const normalizedEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setMessage('Enter a valid email address.');
       return;
     }
-    if (supabase) {
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        .insert({ email: normalizedEmail, language: language.code });
-      if (error && error.code !== '23505') {
-        setMessage('Subscription could not be saved. Please try again.');
-        return;
+    setIsSubmitting(true);
+    try {
+      if (supabase) {
+        const { error } = await supabase
+          .from('newsletter_subscribers')
+          .insert({ email: normalizedEmail, language: language.code });
+        if (error && error.code !== '23505') {
+          setMessage('Subscription could not be saved. Please try again.');
+          return;
+        }
       }
+      setMessage('Subscribed for the daily brief.');
+      setEmail('');
+      trackEvent('newsletter_subscribe', {
+        method: supabase ? 'supabase' : 'local',
+        language: language.code,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    setMessage('Subscribed for the daily brief.');
-    setEmail('');
-    trackEvent('newsletter_subscribe', {
-      method: supabase ? 'supabase' : 'local',
-      language: language.code,
-    });
   }
 
   return (
@@ -1617,8 +1624,16 @@ function Newsletter({ copy, language }) {
         <Mail size={18} /> {copy.dailyBrief}
       </h3>
       <p>Top English stories every morning.</p>
-      <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={copy.email} />
-      <button type="submit">{copy.subscribe}</button>
+      <input
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder={copy.email}
+        type="email"
+        autoComplete="email"
+        aria-label="Email address for Nuzenio daily brief"
+      />
+      <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Subscribing...' : copy.subscribe}</button>
+      <small className="newsletterNote">No spam. Unsubscribe anytime.</small>
       {message && <small>{message}</small>}
     </form>
   );

@@ -1559,6 +1559,17 @@ button {
   padding: 11px;
 }
 
+.railCard button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.newsletterNote {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;
