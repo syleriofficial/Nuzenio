@@ -947,11 +947,14 @@ function Home({
             onClick={(event) => lead && openArticleFromLink(event, lead, openArticle)}
           >
             <div className="leadVisual">
-              {lead?.image ? (
-                <img src={lead.image} alt="" loading="eager" />
-              ) : (
+              <ImageWithFallback
+                src={lead?.image}
+                loading="eager"
+                fetchPriority="high"
+                fallback={(
                 <NewsFallbackVisual article={lead} size="large" />
-              )}
+                )}
+              />
             </div>
             <div className="leadContent">
               <div className="badge">
@@ -1249,15 +1252,13 @@ function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
 function VideoThumbMedia({ article, compact = false }) {
   const thumbnail = videoThumbnail(article);
 
-  if (thumbnail) {
-    return <img src={thumbnail} alt="" loading="lazy" />;
-  }
-
-  return (
+  const fallback = (
     <div className={`videoThumbFallback ${compact ? 'compactThumbFallback' : ''}`} aria-hidden="true">
       <PlayCircle size={compact ? 24 : 38} />
     </div>
   );
+
+  return <ImageWithFallback src={thumbnail} fallback={fallback} />;
 }
 
 function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
@@ -1421,11 +1422,12 @@ function SmallStory({ article, copy, openArticle }) {
   return (
     <a className="smallStory" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
       <div className="miniThumb">
-        {article.image ? (
-          <img src={article.image} alt="" loading="lazy" />
-        ) : (
+        <ImageWithFallback
+          src={article.image}
+          fallback={(
           <NewsFallbackVisual article={article} size="small" />
-        )}
+          )}
+        />
       </div>
       <div>
         <b>{displayTitle(article)}</b>
@@ -1443,11 +1445,12 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
   return (
     <article className="articleCard">
       <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
-        {image ? (
-          <img src={image} alt="" loading="lazy" />
-        ) : (
+        <ImageWithFallback
+          src={image}
+          fallback={(
           <NewsFallbackVisual article={article} />
-        )}
+          )}
+        />
       </a>
       <div className="cardTop">
         <span className="category">{article.category?.toUpperCase()}</span>
@@ -1505,6 +1508,26 @@ function NewsFallbackVisual({ article, size = 'default' }) {
       <span>{category.toUpperCase()}</span>
       {size !== 'small' && <b>{source}</b>}
     </div>
+  );
+}
+
+function ImageWithFallback({ src, alt = '', loading = 'lazy', fetchPriority, fallback }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+
+  if (!src || broken) return fallback || null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      fetchPriority={fetchPriority}
+      referrerPolicy="no-referrer"
+      onError={() => setBroken(true)}
+    />
   );
 }
 
@@ -1763,11 +1786,12 @@ function RelatedStoryCard({ article, openArticle }) {
   return (
     <button className="relatedStoryCard" onClick={() => openArticle(article)}>
       <div className="relatedThumb">
-        {image ? (
-          <img src={image} alt="" loading="lazy" />
-        ) : (
+        <ImageWithFallback
+          src={image}
+          fallback={(
           <NewsFallbackVisual article={article} size="small" />
-        )}
+          )}
+        />
       </div>
       <div>
         <span>{article.source} · {formatFreshAge(article.pubDate)}</span>
