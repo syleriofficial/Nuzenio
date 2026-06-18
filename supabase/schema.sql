@@ -198,6 +198,37 @@ create index if not exists newsletter_language_idx on public.newsletter_subscrib
 create index if not exists analytics_event_idx on public.analytics_events(event_name, created_at desc);
 create index if not exists affiliate_category_idx on public.affiliate_links(category, enabled);
 
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_touch_updated_at on public.profiles;
+create trigger profiles_touch_updated_at
+before update on public.profiles
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists rss_sources_touch_updated_at on public.rss_sources;
+create trigger rss_sources_touch_updated_at
+before update on public.rss_sources
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists adsense_slots_touch_updated_at on public.adsense_slots;
+create trigger adsense_slots_touch_updated_at
+before update on public.adsense_slots
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists affiliate_links_touch_updated_at on public.affiliate_links;
+create trigger affiliate_links_touch_updated_at
+before update on public.affiliate_links
+for each row execute function public.touch_updated_at();
+
 insert into public.rss_sources (name, category, url, language, country)
 values
   ('Google News India Local', 'local', 'https://news.google.com/rss/search?q=India&hl=en-IN&gl=IN&ceid=IN:en', 'en', 'IN'),
