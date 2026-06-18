@@ -253,7 +253,10 @@ function contextUrl({ category, location }) {
   else url.searchParams.delete('region');
   if (category === 'local' && location.city) url.searchParams.set('city', location.city);
   else url.searchParams.delete('city');
-  if (currentArticle) url.pathname = `/article/${encodeURIComponent(currentArticle)}`;
+  if (currentArticle) {
+    url.pathname = `/article/${encodeURIComponent(currentArticle)}`;
+    url.searchParams.set('category', category);
+  }
   url.searchParams.delete('article');
   return url;
 }
@@ -268,6 +271,7 @@ function homeContextUrl({ category, location }) {
 function articleContextUrl(article, context) {
   const url = contextUrl(context);
   url.pathname = `/article/${encodeURIComponent(article.id)}`;
+  url.searchParams.set('category', article.category || context.category || 'top');
   url.searchParams.delete('article');
   return url;
 }
@@ -2447,20 +2451,14 @@ function shareArticleUrl(article) {
   url.hash = '';
   if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
   url.searchParams.delete('language');
-  if (article.category && categoryRoutes[article.category]) {
-    url.searchParams.delete('category');
-  } else if (article.category) {
-    url.searchParams.set('category', article.category);
-  }
+  url.searchParams.set('category', article.category || 'top');
   return url;
 }
 
 function articleHref(article) {
   const url = new URL(`/article/${encodeURIComponent(article.id)}`, window.location.origin);
   url.searchParams.set('country', article.country || 'IN');
-  if (article.category && !categoryRoutes[article.category]) {
-    url.searchParams.set('category', article.category);
-  }
+  url.searchParams.set('category', article.category || 'top');
   return `${url.pathname}${url.search}`;
 }
 
