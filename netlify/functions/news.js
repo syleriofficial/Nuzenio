@@ -604,6 +604,7 @@ function isRecordedNewsVideoResult(nearby = '', title = '', channel = '', publis
     && !hasLiveVideoSignal(nearby, title, channel)
     && !isLiveTitleSignal(title, channel)
     && !isShortsSignal(nearby, title)
+    && !isOldYouTubePublished(published)
     && !isRecordedOrReplayVideo(nearby, title, channel, published);
 }
 
@@ -626,6 +627,12 @@ function isRecordedOrReplayVideo(nearby = '', title = '', channel = '', publishe
 
 function isShortsSignal(nearby = '', title = '') {
   return /#shorts\b|\/shorts\/|SHORTS_LOCKUP|shorts_shelf/i.test(`${nearby} ${title}`);
+}
+
+function isOldYouTubePublished(published = '') {
+  return /\b(month|months|year|years)\s+ago\b/i.test(published)
+    || /\b(mois|mes|meses|monat|monate|jahr|jahre|anno|anni|ano|anos)\b/i.test(published)
+    || /(महीने|माह|साल|বছর|মাস|மாத|ஆண்டு|నెల|సంవత్సరం|ತಿಂಗಳು|ವರ್ಷ|മാസം|വർഷം|ਮਹੀਨੇ|ਸਾਲ|مہینے|سال|شهر|أشهر|سنة|سنوات|ヶ月前|年前|개월 전|년 전|个月前|年前)/i.test(published);
 }
 
 function hasNewsChannelSignal(title = '', channel = '') {
