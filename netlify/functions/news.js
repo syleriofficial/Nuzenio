@@ -603,6 +603,7 @@ function isRecordedNewsVideoResult(nearby = '', title = '', channel = '', publis
     && isReadableVideoTitle(title)
     && !hasLiveVideoSignal(nearby, title, channel)
     && !isLiveTitleSignal(title, channel)
+    && !isShortsSignal(nearby, title)
     && !isRecordedOrReplayVideo(nearby, title, channel, published);
 }
 
@@ -621,6 +622,10 @@ function isLiveTitleSignal(title = '', channel = '') {
 
 function isRecordedOrReplayVideo(nearby = '', title = '', channel = '', published = '') {
   return /\b(streamed|premiered|replay|full match replay|lofi|gaming|gameplay|cricket live score)\b/i.test(`${nearby} ${title} ${channel} ${published}`);
+}
+
+function isShortsSignal(nearby = '', title = '') {
+  return /#shorts\b|\/shorts\/|SHORTS_LOCKUP|shorts_shelf/i.test(`${nearby} ${title}`);
 }
 
 function hasNewsChannelSignal(title = '', channel = '') {
