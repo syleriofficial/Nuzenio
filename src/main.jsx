@@ -128,32 +128,13 @@ const localPlacePresets = {
 
 const languages = [
   { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी', dir: 'ltr' },
-  { code: 'bn', label: 'Bengali', native: 'বাংলা', dir: 'ltr' },
-  { code: 'ta', label: 'Tamil', native: 'தமிழ்', dir: 'ltr' },
-  { code: 'te', label: 'Telugu', native: 'తెలుగు', dir: 'ltr' },
-  { code: 'mr', label: 'Marathi', native: 'मराठी', dir: 'ltr' },
-  { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી', dir: 'ltr' },
-  { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ', dir: 'ltr' },
-  { code: 'ml', label: 'Malayalam', native: 'മലയാളം', dir: 'ltr' },
-  { code: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ', dir: 'ltr' },
-  { code: 'ur', label: 'Urdu', native: 'اردو', dir: 'rtl' },
-  { code: 'ar', label: 'Arabic', native: 'العربية', dir: 'rtl' },
-  { code: 'es', label: 'Spanish', native: 'Español', dir: 'ltr' },
-  { code: 'fr', label: 'French', native: 'Français', dir: 'ltr' },
-  { code: 'de', label: 'German', native: 'Deutsch', dir: 'ltr' },
-  { code: 'pt', label: 'Portuguese', native: 'Português', dir: 'ltr' },
-  { code: 'ru', label: 'Russian', native: 'Русский', dir: 'ltr' },
-  { code: 'zh', label: 'Chinese', native: '中文', dir: 'ltr' },
-  { code: 'ja', label: 'Japanese', native: '日本語', dir: 'ltr' },
-  { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr' },
 ];
 
 const productionOrigin = 'https://nuzenio.com';
 
 const translations = {
   en: {
-    tagline: 'AI multilingual news bridge',
+    tagline: 'AI global news bridge',
     searchPlaceholder: 'Search live news in your region...',
     search: 'Search',
     newsLanguage: 'News language',
@@ -189,7 +170,7 @@ const translations = {
     relatedStories: 'Related stories',
     sourceAttribution: 'Source attribution',
     readOriginal: 'Read original publisher story',
-    emptyFeed: 'No live stories loaded yet. Try another category, language, or location.',
+    emptyFeed: 'No live stories loaded yet. Try another category or location.',
     categories: {
       local: 'Local',
       top: 'Top News',
@@ -204,185 +185,10 @@ const translations = {
       video: 'Video',
     },
   },
-  hi: {
-    tagline: 'एआई बहुभाषी न्यूज़ ब्रिज',
-    searchPlaceholder: 'अपने इलाके की लाइव खबरें खोजें...',
-    search: 'खोजें',
-    newsLanguage: 'न्यूज़ भाषा',
-    home: 'होम',
-    saved: 'सेव',
-    login: 'गूगल लॉगिन',
-    logout: 'लॉगआउट',
-    breaking: 'ब्रेकिंग',
-    localNewsFor: 'लोकल खबरें',
-    stateRegion: 'राज्य / क्षेत्र',
-    cityArea: 'शहर / इलाका',
-    useLocation: 'मेरी लोकेशन',
-    latestStories: 'ताज़ा खबरें',
-    latestIntro: 'यहां हर खबर लाइव RSS फीड से आती है। पूरी Nuzenio ब्रीफ पढ़ने के लिए कार्ड खोलें।',
-    aiBriefReady: 'एआई ब्रीफ तैयार',
-    readStory: 'खबर पढ़ें',
-    aiBrief: 'एआई ब्रीफ',
-    save: 'सेव',
-    source: 'स्रोत',
-    trending: 'ट्रेंडिंग',
-    dailyBrief: 'डेली ब्रीफ',
-    subscribe: 'सब्सक्राइब',
-    email: 'ईमेल पता',
-    brandBrief: 'Nuzenio ब्रीफ',
-    fullStoryAccess: 'पूरी खबर',
-    fullStoryText: 'Nuzenio यहां उपलब्ध RSS ब्रीफ, एआई संदर्भ, मुख्य तथ्य और स्रोत दिखाता है। पूरी पब्लिशर रिपोर्ट मूल स्रोत पर खुलेगी।',
-    whatHappened: 'क्या हुआ',
-    whyItMatters: 'क्यों ज़रूरी है',
-    keyFacts: 'मुख्य तथ्य',
-    timeline: 'टाइमलाइन',
-    background: 'पृष्ठभूमि',
-    quickFaq: 'त्वरित सवाल',
-    relatedStories: 'संबंधित खबरें',
-    sourceAttribution: 'स्रोत जानकारी',
-    readOriginal: 'मूल पब्लिशर खबर पढ़ें',
-    emptyFeed: 'अभी लाइव खबरें लोड नहीं हुईं। दूसरी कैटेगरी, भाषा या लोकेशन आज़माएं।',
-    categories: {
-      local: 'लोकल',
-      top: 'मुख्य खबरें',
-      world: 'दुनिया',
-      business: 'बिज़नेस',
-      tech: 'टेक्नोलॉजी',
-      sports: 'खेल',
-      entertainment: 'मनोरंजन',
-      health: 'स्वास्थ्य',
-      science: 'विज्ञान',
-      live: 'लाइव न्यूज़',
-      video: 'वीडियो',
-    },
-  },
-  ar: {
-    tagline: 'جسر أخبار ذكي متعدد اللغات',
-    searchPlaceholder: 'ابحث عن الأخبار المباشرة في منطقتك...',
-    search: 'بحث',
-    newsLanguage: 'لغة الأخبار',
-    home: 'الرئيسية',
-    saved: 'المحفوظات',
-    login: 'تسجيل Google',
-    logout: 'خروج',
-    breaking: 'عاجل',
-    localNewsFor: 'أخبار محلية لـ',
-    stateRegion: 'الولاية / المنطقة',
-    cityArea: 'المدينة / الحي',
-    useLocation: 'استخدم موقعي',
-    latestStories: 'آخر الأخبار',
-    latestIntro: 'كل الأخبار هنا تأتي من موجز RSS مباشر. افتح أي بطاقة لقراءة ملخص Nuzenio الكامل.',
-    aiBriefReady: 'ملخص ذكي جاهز',
-    readStory: 'اقرأ الخبر',
-    aiBrief: 'ملخص ذكي',
-    save: 'حفظ',
-    source: 'المصدر',
-    trending: 'الأكثر تداولا',
-    dailyBrief: 'الموجز اليومي',
-    subscribe: 'اشتراك',
-    email: 'البريد الإلكتروني',
-    brandBrief: 'ملخص Nuzenio',
-    fullStoryAccess: 'الوصول للقصة كاملة',
-    fullStoryText: 'يعرض Nuzenio ملخص RSS المتاح والسياق والحقائق والإسناد. يفتح المقال الكامل على موقع الناشر الأصلي.',
-    whatHappened: 'ماذا حدث',
-    whyItMatters: 'لماذا يهم',
-    keyFacts: 'حقائق رئيسية',
-    timeline: 'الخط الزمني',
-    background: 'الخلفية',
-    quickFaq: 'أسئلة سريعة',
-    relatedStories: 'أخبار ذات صلة',
-    sourceAttribution: 'إسناد المصدر',
-    readOriginal: 'اقرأ خبر الناشر الأصلي',
-    emptyFeed: 'لم يتم تحميل أخبار مباشرة بعد. جرب فئة أو لغة أو موقعا آخر.',
-    categories: {
-      local: 'محلي',
-      top: 'أهم الأخبار',
-      world: 'العالم',
-      business: 'الأعمال',
-      tech: 'التقنية',
-      sports: 'الرياضة',
-      entertainment: 'الترفيه',
-      health: 'الصحة',
-      science: 'العلوم',
-      live: 'أخبار مباشرة',
-      video: 'فيديو',
-    },
-  },
-  es: {
-    tagline: 'Puente de noticias multilingue con IA',
-    searchPlaceholder: 'Busca noticias en vivo en tu region...',
-    search: 'Buscar',
-    newsLanguage: 'Idioma de noticias',
-    home: 'Inicio',
-    saved: 'Guardados',
-    login: 'Login Google',
-    logout: 'Salir',
-    breaking: 'ULTIMA HORA',
-    localNewsFor: 'Noticias locales para',
-    stateRegion: 'Estado / region',
-    cityArea: 'Ciudad / zona',
-    useLocation: 'Usar mi ubicacion',
-    latestStories: 'Ultimas noticias',
-    latestIntro: 'Todas las noticias vienen de RSS en vivo. Abre una tarjeta para leer el resumen completo.',
-    aiBriefReady: 'Resumen IA listo',
-    readStory: 'Leer noticia',
-    aiBrief: 'Resumen IA',
-    save: 'Guardar',
-    source: 'Fuente',
-    trending: 'Tendencias',
-    dailyBrief: 'Resumen diario',
-    subscribe: 'Suscribirse',
-    email: 'Correo electronico',
-    brandBrief: 'Resumen Nuzenio',
-    fullStoryAccess: 'Historia completa',
-    fullStoryText: 'Nuzenio muestra el resumen RSS disponible, contexto, datos clave y atribucion. La historia completa abre en la fuente original.',
-    whatHappened: 'Que paso',
-    whyItMatters: 'Por que importa',
-    keyFacts: 'Datos clave',
-    timeline: 'Cronologia',
-    background: 'Contexto',
-    quickFaq: 'FAQ rapido',
-    relatedStories: 'Noticias relacionadas',
-    sourceAttribution: 'Atribucion de fuente',
-    readOriginal: 'Leer fuente original',
-    emptyFeed: 'Aun no se cargaron noticias en vivo. Prueba otra categoria, idioma o ubicacion.',
-    categories: {
-      local: 'Local',
-      top: 'Principales',
-      world: 'Mundo',
-      business: 'Negocios',
-      tech: 'Tecnologia',
-      sports: 'Deportes',
-      entertainment: 'Entretenimiento',
-      health: 'Salud',
-      science: 'Ciencia',
-      live: 'Noticias en vivo',
-      video: 'Video',
-    },
-  },
 };
 
-const languageAliases = {
-  bn: 'hi',
-  ta: 'hi',
-  te: 'hi',
-  mr: 'hi',
-  gu: 'hi',
-  kn: 'hi',
-  ml: 'hi',
-  pa: 'hi',
-  ur: 'ar',
-  fr: 'es',
-  de: 'es',
-  pt: 'es',
-  ru: 'es',
-  zh: 'es',
-  ja: 'es',
-  ko: 'es',
-};
-
-function uiCopy(code) {
-  return translations[code] || translations[languageAliases[code]] || translations.en;
+function uiCopy() {
+  return translations.en;
 }
 
 function readUrlParam(name) {
@@ -413,9 +219,7 @@ function initialCategory() {
 }
 
 function initialLanguage() {
-  const urlLanguage = readUrlParam('language');
-  const linkedLanguage = languages.find((item) => item.code === urlLanguage);
-  return linkedLanguage || readLocal('nuzenio_news_language', languages[0], 'newssetu_news_language');
+  return languages[0];
 }
 
 function initialLocation() {
@@ -433,14 +237,14 @@ function initialLocation() {
   };
 }
 
-function contextUrl({ category, location, language }) {
+function contextUrl({ category, location }) {
   const url = new URL(window.location.href);
   const currentArticle = readArticleIdFromUrl();
   url.pathname = categoryRoutes[category] || '/';
   if (categoryRoutes[category]) url.searchParams.delete('category');
   else url.searchParams.set('category', category);
   url.searchParams.set('country', location.country);
-  url.searchParams.set('language', language.code);
+  url.searchParams.delete('language');
   if (category === 'local' && location.region) url.searchParams.set('region', location.region);
   else url.searchParams.delete('region');
   if (category === 'local' && location.city) url.searchParams.set('city', location.city);
@@ -450,8 +254,8 @@ function contextUrl({ category, location, language }) {
   return url;
 }
 
-function homeContextUrl({ category, location, language }) {
-  const url = contextUrl({ category, location, language });
+function homeContextUrl({ category, location }) {
+  const url = contextUrl({ category, location });
   url.pathname = categoryRoutes[category] || '/';
   url.searchParams.delete('article');
   return url;
@@ -472,7 +276,7 @@ function App() {
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState('');
-  const [language, setLanguage] = useState(initialLanguage);
+  const language = initialLanguage();
   const [location, setLocation] = useState(initialLocation);
   const [savedIds, setSavedIds] = useState(() => readLocal('nuzenio_saved_ids', [], 'newssetu_saved_ids'));
   const [history, setHistory] = useState(() => readLocal('nuzenio_history', [], 'newssetu_history'));
@@ -487,9 +291,10 @@ function App() {
   useEffect(() => {
     document.documentElement.dir = language.dir;
     document.documentElement.lang = language.code;
-    document.documentElement.dataset.newsLanguage = language.code;
-    writeLocal('nuzenio_news_language', language);
-  }, [language]);
+    document.documentElement.dataset.newsLanguage = 'en';
+    localStorage.removeItem('nuzenio_news_language');
+    localStorage.removeItem('newssetu_news_language');
+  }, []);
 
   useEffect(() => {
     if (!['manual', 'link'].includes(location.source)) {
@@ -498,18 +303,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    loadNews(category, location.country, location.region, location.city, language.code);
-  }, [category, location.country, location.region, location.city, language.code]);
+    loadNews(category, location.country, location.region, location.city, 'en');
+  }, [category, location.country, location.region, location.city]);
 
   useEffect(() => {
     if (isRootHome && category === 'top') {
       setIsLocalPage(false);
       return;
     }
-    const url = contextUrl({ category, location, language });
+    const url = contextUrl({ category, location });
     window.history.replaceState({}, '', url);
     setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
-  }, [category, isRootHome, location.country, location.region, location.city, language.code]);
+  }, [category, isRootHome, location.country, location.region, location.city]);
 
   useEffect(() => {
     function syncArticleFromUrl() {
@@ -545,14 +350,14 @@ function App() {
 
   useEffect(() => {
     updatePageSeo(selected, { category, isRootHome, location, language });
-  }, [selected, category, isRootHome, location.country, location.region, location.city, language.code]);
+  }, [selected, category, isRootHome, location.country, location.region, location.city]);
 
   async function loadNews(
     cat = 'local',
     country = location.country,
     region = location.region,
     city = location.city,
-    newsLanguage = language.code,
+    newsLanguage = 'en',
   ) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
@@ -589,7 +394,7 @@ function App() {
 
   async function searchNews(event) {
     event?.preventDefault();
-    if (!query.trim()) return loadNews(category, location.country, location.region, location.city, language.code);
+    if (!query.trim()) return loadNews(category, location.country, location.region, location.city, 'en');
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
     setIsLoadingNews(true);
@@ -597,7 +402,7 @@ function App() {
     setArticles([]);
     try {
       const res = await fetch(
-        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=${encodeURIComponent(language.code)}&fresh=${Date.now()}`,
+        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=en&fresh=${Date.now()}`,
         { cache: 'no-store' },
       );
       const data = await res.json();
@@ -615,7 +420,7 @@ function App() {
   }
 
   function refreshCurrentNews() {
-    loadNews(category, location.country, location.region, location.city, language.code);
+    loadNews(category, location.country, location.region, location.city, 'en');
   }
 
   function updateLocation(next) {
@@ -628,7 +433,7 @@ function App() {
     setIsRootHome(false);
     setCategory(nextCategory);
     setMobileSearchOpen(false);
-    const url = homeContextUrl({ category: nextCategory, location, language });
+    const url = homeContextUrl({ category: nextCategory, location });
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
   }
@@ -730,10 +535,10 @@ function App() {
       window.history.replaceState({}, '', '/');
       return;
     }
-    window.history.replaceState({}, '', homeContextUrl({ category, location, language }));
+    window.history.replaceState({}, '', homeContextUrl({ category, location }));
   }
 
-  const copy = uiCopy(language.code);
+  const copy = translations.en;
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
@@ -753,7 +558,6 @@ function App() {
         breakingText={ticker || status}
         category={category}
         copy={copy}
-        language={language}
         loginWithGoogle={loginWithGoogle}
         logout={logout}
         mobileSearchOpen={mobileSearchOpen}
@@ -763,7 +567,6 @@ function App() {
         searchNews={searchNews}
         navigateCategory={navigateCategory}
         navigateHome={navigateHome}
-        setLanguage={setLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
         user={user}
@@ -813,7 +616,6 @@ function Header({
   breakingText,
   category,
   copy,
-  language,
   loginWithGoogle,
   logout,
   mobileSearchOpen,
@@ -823,7 +625,6 @@ function Header({
   query,
   screen,
   searchNews,
-  setLanguage,
   setMobileSearchOpen,
   setQuery,
   user,
@@ -858,22 +659,6 @@ function Header({
             {copy.search}
           </button>
         </form>
-
-        <label className="newsLanguageSelect">
-          <span>{copy.newsLanguage}</span>
-          <select
-            className="language"
-            value={language.code}
-            onChange={(event) => setLanguage(languages.find((item) => item.code === event.target.value))}
-            aria-label="Set news language"
-          >
-            {languages.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.native}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <button className="iconBtn" onClick={() => setMobileSearchOpen((value) => !value)} aria-label="Search">
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
@@ -986,11 +771,11 @@ function Home({
               <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
               <p>
                 {category === 'live'
-                  ? `Verified live news channels loaded for ${language.native} and your selected country. Watch inside Nuzenio.`
-                  : `${language.native} recorded news videos only. Live streams stay on the Live News page.`}
+                  ? 'Verified English live news channels loaded for your selected country. Watch inside Nuzenio.'
+                  : 'English recorded news videos only. Live streams stay on the Live News page.'}
               </p>
               <div className="videoHeroMeta">
-                <span>{language.native}</span>
+                <span>English</span>
                 <span>{category === 'live' ? 'Live channels' : 'Recorded only'}</span>
                 <span>Watch inside Nuzenio</span>
               </div>
@@ -1016,7 +801,7 @@ function Home({
           <div className="sectionHead">
             <div>
               <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
-              <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
+                <p>{category === 'live' ? 'Playable live news streams.' : 'Playable English video news feed, excluding live streams.'}</p>
             </div>
             <SectionStatus
               isLoading={isLoadingNews}
@@ -1160,7 +945,7 @@ function VideoModeStrip({ category, language, location, status }) {
       </div>
       <div>
         <Languages size={17} />
-        <span>{language.native}</span>
+        <span>English</span>
       </div>
       <div>
         <Globe2 size={17} />
@@ -1568,7 +1353,7 @@ function Newsletter({ copy, language }) {
       <h3>
         <Mail size={18} /> {copy.dailyBrief}
       </h3>
-      <p>Top stories in your selected language every morning.</p>
+      <p>Top English stories every morning.</p>
       <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={copy.email} />
       <button type="submit">{copy.subscribe}</button>
       {message && <small>{message}</small>}
@@ -1798,7 +1583,7 @@ function sectionContent(category, copy, location) {
   const place = location?.label || countryLabel(location?.country || 'IN');
   const intros = {
     local: `Local headlines and nearby updates for ${place}. Change country, state, or city to tune this page.`,
-    top: 'Top headlines from the live news feed, refreshed for your selected country and language.',
+    top: 'Top headlines from the live news feed, refreshed for your selected country.',
     world: 'Global headlines from the world news section, separated from local and business feeds.',
     business: 'Business, markets, economy, companies, and money headlines from dedicated business sources.',
     tech: 'Technology, startups, AI, gadgets, platforms, and science-adjacent innovation headlines.',
@@ -1814,21 +1599,6 @@ function sectionContent(category, copy, location) {
 }
 
 function feedStatusText({ cat, copy, place, total }) {
-  if (copy === translations.hi) {
-    if (cat === 'live') return `${place} के लिए ${total} लाइव न्यूज़ स्ट्रीम`;
-    if (cat === 'video') return `${place} के लिए ${total} न्यूज़ वीडियो`;
-    return `${place} के लिए ${total} ताज़ा खबरें`;
-  }
-  if (copy === translations.ar) {
-    if (cat === 'live') return `${total} بثا إخباريا مباشرا لـ ${place}`;
-    if (cat === 'video') return `${total} فيديو إخباريا لـ ${place}`;
-    return `${total} خبرا حديثا لـ ${place}`;
-  }
-  if (copy === translations.es) {
-    if (cat === 'live') return `${total} canales de noticias en vivo para ${place}`;
-    if (cat === 'video') return `${total} videos de noticias para ${place}`;
-    return `${total} noticias recientes para ${place}`;
-  }
   const categoryLabel = copy.categories?.[cat] || cat;
   if (cat === 'live') return `${total} live news streams for ${place}`;
   if (cat === 'video') return `${total} news videos for ${place}`;
@@ -1838,9 +1608,6 @@ function feedStatusText({ cat, copy, place, total }) {
 function localizedSectionTitle(category, copy, label) {
   if (category === 'top') return copy.latestStories;
   if (category === 'live' || category === 'video') return label;
-  if (copy === translations.ar) return `أخبار ${label}`;
-  if (copy === translations.hi) return `${label} खबरें`;
-  if (copy === translations.es) return `Noticias de ${label}`;
   return `${label} News`;
 }
 
@@ -1940,8 +1707,8 @@ function buildFaq(article) {
       a: 'Copying full publisher articles without a license can create copyright and monetization problems. Nuzenio keeps attribution clear and links readers to the source.',
     },
     {
-      q: 'Can I get news in another language?',
-      a: 'Use the News language selector in the header. Nuzenio reloads the RSS feed in the selected language when the source supports it.',
+      q: 'Why is Nuzenio English-only?',
+      a: 'Nuzenio is English-only for launch so the reading flow, SEO, ads review, and source quality stay consistent.',
     },
   ];
 }
@@ -2194,33 +1961,13 @@ function setAlternateLinks(context) {
   document.head.querySelectorAll('link[data-nuzenio-alternate="true"]').forEach((link) => link.remove());
   if (!context) return;
 
-  if (context.isRootHome) {
-    const rootLink = document.createElement('link');
-    rootLink.rel = 'alternate';
-    rootLink.hreflang = 'x-default';
-    rootLink.href = `${productionOrigin}/`;
-    rootLink.dataset.nuzenioAlternate = 'true';
-    document.head.appendChild(rootLink);
-    return;
-  }
-
-  for (const alternateLanguage of languages) {
-    const url = homeContextUrl({ ...context, language: alternateLanguage });
-    const link = document.createElement('link');
-    link.rel = 'alternate';
-    link.hreflang = alternateLanguage.code;
-    link.href = productionUrl(url);
-    link.dataset.nuzenioAlternate = 'true';
-    document.head.appendChild(link);
-  }
-
-  const defaultUrl = homeContextUrl({ ...context, language: languages[0] });
-  const defaultLink = document.createElement('link');
-  defaultLink.rel = 'alternate';
-  defaultLink.hreflang = 'x-default';
-  defaultLink.href = productionUrl(defaultUrl);
-  defaultLink.dataset.nuzenioAlternate = 'true';
-  document.head.appendChild(defaultLink);
+  const defaultUrl = context.isRootHome ? new URL('/', window.location.href) : homeContextUrl(context);
+  const link = document.createElement('link');
+  link.rel = 'alternate';
+  link.hreflang = 'x-default';
+  link.href = productionUrl(defaultUrl);
+  link.dataset.nuzenioAlternate = 'true';
+  document.head.appendChild(link);
 }
 
 function pageSeoTitle({ category, isRootHome, location, language }) {
@@ -2228,34 +1975,18 @@ function pageSeoTitle({ category, isRootHome, location, language }) {
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
-  if (copy === translations.hi) return `${sectionTitle} - ${place} | Nuzenio`;
-  if (copy === translations.ar) return `${sectionTitle} - ${place} | Nuzenio`;
-  if (copy === translations.es) return `${sectionTitle} de ${place} | Nuzenio`;
   return `${sectionTitle} for ${place} | Nuzenio`;
 }
 
 function pageSeoDescription({ category, isRootHome, location, language }) {
   if (isRootHome) {
-    return 'Nuzenio is a professional multilingual news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
+    return 'Nuzenio is a professional English news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
   const nativeLanguage = language.native || language.name || language.code;
   const isMediaPage = category === 'video' || category === 'live';
-
-  if (copy === translations.hi) {
-    const action = isMediaPage ? 'देखें' : 'पढ़ें';
-    return `${place} के लिए ${sectionTitle} ${action}। Nuzenio पर लाइव RSS खबरें, AI summary, source attribution, video और live news ${nativeLanguage} में देखें।`;
-  }
-  if (copy === translations.ar) {
-    const action = isMediaPage ? 'شاهد' : 'اقرأ';
-    return `${action} ${sectionTitle} لـ ${place} على Nuzenio مع أخبار RSS مباشرة وملخصات AI وإسناد المصادر والفيديو والبث المباشر باللغة ${nativeLanguage}.`;
-  }
-  if (copy === translations.es) {
-    const action = isMediaPage ? 'Mira' : 'Lee';
-    return `${action} ${sectionTitle} de ${place} en Nuzenio con noticias RSS en vivo, resumen de AI, atribución de fuentes, videos y noticias en directo en ${nativeLanguage}.`;
-  }
   const action = isMediaPage ? 'Watch' : 'Read';
   return `${action} ${sectionTitle} for ${place} on Nuzenio with live RSS news, AI summaries, source attribution, video news, and live news in ${nativeLanguage}.`;
 }
@@ -2323,7 +2054,7 @@ function organizationSchema() {
       height: 512,
     },
     image: `${productionOrigin}/og-image.svg`,
-    description: 'Nuzenio is a professional multilingual news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
+    description: 'Nuzenio is a professional English news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
     slogan: 'Trusted news, simplified.',
     sameAs: ['https://github.com/syleriofficial/Nuzenio'],
   };
@@ -2362,7 +2093,7 @@ function shareArticleUrl(article) {
   url.searchParams.delete('article');
   url.hash = '';
   if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
-  if (!url.searchParams.get('language')) url.searchParams.set('language', document.documentElement.lang || 'en');
+  url.searchParams.delete('language');
   if (article.category && categoryRoutes[article.category]) {
     url.searchParams.delete('category');
   } else if (article.category) {
@@ -2374,7 +2105,6 @@ function shareArticleUrl(article) {
 function articleHref(article) {
   const url = new URL(`/article/${encodeURIComponent(article.id)}`, window.location.origin);
   url.searchParams.set('country', article.country || 'IN');
-  url.searchParams.set('language', document.documentElement.lang || 'en');
   if (article.category && !categoryRoutes[article.category]) {
     url.searchParams.set('category', article.category);
   }

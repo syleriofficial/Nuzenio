@@ -128,7 +128,6 @@ button {
 }
 
 .searchSubmit,
-.language,
 .iconBtn,
 .loginBtn {
   height: 42px;
@@ -137,7 +136,6 @@ button {
   font-weight: 850;
 }
 
-.language,
 .iconBtn {
   border: 1px solid var(--line);
   background: #fff;
@@ -154,16 +152,6 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-}
-
-.newsLanguageSelect {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
 }
 
 .authNotice {
@@ -1634,13 +1622,6 @@ button {
   display: none;
 }
 
-[dir="rtl"] .brand,
-[dir="rtl"] .headline,
-[dir="rtl"] .smallStory,
-[dir="rtl"] .trend {
-  text-align: right;
-}
-
 @media (max-width: 1120px) {
   .main {
     grid-template-columns: 1fr;
@@ -1692,14 +1673,6 @@ button {
 
   .searchBox.isOpen {
     display: flex;
-  }
-
-  .language {
-    width: 112px;
-  }
-
-  .newsLanguageSelect span {
-    display: none;
   }
 
   .breaking {

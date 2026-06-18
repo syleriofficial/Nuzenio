@@ -17,7 +17,6 @@ const categories = [
 ];
 
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
-const languages = ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur', 'ar', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ko'];
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
@@ -81,20 +80,10 @@ for (const [category, priority] of categories) {
   for (const country of countries) {
     entries.push(entry(url(category, { country }), 'hourly', priority));
   }
-  for (const language of languages) {
-    entries.push(entry(url(category, { language }), 'hourly', priority));
-  }
-  for (const country of countries) {
-    for (const language of languages) {
-      entries.push(entry(url(category, { country, language }), 'hourly', priority));
-    }
-  }
 }
 
 for (const place of localPlaces) {
-  for (const language of languages) {
-    entries.push(entry(url('local', { ...place, language }), 'hourly', '0.82'));
-  }
+  entries.push(entry(url('local', place), 'hourly', '0.82'));
 }
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
