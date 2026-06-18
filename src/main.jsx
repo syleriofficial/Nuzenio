@@ -415,6 +415,11 @@ function App() {
       setArticles(data.articles || []);
       setLastUpdated(new Date());
       setStatus(`${data.total || 0} results for "${query.trim()}"`);
+      trackEvent('search', {
+        search_term: query.trim(),
+        results_count: data.total || 0,
+        country: location.country,
+      });
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       setStatus(`Search error: ${error.message}`);
@@ -424,12 +429,22 @@ function App() {
   }
 
   function refreshCurrentNews() {
+    trackEvent('refresh_news', {
+      category,
+      country: location.country,
+    });
     loadNews(category, location.country, location.region, location.city, 'en');
   }
 
   function updateLocation(next) {
     setLocation(next);
     writeLocal('nuzenio_location', next);
+    trackEvent('set_location', {
+      country: next.country,
+      region: next.region || '',
+      city: next.city || '',
+      source: next.source || '',
+    });
   }
 
   function navigateCategory(nextCategory) {
@@ -440,6 +455,10 @@ function App() {
     const url = homeContextUrl({ category: nextCategory, location });
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
+    trackEvent('select_content', {
+      content_type: 'category',
+      item_id: nextCategory,
+    });
   }
 
   function navigateHome() {
@@ -449,6 +468,10 @@ function App() {
     setIsLocalPage(false);
     setMobileSearchOpen(false);
     window.history.pushState({}, '', '/');
+    trackEvent('select_content', {
+      content_type: 'home',
+      item_id: 'home',
+    });
   }
 
   async function loginWithGoogle() {
@@ -484,6 +507,7 @@ function App() {
     const next = exists ? savedIds.filter((id) => id !== article.id) : [article.id, ...savedIds];
     setSavedIds(next);
     writeLocal('nuzenio_saved_ids', next);
+    trackEvent(exists ? 'unsave_article' : 'save_article', articleEventParams(article));
 
     if (!supabase || !user) return;
     if (exists) {
@@ -506,6 +530,12 @@ function App() {
   async function openArticle(article) {
     setSelected(article);
     pushArticleUrl(article);
+    trackEvent('select_content', {
+      content_type: article.category || 'article',
+      item_id: article.id,
+      source: article.source || '',
+      title: article.title || '',
+    });
     const entry = {
       id: article.id,
       title: article.title,
@@ -1473,6 +1503,10 @@ function Newsletter({ copy, language }) {
     }
     setMessage('Subscribed for the daily brief.');
     setEmail('');
+    trackEvent('newsletter_subscribe', {
+      method: supabase ? 'supabase' : 'local',
+      language: language.code,
+    });
   }
 
   return (
@@ -2079,6 +2113,14 @@ function trackPageView(url, title) {
   });
 }
 
+function trackEvent(name, params = {}) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  window.gtag('event', name, {
+    send_to: 'G-7TQQHY9XDV',
+    ...params,
+  });
+}
+
 function contextUrlForSeo(context) {
   if (context.isRootHome) {
     return new URL('/', window.location.href);
@@ -2263,6 +2305,7 @@ function seoImage(article) {
 async function shareArticle(article) {
   const shareUrl = shareArticleUrl(article).toString();
   const shareText = `${article.source || 'Nuzenio'} · ${formatFreshAge(article.pubDate)}\n${displaySummary(article)}`;
+  trackEvent('share_article', articleEventParams(article));
   try {
     if (navigator.share) {
       await navigator.share({ title: article.title, text: shareText, url: shareUrl });
@@ -2272,6 +2315,16 @@ async function shareArticle(article) {
   } catch {
     await navigator.clipboard?.writeText(shareUrl);
   }
+}
+
+function articleEventParams(article) {
+  return {
+    item_id: article.id,
+    title: article.title || '',
+    source: article.source || '',
+    category: article.category || '',
+    country: article.country || '',
+  };
 }
 
 function shareArticleUrl(article) {
