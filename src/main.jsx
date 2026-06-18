@@ -1590,9 +1590,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
   const isVideo = isVideoArticle(article);
-  const related = articles
-    .filter((item) => item.id !== article.id && (item.category === article.category || item.source === article.source))
-    .slice(0, 4);
+  const related = buildRelatedArticles(article, articles, 4);
   return (
     <div className="modalOverlay" onClick={onClose}>
       <article className="articleModal" onClick={(event) => event.stopPropagation()}>
@@ -1680,10 +1678,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
             <h3>{copy.relatedStories}</h3>
             <div>
               {related.map((item) => (
-                <button key={item.id} onClick={() => openArticle(item)}>
-                  <span>{item.source}</span>
-                  <b>{item.title}</b>
-                </button>
+                <RelatedStoryCard key={item.id} article={item} openArticle={openArticle} />
               ))}
             </div>
           </section>
@@ -1722,6 +1717,25 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
         </a>
       </article>
     </div>
+  );
+}
+
+function RelatedStoryCard({ article, openArticle }) {
+  const image = article.image || videoThumbnail(article);
+  return (
+    <button className="relatedStoryCard" onClick={() => openArticle(article)}>
+      <div className="relatedThumb">
+        {image ? (
+          <img src={image} alt="" loading="lazy" />
+        ) : (
+          <NewsFallbackVisual article={article} size="small" />
+        )}
+      </div>
+      <div>
+        <span>{article.source} · {formatFreshAge(article.pubDate)}</span>
+        <b>{displayTitle(article)}</b>
+      </div>
+    </button>
   );
 }
 
@@ -1903,6 +1917,24 @@ function buildKeyFacts(article) {
     `Published: ${formatDate(article.pubDate)}`,
     `Category: ${article.category || 'top'}`,
   ];
+}
+
+function buildRelatedArticles(article, articles, limit = 4) {
+  const seen = new Set([article?.id]);
+  const candidates = [];
+  const addMatches = (items) => {
+    items.forEach((item) => {
+      if (!item?.id || seen.has(item.id)) return;
+      seen.add(item.id);
+      candidates.push(item);
+    });
+  };
+
+  addMatches(articles.filter((item) => item.category === article.category || item.source === article.source));
+  addMatches(articles.filter((item) => item.image || videoThumbnail(item)));
+  addMatches(articles);
+
+  return candidates.slice(0, limit);
 }
 
 function buildTimeline(article) {
