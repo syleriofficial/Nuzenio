@@ -1,0 +1,19 @@
+{
+  "name": "Nuzenio",
+  "short_name": "Nuzenio",
+  "description": "Nuzenio is a multilingual news platform for local news, world news, live news, video news, and AI-powered context.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": ["news", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

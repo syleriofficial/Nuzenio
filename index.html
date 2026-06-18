@@ -9,18 +9,22 @@
   <meta name="application-name" content="Nuzenio"/>
   <link rel="canonical" href="https://nuzenio.com/"/>
   <link rel="sitemap" type="application/xml" href="/sitemap.xml"/>
-  <title>Nuzenio - Trusted News, Simplified</title>
-  <meta name="description" content="Nuzenio is an AI-powered multilingual news platform with trusted sources, summaries, saved articles and global news coverage."/>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg"/>
+  <link rel="manifest" href="/site.webmanifest"/>
+  <title>Nuzenio - Global News, Local News, Live News & Video News</title>
+  <meta name="description" content="Nuzenio is a professional multilingual news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context."/>
+  <meta name="author" content="Nuzenio"/>
+  <meta name="brand" content="Nuzenio"/>
   <meta property="og:type" content="website"/>
   <meta property="og:url" content="https://nuzenio.com/"/>
-  <meta property="og:title" content="Nuzenio - AI Multilingual News"/>
-  <meta property="og:description" content="Live RSS news, AI summaries, multilingual reading, saved articles, newsletter, and trusted source attribution."/>
+  <meta property="og:title" content="Nuzenio - Global News, Local News, Live News & Video News"/>
+  <meta property="og:description" content="Nuzenio brings multilingual local, global, live, and video news together with source attribution and AI-powered context."/>
   <meta property="og:image" content="https://nuzenio.com/og-image.svg"/>
   <meta property="og:site_name" content="Nuzenio"/>
   <meta property="og:locale" content="en_US"/>
   <meta name="twitter:card" content="summary_large_image"/>
-  <meta name="twitter:title" content="Nuzenio - AI Multilingual News"/>
-  <meta name="twitter:description" content="Live multilingual news with AI summaries and verified source attribution."/>
+  <meta name="twitter:title" content="Nuzenio - Global News, Local News, Live News & Video News"/>
+  <meta name="twitter:description" content="Professional multilingual news with live RSS headlines, video news, live channels, AI context, and verified source attribution."/>
   <meta name="twitter:image" content="https://nuzenio.com/og-image.svg"/>
   <script type="application/ld+json" id="nuzenio-initial-jsonld">
     {
@@ -30,14 +34,24 @@
           "@type": "Organization",
           "@id": "https://nuzenio.com/#organization",
           "name": "Nuzenio",
+          "alternateName": ["Nuzenio News", "Nuzenio.com"],
           "url": "https://nuzenio.com/",
-          "logo": "https://nuzenio.com/og-image.svg",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://nuzenio.com/icon.svg",
+            "width": 512,
+            "height": 512
+          },
+          "image": "https://nuzenio.com/og-image.svg",
+          "description": "Nuzenio is a professional multilingual news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.",
+          "slogan": "Trusted news, simplified.",
           "sameAs": ["https://github.com/syleriofficial/Nuzenio"]
         },
         {
           "@type": "WebSite",
           "@id": "https://nuzenio.com/#website",
           "name": "Nuzenio",
+          "alternateName": "Nuzenio News",
           "url": "https://nuzenio.com/",
           "publisher": { "@id": "https://nuzenio.com/#organization" },
           "potentialAction": {
@@ -45,6 +59,15 @@
             "target": "https://nuzenio.com/top-news?q={search_term_string}",
             "query-input": "required name=search_term_string"
           }
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://nuzenio.com/#app",
+          "name": "Nuzenio",
+          "applicationCategory": "NewsApplication",
+          "operatingSystem": "Any",
+          "url": "https://nuzenio.com/",
+          "description": "Nuzenio is a multilingual news web app for local, global, live, and video news."
         }
       ]
     }

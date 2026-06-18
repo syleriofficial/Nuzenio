@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Nuzenio icon">
+  <rect width="512" height="512" rx="96" fill="#e11d48"/>
+  <path d="M133 126h70l112 174V126h64v260h-70L197 213v173h-64V126Z" fill="#ffffff"/>
+  <path d="M112 414h288" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity=".9"/>
+</svg>

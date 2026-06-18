@@ -2224,7 +2224,7 @@ function setAlternateLinks(context) {
 }
 
 function pageSeoTitle({ category, isRootHome, location, language }) {
-  if (isRootHome) return 'Nuzenio - Global News Home';
+  if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
@@ -2236,7 +2236,7 @@ function pageSeoTitle({ category, isRootHome, location, language }) {
 
 function pageSeoDescription({ category, isRootHome, location, language }) {
   if (isRootHome) {
-    return 'Nuzenio is the global news home for live RSS headlines, local news, video news, live news, multilingual reading, and AI context.';
+    return 'Nuzenio is a professional multilingual news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -2275,15 +2275,20 @@ function pageJsonLd(url, { context, description, image, title }) {
         '@type': 'Organization',
         '@id': organizationId,
         ...organizationSchema(),
-        logo: `${productionOrigin}/og-image.svg`,
       },
       {
         '@type': 'WebSite',
         '@id': websiteId,
         name: 'Nuzenio',
+        alternateName: 'Nuzenio News',
         url: productionOrigin,
         publisher: { '@id': organizationId },
         inLanguage: context.language.code,
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${productionOrigin}/top-news?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
       },
       {
         '@type': 'CollectionPage',
@@ -2309,7 +2314,17 @@ function organizationSchema() {
   return {
     '@type': 'Organization',
     name: 'Nuzenio',
+    alternateName: ['Nuzenio News', 'Nuzenio.com'],
     url: productionOrigin,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${productionOrigin}/icon.svg`,
+      width: 512,
+      height: 512,
+    },
+    image: `${productionOrigin}/og-image.svg`,
+    description: 'Nuzenio is a professional multilingual news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
+    slogan: 'Trusted news, simplified.',
     sameAs: ['https://github.com/syleriofficial/Nuzenio'],
   };
 }
