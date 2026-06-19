@@ -258,21 +258,37 @@ button {
   margin: 0 5vw 12px;
 }
 
-.breakingLabel {
+.breakingLabel,
+.breakingTickerButton {
   align-self: stretch;
   display: grid;
   border: 0;
+  font: inherit;
+}
+
+.breakingLabel {
   background: var(--red);
   color: #fff;
   cursor: pointer;
 }
 
-.breakingLabel:disabled {
+.breakingTickerButton {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.breakingLabel:disabled,
+.breakingTickerButton:disabled {
   cursor: default;
 }
 
 .breakingLabel:focus-visible,
-.breakingHeadline:focus-visible {
+.breakingTickerButton:focus-visible {
   outline: 3px solid rgba(37, 99, 235, 0.45);
   outline-offset: -3px;
 }
@@ -303,25 +319,15 @@ button {
   min-width: 100vw;
 }
 
-.breakingHeadline,
 .breakingHeadlineText {
   position: relative;
   flex: 0 0 auto;
   padding: 12px 28px;
-  border: 0;
-  background: transparent;
   color: #7f1d1d;
-  font: inherit;
   font-weight: 900;
-  text-align: start;
   white-space: nowrap;
 }
 
-.breakingHeadline {
-  cursor: pointer;
-}
-
-.breakingHeadline::after,
 .breakingHeadlineText::after {
   content: "•";
   position: absolute;

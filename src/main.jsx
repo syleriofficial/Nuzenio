@@ -1357,6 +1357,9 @@ function BreakingStrip({ articles = [], label, onOpenArticle, text }) {
   const clickableArticles = canClickHeadlines ? articles.filter(Boolean) : [];
   const firstArticle = clickableArticles[0];
   const canOpenArticle = Boolean(firstArticle);
+  const headlineText = clickableArticles.length
+    ? clickableArticles.map((item) => displayTitle(item)).join('   •   ')
+    : safeText;
 
   return (
     <div className={`breaking${isLong ? ' isLong' : ''}`} aria-label={`${label}: ${safeText}`}>
@@ -1370,24 +1373,26 @@ function BreakingStrip({ articles = [], label, onOpenArticle, text }) {
       >
         <b>{label}</b>
       </button>
-      <div className="breakingViewport">
-        <div className="breakingTrack">
-          <span className="breakingGroup">
-            {clickableArticles.length ? clickableArticles.map((item) => (
-              <button className="breakingHeadline" key={item.id || item.link || item.title} type="button" onClick={() => onOpenArticle(item)}>
-                {displayTitle(item)}
-              </button>
-            )) : <span className="breakingHeadlineText">{safeText}</span>}
-          </span>
-          <span className="breakingGroup" aria-hidden="true">
-            {clickableArticles.length ? clickableArticles.map((item) => (
-              <span className="breakingHeadlineText" key={`copy-${item.id || item.link || item.title}`}>
-                {displayTitle(item)}
-              </span>
-            )) : <span className="breakingHeadlineText">{safeText}</span>}
-          </span>
+      <button
+        className="breakingTickerButton"
+        type="button"
+        disabled={!canOpenArticle}
+        aria-label={canOpenArticle ? `Open breaking story: ${displayTitle(firstArticle)}` : safeText}
+        onClick={() => {
+          if (canOpenArticle) onOpenArticle(firstArticle);
+        }}
+      >
+        <div className="breakingViewport">
+          <div className="breakingTrack">
+            <span className="breakingGroup">
+              <span className="breakingHeadlineText">{headlineText}</span>
+            </span>
+            <span className="breakingGroup" aria-hidden="true">
+              <span className="breakingHeadlineText">{headlineText}</span>
+            </span>
+          </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 }
