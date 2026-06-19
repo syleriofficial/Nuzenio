@@ -258,34 +258,29 @@ button {
   margin: 0 5vw 12px;
 }
 
-.breakingAction {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
+.breakingLabel {
+  align-self: stretch;
+  display: grid;
   border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-}
-
-button.breakingAction {
+  background: var(--red);
+  color: #fff;
   cursor: pointer;
 }
 
-button.breakingAction:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.35);
+.breakingLabel:disabled {
+  cursor: default;
+}
+
+.breakingLabel:focus-visible,
+.breakingHeadline:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.45);
   outline-offset: -3px;
 }
 
 .breaking b {
-  align-self: stretch;
   display: grid;
   place-items: center;
   padding: 12px 16px;
-  background: var(--red);
-  color: #fff;
   letter-spacing: 0.04em;
 }
 
@@ -302,12 +297,36 @@ button.breakingAction:focus-visible {
   will-change: transform;
 }
 
-.breakingTrack span {
+.breakingGroup {
+  display: inline-flex;
+  align-items: center;
   min-width: 100vw;
+}
+
+.breakingHeadline,
+.breakingHeadlineText {
+  position: relative;
+  flex: 0 0 auto;
   padding: 12px 28px;
+  border: 0;
+  background: transparent;
   color: #7f1d1d;
+  font: inherit;
   font-weight: 900;
+  text-align: start;
   white-space: nowrap;
+}
+
+.breakingHeadline {
+  cursor: pointer;
+}
+
+.breakingHeadline::after,
+.breakingHeadlineText::after {
+  content: "•";
+  position: absolute;
+  inset-inline-end: -4px;
+  color: #e11d48;
 }
 
 .breaking:hover .breakingTrack,
@@ -330,7 +349,7 @@ button.breakingAction:focus-visible {
     animation: none;
   }
 
-  .breakingTrack span:last-child {
+  .breakingGroup:last-child {
     display: none;
   }
 

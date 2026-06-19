@@ -702,9 +702,10 @@ function App() {
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
+  const breakingArticles = useMemo(() => articles.slice(0, 6), [articles]);
   const ticker = useMemo(
-    () => articles.slice(0, 6).map((article) => article.title).join(' | '),
-    [articles],
+    () => breakingArticles.map((article) => article.title).join(' | '),
+    [breakingArticles],
   );
   const modalArticles = uniqueArticles([...articles, ...Object.values(homeSectionFeeds).flat()]);
   const breakingLabel = ['live', 'video'].includes(category)
@@ -716,7 +717,7 @@ function App() {
       <a className="skipLink" href="#main-content">Skip to main content</a>
       <Header
         authNotice={authNotice}
-        breakingArticle={lead}
+        breakingArticles={breakingArticles}
         breakingLabel={breakingLabel}
         breakingText={ticker || status}
         category={category}
@@ -803,7 +804,7 @@ function AnalyticsConsentBanner({ onAccept, onDecline }) {
 
 function Header({
   authNotice,
-  breakingArticle,
+  breakingArticles,
   breakingLabel,
   breakingText,
   category,
@@ -921,7 +922,7 @@ function Header({
           {copy.categories.video}
         </a>
       </nav>
-      <BreakingStrip article={breakingArticle} label={breakingLabel} onOpenArticle={openArticle} text={breakingText} />
+      <BreakingStrip articles={breakingArticles} label={breakingLabel} onOpenArticle={openArticle} text={breakingText} />
       <nav className="newsNav" aria-label="News sections">
         {categories.filter(([key]) => !primarySectionRoutes[key]).map(([key, label]) => (
           <a
@@ -1349,34 +1350,44 @@ function QuickSectionGrid({ copy, localPreview, livePreview, openArticle, videoP
   );
 }
 
-function BreakingStrip({ article, label, onOpenArticle, text }) {
+function BreakingStrip({ articles = [], label, onOpenArticle, text }) {
   const safeText = text || 'Loading live news...';
-  const tickerText = `${safeText}   •   ${safeText}`;
   const isLong = safeText.length > 220;
-  const canOpenArticle = article && typeof onOpenArticle === 'function';
-  const content = (
-    <>
-      <b>{label}</b>
-      <div className="breakingViewport">
-        <div className="breakingTrack">
-          <span>{tickerText}</span>
-          <span aria-hidden="true">{tickerText}</span>
-        </div>
-      </div>
-    </>
-  );
+  const canClickHeadlines = typeof onOpenArticle === 'function';
+  const clickableArticles = canClickHeadlines ? articles.filter(Boolean) : [];
+  const firstArticle = clickableArticles[0];
+  const canOpenArticle = Boolean(firstArticle);
 
   return (
     <div className={`breaking${isLong ? ' isLong' : ''}`} aria-label={`${label}: ${safeText}`}>
-      {canOpenArticle ? (
-        <button className="breakingAction" type="button" onClick={() => onOpenArticle(article)}>
-          {content}
-        </button>
-      ) : (
-        <div className="breakingAction" role="presentation">
-          {content}
+      <button
+        className="breakingLabel"
+        type="button"
+        disabled={!canOpenArticle}
+        onClick={() => {
+          if (canOpenArticle) onOpenArticle(firstArticle);
+        }}
+      >
+        <b>{label}</b>
+      </button>
+      <div className="breakingViewport">
+        <div className="breakingTrack">
+          <span className="breakingGroup">
+            {clickableArticles.length ? clickableArticles.map((item) => (
+              <button className="breakingHeadline" key={item.id || item.link || item.title} type="button" onClick={() => onOpenArticle(item)}>
+                {displayTitle(item)}
+              </button>
+            )) : <span className="breakingHeadlineText">{safeText}</span>}
+          </span>
+          <span className="breakingGroup" aria-hidden="true">
+            {clickableArticles.length ? clickableArticles.map((item) => (
+              <span className="breakingHeadlineText" key={`copy-${item.id || item.link || item.title}`}>
+                {displayTitle(item)}
+              </span>
+            )) : <span className="breakingHeadlineText">{safeText}</span>}
+          </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }
