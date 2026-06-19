@@ -1054,6 +1054,14 @@ function Home({
         </div>
 
         <TrustStrip articles={articles} lastUpdated={lastUpdated} location={location} />
+        <NewsBriefingPanel
+          articles={articles}
+          lastUpdated={lastUpdated}
+          location={location}
+          refreshNews={refreshNews}
+          status={status}
+          isLoading={isLoadingNews || isLoadingHomeSections}
+        />
 
         <QuickSectionGrid
           copy={copy}
@@ -1120,6 +1128,53 @@ function Home({
         <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
+  );
+}
+
+function NewsBriefingPanel({ articles, lastUpdated, location, refreshNews, status, isLoading }) {
+  const publishers = new Set(articles.map((article) => article.source).filter(Boolean)).size;
+  const latest = articles
+    .map((article) => new Date(article.pubDate).getTime())
+    .filter(Boolean)
+    .sort((a, b) => b - a)[0];
+  const latestLabel = latest ? formatFreshAge(new Date(latest).toISOString()) : 'Updating';
+  const focusCountry = countryLabel(location.country);
+  const stats = [
+    { label: 'Live articles', value: articles.length || '...' },
+    { label: 'Publishers', value: publishers || '...' },
+    { label: 'Freshest story', value: latestLabel },
+    { label: 'Focus', value: focusCountry },
+  ];
+
+  return (
+    <section className="newsBriefingPanel" aria-label="Live Nuzenio briefing">
+      <div className="newsBriefingCopy">
+        <span>
+          <Sparkles size={15} /> Live briefing
+        </span>
+        <h2>Everything important, organized before you scroll.</h2>
+        <p>{status || `Latest English headlines for ${focusCountry}, refreshed from publisher RSS sources.`}</p>
+      </div>
+      <div className="newsBriefingStats">
+        {stats.map((item) => (
+          <div key={item.label}>
+            <b>{item.value}</b>
+            <small>{item.label}</small>
+          </div>
+        ))}
+      </div>
+      <div className="newsBriefingActions">
+        <button className="primaryAction" onClick={refreshNews} disabled={isLoading}>
+          <RefreshCw size={15} className={isLoading ? 'spin' : ''} /> {isLoading ? 'Refreshing' : 'Refresh'}
+        </button>
+        <a href={categoryRoutes.world}>
+          World <ChevronRight size={14} />
+        </a>
+        <a href={categoryRoutes.ai}>
+          AI <ChevronRight size={14} />
+        </a>
+      </div>
+    </section>
   );
 }
 

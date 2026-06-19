@@ -912,6 +912,113 @@ button {
   white-space: nowrap;
 }
 
+.newsBriefingPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 15px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+}
+
+.newsBriefingCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.newsBriefingCopy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.newsBriefingCopy h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.16;
+}
+
+.newsBriefingCopy p {
+  margin: 0;
+  color: #475569;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.newsBriefingStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.newsBriefingStats div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.newsBriefingStats b,
+.newsBriefingStats small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.newsBriefingStats b {
+  color: var(--red);
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.newsBriefingStats small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.newsBriefingActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.newsBriefingActions a,
+.newsBriefingActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.newsBriefingActions a {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
 .quickSectionGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2266,6 +2373,14 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .newsBriefingPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .newsBriefingActions {
+    justify-content: flex-start;
+  }
+
   .rightRail {
     display: none;
   }
@@ -2457,6 +2572,7 @@ button {
   }
 
   .trustStrip,
+  .newsBriefingStats,
   .quickSectionGrid {
     grid-template-columns: 1fr;
   }
