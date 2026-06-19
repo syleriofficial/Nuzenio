@@ -18,7 +18,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
 - Affiliate link manager structure with visible disclosure
 - SEO basics: meta tags, Open Graph tags, `robots.txt`, and `sitemap.xml`
-- Trust pages: about, sources, editorial policy, contact, privacy, terms, and affiliate disclosure
+- Trust pages: about, sources, editorial policy, contact, advertise, privacy, terms, and affiliate disclosure
 - Google AdSense publisher script and `ads.txt` configured for `pub-5589150014762971`
 - Mobile bottom navigation and readable article view
 
