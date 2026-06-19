@@ -225,6 +225,8 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Cache-Control': 'no-store, max-age=0, must-revalidate',
   'Content-Type': 'application/json; charset=utf-8',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Robots-Tag': 'noindex, nofollow',
 };
 
 function fetchText(url, redirects = 0, extraHeaders = {}) {
@@ -1221,6 +1223,16 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
+  }
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers: {
+        ...headers,
+        Allow: 'GET, OPTIONS',
+      },
+      body: JSON.stringify({ ok: false, error: 'Method not allowed' }),
+    };
   }
 
   try {

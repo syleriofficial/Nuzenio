@@ -28,6 +28,8 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Cache-Control': 'public, max-age=900',
   'Content-Type': 'application/json; charset=utf-8',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Robots-Tag': 'noindex, nofollow',
 };
 
 function fetchJson(url, redirects = 0) {
@@ -101,6 +103,16 @@ function validCoordinate(value, min, max) {
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
+  }
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers: {
+        ...headers,
+        Allow: 'GET, OPTIONS',
+      },
+      body: JSON.stringify({ ok: false, error: 'Method not allowed' }),
+    };
   }
 
   try {
