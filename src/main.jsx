@@ -376,8 +376,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    updatePageSeo(selected, { category, isRootHome, location, language });
-  }, [selected, category, isRootHome, location.country, location.region, location.city]);
+    updatePageSeo(selected, { category, isRootHome, location, language, articles });
+  }, [selected, articles, category, isRootHome, location.country, location.region, location.city]);
 
   useEffect(() => {
     document.body.classList.toggle('articleModalOpen', Boolean(selected));
@@ -2822,7 +2822,9 @@ function pageJsonLd(url, { context, description, image, title }) {
           '@type': 'Place',
           name: place,
         },
+        mainEntity: itemListSchema(context.articles || [], context),
       },
+      itemListSchema(context.articles || [], context),
       breadcrumbSchema(context, url, title),
     ],
   };
@@ -2894,6 +2896,39 @@ function siteNavigationSchema() {
   }));
 }
 
+function itemListSchema(articles, context) {
+  const items = uniqueArticles(articles || []).slice(0, 12).map((article, index) => {
+    const itemUrl = productionUrl(new URL(articleHref(article), window.location.origin));
+    return {
+      '@type': 'ListItem',
+      position: index + 1,
+      url: itemUrl,
+      item: {
+        '@type': isVideoArticle(article) ? 'VideoObject' : 'NewsArticle',
+        '@id': `${itemUrl}#article`,
+        headline: displayTitle(article),
+        name: displayTitle(article),
+        description: displaySummary(article),
+        datePublished: article.pubDate || undefined,
+        image: seoImage(article),
+        publisher: {
+          '@type': 'Organization',
+          name: article.source || 'RSS publisher',
+        },
+      },
+    };
+  });
+
+  return {
+    '@type': 'ItemList',
+    '@id': `${productionUrl(homeContextUrl(context))}#live-headlines`,
+    name: `${sectionContent(context.category, uiCopy(context.language.code), context.location).title} live headlines`,
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: items.length,
+    itemListElement: items,
+  };
+}
+
 function breadcrumbSchema(context, url, title, article = null) {
   const items = [
     {
@@ -2933,7 +2968,7 @@ function breadcrumbSchema(context, url, title, article = null) {
 
 function organizationSchema() {
   return {
-    '@type': 'Organization',
+    '@type': 'NewsMediaOrganization',
     name: 'Nuzenio',
     alternateName: ['Nuzenio News', 'Nuzenio.com'],
     url: productionOrigin,
