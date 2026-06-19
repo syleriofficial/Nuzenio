@@ -1316,8 +1316,8 @@ function HomeSectionStack({
     <div className="homeSectionStack">
       <div className="sectionHead">
         <div>
-          <h2>Top Stories</h2>
-          <p>Nuzenio homepage sections: breaking ticker, trending, world, AI, business, sports, science, health, and entertainment.</p>
+          <h2>Latest News Sections</h2>
+          <p>Browse live coverage across top stories, trending news, world, AI, business, sports, science, health, and entertainment.</p>
         </div>
         <SectionStatus
           isLoading={isLoadingNews || isLoadingHomeSections}
