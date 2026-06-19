@@ -287,7 +287,7 @@ function App() {
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => readUrlParam('q') || '');
   const language = initialLanguage();
   const [location, setLocation] = useState(initialLocation);
   const [savedIds, setSavedIds] = useState(() => readLocal('nuzenio_saved_ids', [], 'newssetu_saved_ids'));
@@ -322,6 +322,12 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const urlQuery = (readUrlParam('q') || '').trim();
+    if (urlQuery) {
+      setQuery(urlQuery);
+      searchNewsByTerm(urlQuery, { updateUrl: false });
+      return;
+    }
     loadNews(category, location.country, location.region, location.city, 'en');
   }, [category, location.country, location.region, location.city]);
 
@@ -433,15 +439,24 @@ function App() {
 
   async function searchNews(event) {
     event?.preventDefault();
-    if (!query.trim()) return loadNews(category, location.country, location.region, location.city, 'en');
+    const searchTerm = query.trim();
+    if (!searchTerm) {
+      clearSearchUrl();
+      return loadNews(category, location.country, location.region, location.city, 'en');
+    }
+    return searchNewsByTerm(searchTerm, { updateUrl: true });
+  }
+
+  async function searchNewsByTerm(searchTerm, { updateUrl = true } = {}) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
     setIsLoadingNews(true);
     setStatus('Searching live RSS news...');
     setArticles([]);
+    if (updateUrl) writeSearchUrl(searchTerm);
     try {
       const res = await fetch(
-        `/api/news?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(location.country)}&language=en&fresh=${Date.now()}`,
+        `/api/news?q=${encodeURIComponent(searchTerm)}&country=${encodeURIComponent(location.country)}&language=en&fresh=${Date.now()}`,
         { cache: 'no-store' },
       );
       const data = await res.json();
@@ -449,9 +464,9 @@ function App() {
       if (!data.ok) throw new Error(data.error || 'Search failed');
       setArticles(data.articles || []);
       setLastUpdated(new Date());
-      setStatus(`${data.total || 0} results for "${query.trim()}"`);
+      setStatus(`${data.total || 0} results for "${searchTerm}"`);
       trackEvent('search', {
-        search_term: query.trim(),
+        search_term: searchTerm,
         results_count: data.total || 0,
         country: location.country,
       });
@@ -500,6 +515,11 @@ function App() {
       category,
       country: location.country,
     });
+    const activeSearch = (readUrlParam('q') || query).trim();
+    if (activeSearch) {
+      searchNewsByTerm(activeSearch, { updateUrl: true });
+      return;
+    }
     loadNews(category, location.country, location.region, location.city, 'en');
     if (isRootHome) loadHomeSectionFeeds(location.country);
   }
@@ -515,12 +535,26 @@ function App() {
     });
   }
 
+  function writeSearchUrl(searchTerm) {
+    const url = homeContextUrl({ category, location });
+    url.searchParams.set('q', searchTerm);
+    window.history.replaceState({}, '', url);
+  }
+
+  function clearSearchUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('q');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
   function navigateCategory(nextCategory) {
     setScreen('home');
     setIsRootHome(false);
     setCategory(nextCategory);
+    setQuery('');
     setMobileSearchOpen(false);
     const url = homeContextUrl({ category: nextCategory, location });
+    url.searchParams.delete('q');
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
     trackEvent('select_content', {
@@ -534,6 +568,7 @@ function App() {
     setCategory('top');
     setIsRootHome(true);
     setIsLocalPage(false);
+    setQuery('');
     setMobileSearchOpen(false);
     window.history.pushState({}, '', '/');
     trackEvent('select_content', {
