@@ -2382,6 +2382,7 @@ function Footer({ copy, onPrivacySettings }) {
       <a href="/terms.html">Terms</a>
       <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
       <a href="/humans.txt">Humans</a>
+      <a href="/llms.txt">LLMs</a>
       <button onClick={onPrivacySettings}>Privacy settings</button>
       <span>{copy.tagline}</span>
     </footer>
