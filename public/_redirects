@@ -2,4 +2,5 @@
 /api/location /.netlify/functions/location 200
 /feed.xml /.netlify/functions/feed 200
 /news-sitemap.xml /.netlify/functions/news-sitemap 200
+/article/* /.netlify/functions/article 200
 /* /index.html 200
