@@ -1225,6 +1225,59 @@ button {
   font-weight: 850;
 }
 
+.searchResultPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 18px 0 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 15px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055);
+}
+
+.searchResultPanel span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.searchResultPanel h2 {
+  margin: 7px 0 0;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.searchResultPanel p {
+  margin: 5px 0 0;
+  color: #475569;
+  font-weight: 750;
+}
+
+.searchResultPanel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 12px;
+  font-weight: 950;
+}
+
 .sectionStatus {
   display: flex;
   align-items: center;
@@ -2473,10 +2526,16 @@ button {
   .toolbarRow,
   .sectionHead,
   .articleTopline,
+  .searchResultPanel,
   .locationBanner {
     flex-direction: column;
     grid-template-columns: 1fr;
     align-items: flex-start;
+  }
+
+  .searchResultPanel button {
+    width: 100%;
+    justify-content: center;
   }
 
   .sectionStatus {

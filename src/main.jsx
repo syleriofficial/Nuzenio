@@ -754,6 +754,12 @@ function App() {
           status={status}
           toggleSave={toggleSave}
           refreshNews={refreshCurrentNews}
+          searchTerm={(readUrlParam('q') || query).trim()}
+          clearSearch={() => {
+            setQuery('');
+            clearSearchUrl();
+            loadNews(category, location.country, location.region, location.city, 'en');
+          }}
         />
       )}
       {selected && (
@@ -946,6 +952,8 @@ function Home({
   location,
   openArticle,
   refreshNews,
+  searchTerm,
+  clearSearch,
   savedIds,
   setLocation,
   sideStories,
@@ -1110,6 +1118,16 @@ function Home({
 
         <AdSlot name="top-native" label="Top advertising inventory" />
 
+        {searchTerm && (
+          <SearchResultPanel
+            articles={articles}
+            clearSearch={clearSearch}
+            isLoading={isLoadingNews}
+            location={location}
+            searchTerm={searchTerm}
+          />
+        )}
+
         {isRootHome ? (
           <HomeSectionStack
             articles={articles}
@@ -1165,6 +1183,25 @@ function Home({
         <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
+  );
+}
+
+function SearchResultPanel({ articles, clearSearch, isLoading, location, searchTerm }) {
+  return (
+    <section className="searchResultPanel" aria-label={`Search results for ${searchTerm}`}>
+      <div>
+        <span>
+          <Search size={15} /> Search results
+        </span>
+        <h2>{searchTerm}</h2>
+        <p>
+          {isLoading ? 'Searching live publisher feeds...' : `${articles.length} live results for ${countryLabel(location.country)}.`}
+        </p>
+      </div>
+      <button onClick={clearSearch}>
+        <X size={15} /> Clear search
+      </button>
+    </section>
   );
 }
 
