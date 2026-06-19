@@ -2366,6 +2366,34 @@ button {
   text-align: center;
 }
 
+.searchEmptyState {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.searchEmptyState b {
+  color: var(--text);
+  font-size: 20px;
+}
+
+.searchEmptyState p {
+  max-width: 520px;
+  margin: 0;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.searchEmptyState button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-weight: 950;
+}
+
 .footer {
   display: flex;
   flex-wrap: wrap;

@@ -1169,7 +1169,13 @@ function Home({
                 />
               ))}
               {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
-              {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+              {!isLoadingNews && articles.length === 0 && (
+                <EmptyFeedState
+                  copy={copy}
+                  refreshNews={refreshNews}
+                  searchTerm={searchTerm}
+                />
+              )}
             </div>
           </>
         )}
@@ -1183,6 +1189,19 @@ function Home({
         <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
+  );
+}
+
+function EmptyFeedState({ copy, refreshNews, searchTerm }) {
+  if (!searchTerm) return <div className="empty">{copy.emptyFeed}</div>;
+  return (
+    <div className="empty searchEmptyState">
+      <b>No live results for "{searchTerm}"</b>
+      <p>Try a broader keyword, check spelling, or refresh the live RSS search.</p>
+      <button className="primaryAction" onClick={refreshNews}>
+        <RefreshCw size={15} /> Refresh search
+      </button>
+    </div>
   );
 }
 
