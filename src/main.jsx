@@ -382,8 +382,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    updatePageSeo(selected, { category, isRootHome, location, language, articles });
-  }, [selected, articles, category, isRootHome, location.country, location.region, location.city]);
+    updatePageSeo(selected, { category, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
+  }, [selected, articles, category, isRootHome, query, location.country, location.region, location.city]);
 
   useEffect(() => {
     document.body.classList.toggle('articleModalOpen', Boolean(selected));
@@ -593,7 +593,7 @@ function App() {
   }
 
   function trackCurrentPageView() {
-    const context = { category, isRootHome, location, language };
+    const context = { category, isRootHome, location, language, searchTerm: (readUrlParam('q') || query).trim() };
     const url = selected ? articleContextUrl(selected, context) : contextUrlForSeo(context);
     const title = selected ? `${displayTitle(selected)} | Nuzenio` : pageSeoTitle(context);
     trackPageView(productionUrl(url), title);
@@ -2792,7 +2792,8 @@ function setAlternateLinks(context) {
   document.head.appendChild(link);
 }
 
-function pageSeoTitle({ category, isRootHome, location, language }) {
+function pageSeoTitle({ category, isRootHome, location, language, searchTerm }) {
+  if (searchTerm) return `Search results for "${searchTerm}" | Nuzenio`;
   if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -2800,7 +2801,12 @@ function pageSeoTitle({ category, isRootHome, location, language }) {
   return `${sectionTitle} for ${place} | Nuzenio`;
 }
 
-function pageSeoDescription({ category, isRootHome, location, language }) {
+function pageSeoDescription({ category, isRootHome, location, language, articles = [], searchTerm }) {
+  if (searchTerm) {
+    const place = pageSeoPlace(category, location);
+    const count = articles.length ? `${articles.length} live results` : 'Live news results';
+    return `${count} for "${searchTerm}" on Nuzenio, focused on ${place}, with English RSS headlines, source attribution, and AI-powered news context.`;
+  }
   if (isRootHome) {
     return 'Nuzenio is a professional English news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
   }
@@ -2814,9 +2820,11 @@ function pageSeoDescription({ category, isRootHome, location, language }) {
 }
 
 function pageJsonLd(url, { context, description, image, title }) {
-  const sectionTitle = context.isRootHome
-    ? 'Global News Home'
-    : sectionContent(context.category, uiCopy(context.language.code), context.location).title;
+  const sectionTitle = context.searchTerm
+    ? `Search results for ${context.searchTerm}`
+    : (context.isRootHome
+      ? 'Global News Home'
+      : sectionContent(context.category, uiCopy(context.language.code), context.location).title);
   const place = pageSeoPlace(context.category, context.location);
   const websiteId = `${productionOrigin}/#website`;
   const organizationId = `${productionOrigin}/#organization`;
@@ -2960,7 +2968,9 @@ function itemListSchema(articles, context) {
   return {
     '@type': 'ItemList',
     '@id': `${productionUrl(homeContextUrl(context))}#live-headlines`,
-    name: `${sectionContent(context.category, uiCopy(context.language.code), context.location).title} live headlines`,
+    name: context.searchTerm
+      ? `Search results for ${context.searchTerm}`
+      : `${sectionContent(context.category, uiCopy(context.language.code), context.location).title} live headlines`,
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: items.length,
     itemListElement: items,
