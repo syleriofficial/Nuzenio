@@ -336,7 +336,10 @@ function App() {
       setHomeSectionFeeds({});
       return;
     }
-    loadHomeSectionFeeds(location.country);
+    const schedule = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 1200));
+    const cancel = window.cancelIdleCallback || window.clearTimeout;
+    const handle = schedule(() => loadHomeSectionFeeds(location.country));
+    return () => cancel(handle);
   }, [isRootHome, location.country]);
 
   useEffect(() => {
@@ -403,6 +406,7 @@ function App() {
     region = location.region,
     city = location.city,
     newsLanguage = 'en',
+    { forceFresh = false } = {},
   ) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
@@ -413,10 +417,10 @@ function App() {
       const cityParam = cat === 'local' && city ? `&city=${encodeURIComponent(city)}` : '';
       const regionParam = cat === 'local' && region ? `&region=${encodeURIComponent(region)}` : '';
       const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
-      const freshParam = `&fresh=${Date.now()}`;
+      const freshParam = forceFresh ? `&fresh=${Date.now()}` : '';
       const res = await fetch(
         `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}${freshParam}`,
-        { cache: 'no-store' },
+        { cache: forceFresh ? 'no-store' : 'default' },
       );
       const data = await res.json();
       if (requestId !== newsRequestId.current) return;
@@ -457,8 +461,7 @@ function App() {
     if (updateUrl) writeSearchUrl(searchTerm);
     try {
       const res = await fetch(
-        `/api/news?q=${encodeURIComponent(searchTerm)}&country=${encodeURIComponent(location.country)}&language=en&fresh=${Date.now()}`,
-        { cache: 'no-store' },
+        `/api/news?q=${encodeURIComponent(searchTerm)}&country=${encodeURIComponent(location.country)}&language=en`,
       );
       const data = await res.json();
       if (requestId !== newsRequestId.current) return;
@@ -479,7 +482,7 @@ function App() {
     }
   }
 
-  async function loadHomeSectionFeeds(country = location.country) {
+  async function loadHomeSectionFeeds(country = location.country, { forceFresh = false } = {}) {
     const requestId = homeSectionsRequestId.current + 1;
     homeSectionsRequestId.current = requestId;
     const sectionCategories = {
@@ -495,8 +498,8 @@ function App() {
     try {
       const results = await Promise.all(Object.entries(sectionCategories).map(async ([key, cat]) => {
         const res = await fetch(
-          `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}&language=en&fresh=${Date.now()}`,
-          { cache: 'no-store' },
+          `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}&language=en${forceFresh ? `&fresh=${Date.now()}` : ''}`,
+          { cache: forceFresh ? 'no-store' : 'default' },
         );
         const data = await res.json();
         return [key, data.ok ? data.articles || [] : []];
@@ -521,8 +524,8 @@ function App() {
       searchNewsByTerm(activeSearch, { updateUrl: true });
       return;
     }
-    loadNews(category, location.country, location.region, location.city, 'en');
-    if (isRootHome) loadHomeSectionFeeds(location.country);
+    loadNews(category, location.country, location.region, location.city, 'en', { forceFresh: true });
+    if (isRootHome) loadHomeSectionFeeds(location.country, { forceFresh: true });
   }
 
   function updateLocation(next) {
