@@ -2812,6 +2812,7 @@ function pageSeoPlace(category, location) {
 }
 
 function seoImage(article) {
+  if (article?.imageKind === 'logo') return `${productionOrigin}/og-image.svg`;
   const image = article?.image || videoThumbnail(article);
   if (image && /^https:\/\//i.test(image)) return image;
   return `${productionOrigin}/og-image.svg`;
