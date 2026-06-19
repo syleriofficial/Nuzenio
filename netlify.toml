@@ -61,6 +61,12 @@
     Cache-Control = "public, max-age=300, stale-while-revalidate=300"
 
 [[headers]]
+  for = "/opensearch.xml"
+  [headers.values]
+    Content-Type = "application/opensearchdescription+xml; charset=utf-8"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/icon.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
