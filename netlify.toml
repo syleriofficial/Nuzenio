@@ -49,6 +49,12 @@
     Cache-Control = "public, max-age=3600"
 
 [[headers]]
+  for = "/news-sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=300, stale-while-revalidate=300"
+
+[[headers]]
   for = "/feed.xml"
   [headers.values]
     Content-Type = "application/rss+xml; charset=utf-8"
@@ -89,6 +95,11 @@
 [[redirects]]
   from = "/feed.xml"
   to = "/.netlify/functions/feed"
+  status = 200
+
+[[redirects]]
+  from = "/news-sitemap.xml"
+  to = "/.netlify/functions/news-sitemap"
   status = 200
 
 [[redirects]]
