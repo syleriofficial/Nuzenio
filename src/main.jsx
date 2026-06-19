@@ -658,6 +658,7 @@ function App() {
           category={category}
           copy={copy}
           feed={feed}
+          isRootHome={isRootHome}
           language={language}
           isLoadingNews={isLoadingNews}
           lastUpdated={lastUpdated}
@@ -852,6 +853,7 @@ function Home({
   copy,
   feed,
   isLoadingNews,
+  isRootHome,
   language,
   lastUpdated,
   lead,
@@ -1010,33 +1012,49 @@ function Home({
 
         <AdSlot name="top-native" label="Top advertising inventory" />
 
-        <div className="sectionHead">
-          <div>
-            <h2>{section.title}</h2>
-            <p>{section.intro}</p>
-          </div>
-          <SectionStatus
-            isLoading={isLoadingNews}
+        {isRootHome ? (
+          <HomeSectionStack
+            articles={articles}
+            copy={copy}
+            isLoadingNews={isLoadingNews}
             lastUpdated={lastUpdated}
-            onRefresh={refreshNews}
+            openArticle={openArticle}
+            refreshNews={refreshNews}
+            savedIds={savedIds}
             status={status}
+            toggleSave={toggleSave}
           />
-        </div>
+        ) : (
+          <>
+            <div className="sectionHead">
+              <div>
+                <h2>{section.title}</h2>
+                <p>{section.intro}</p>
+              </div>
+              <SectionStatus
+                isLoading={isLoadingNews}
+                lastUpdated={lastUpdated}
+                onRefresh={refreshNews}
+                status={status}
+              />
+            </div>
 
-        <div className="feedGrid">
-          {feed.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              copy={copy}
-              openArticle={openArticle}
-              savedIds={savedIds}
-              toggleSave={toggleSave}
-            />
-          ))}
-          {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
-          {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
-        </div>
+            <div className="feedGrid">
+              {feed.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  copy={copy}
+                  openArticle={openArticle}
+                  savedIds={savedIds}
+                  toggleSave={toggleSave}
+                />
+              ))}
+              {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
+              {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+            </div>
+          </>
+        )}
       </section>
 
       <aside className="rightRail">
@@ -1161,6 +1179,139 @@ function VideoModeStrip({ category, language, location, status }) {
       </div>
     </div>
   );
+}
+
+const homeSectionConfigs = [
+  {
+    key: 'top',
+    title: 'Top Stories',
+    intro: 'The most important live headlines in your selected region.',
+    match: ['breaking', 'latest', 'top', 'headline', 'exclusive', 'update'],
+  },
+  {
+    key: 'trending',
+    title: 'Trending Now',
+    intro: 'Fast-moving stories readers are likely to follow next.',
+    match: ['viral', 'trend', 'breaking', 'live', 'update', 'market', 'election'],
+  },
+  {
+    key: 'world',
+    title: 'World Headlines',
+    intro: 'Global developments and international updates.',
+    match: ['world', 'global', 'international', 'war', 'summit', 'diplomacy', 'border', 'europe', 'china', 'us ', 'russia'],
+  },
+  {
+    key: 'aiTech',
+    title: 'AI & Technology',
+    intro: 'AI, technology, chips, startups, products, platforms, and research.',
+    match: ['ai', 'artificial intelligence', 'openai', 'google', 'anthropic', 'nvidia', 'chip', 'tech', 'startup', 'model'],
+  },
+  {
+    key: 'business',
+    title: 'Business & Markets',
+    intro: 'Markets, companies, economy, money, jobs, and business policy.',
+    match: ['business', 'market', 'stock', 'economy', 'company', 'bank', 'trade', 'rupee', 'dollar', 'profit'],
+  },
+  {
+    key: 'sports',
+    title: 'Sports Highlights',
+    intro: 'Matches, teams, scores, tournaments, and sports personalities.',
+    match: ['sport', 'match', 'cricket', 'football', 'tennis', 'score', 'league', 'cup', 'team', 'player'],
+  },
+  {
+    key: 'science',
+    title: 'Science & Space',
+    intro: 'Science, space, climate, discoveries, and research updates.',
+    match: ['science', 'space', 'nasa', 'isro', 'climate', 'research', 'study', 'moon', 'mars', 'discovery'],
+  },
+  {
+    key: 'health',
+    title: 'Health Updates',
+    intro: 'Public health, medicine, wellness, hospitals, and research.',
+    match: ['health', 'medicine', 'doctor', 'hospital', 'disease', 'virus', 'wellness', 'medical', 'study'],
+  },
+  {
+    key: 'entertainment',
+    title: 'Entertainment',
+    intro: 'Film, streaming, music, celebrity, culture, and media stories.',
+    match: ['entertainment', 'film', 'movie', 'bollywood', 'hollywood', 'music', 'actor', 'celebrity', 'ott'],
+  },
+];
+
+function HomeSectionStack({ articles, copy, isLoadingNews, lastUpdated, openArticle, refreshNews, savedIds, status, toggleSave }) {
+  const sections = buildHomeSections(articles);
+  return (
+    <div className="homeSectionStack">
+      <div className="sectionHead">
+        <div>
+          <h2>Top Stories</h2>
+          <p>Nuzenio homepage sections: breaking ticker, trending, world, AI, business, sports, science, health, and entertainment.</p>
+        </div>
+        <SectionStatus
+          isLoading={isLoadingNews}
+          lastUpdated={lastUpdated}
+          onRefresh={refreshNews}
+          status={status}
+        />
+      </div>
+      {sections.map((section) => (
+        <section className="homeTopicSection" key={section.key}>
+          <div className="homeTopicHead">
+            <div>
+              <h3>{section.title}</h3>
+              <p>{section.intro}</p>
+            </div>
+            <span>{section.articles.length} stories</span>
+          </div>
+          <div className="homeSectionGrid">
+            {section.articles.map((article) => (
+              <ArticleCard
+                key={`${section.key}-${article.id}`}
+                article={article}
+                copy={copy}
+                openArticle={openArticle}
+                savedIds={savedIds}
+                toggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+      {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
+      {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
+    </div>
+  );
+}
+
+function buildHomeSections(articles) {
+  const fallback = articles.slice(0, 6);
+  return homeSectionConfigs
+    .map((section, index) => {
+      const matched = section.key === 'top'
+        ? articles.slice(0, 6)
+        : section.key === 'trending'
+          ? articles.slice(1, 7)
+          : articles.filter((article) => articleMatchesHomeSection(article, section.match));
+      return {
+        ...section,
+        articles: uniqueArticles(matched.length ? matched : fallback.slice(index % 3, index % 3 + 3)).slice(0, 3),
+      };
+    })
+    .filter((section) => section.articles.length > 0);
+}
+
+function articleMatchesHomeSection(article, keywords) {
+  const text = `${article?.category || ''} ${article?.title || ''} ${article?.summary || ''} ${article?.source || ''}`.toLowerCase();
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
+function uniqueArticles(articles) {
+  const seen = new Set();
+  return articles.filter((article) => {
+    if (!article?.id || seen.has(article.id)) return false;
+    seen.add(article.id);
+    return true;
+  });
 }
 
 function SectionStatus({ isLoading, lastUpdated, onRefresh, status }) {

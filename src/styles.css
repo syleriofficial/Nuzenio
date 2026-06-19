@@ -1092,6 +1092,56 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.homeSectionStack {
+  display: grid;
+  gap: 18px;
+}
+
+.homeTopicSection {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.045);
+}
+
+.homeTopicHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.homeTopicHead h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.homeTopicHead p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.homeTopicHead span {
+  flex: 0 0 auto;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.homeSectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .videoGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2123,11 +2173,16 @@ button {
 
   .heroGrid,
   .feedGrid,
+  .homeSectionGrid,
   .videoGrid,
   .infoGrid,
   .explainerGrid,
   .relatedPanel > div {
     grid-template-columns: 1fr;
+  }
+
+  .homeTopicHead {
+    flex-direction: column;
   }
 
   .videoHero {
