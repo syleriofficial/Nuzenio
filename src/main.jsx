@@ -2033,9 +2033,10 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
 function NewsFallbackVisual({ article, size = 'default' }) {
   const category = article?.category || 'news';
   const source = article?.source || 'Nuzenio';
+  const initial = source.trim().charAt(0).toUpperCase() || 'N';
   return (
     <div className={`newsFallbackVisual ${size === 'large' ? 'largeFallback' : ''} ${size === 'small' ? 'smallFallback' : ''}`}>
-      <Newspaper size={size === 'small' ? 20 : 34} />
+      <span className="fallbackInitial">{initial}</span>
       <span>{category.toUpperCase()}</span>
       {size !== 'small' && <b>{source}</b>}
     </div>
@@ -2061,6 +2062,7 @@ function ImageWithFallback({
   if (imageKind === 'logo') {
     return (
       <div className={`publisherLogoVisual ${logoSize === 'large' ? 'largePublisherLogo' : ''} ${logoSize === 'small' ? 'smallPublisherLogo' : ''}`}>
+        <span className="sourceBadge">SOURCE</span>
         <img
           src={src}
           alt={alt}
@@ -2069,6 +2071,9 @@ function ImageWithFallback({
           fetchPriority={fetchPriority}
           referrerPolicy="no-referrer"
           onError={() => setBroken(true)}
+          onLoad={(event) => {
+            if (!event.currentTarget.naturalWidth) setBroken(true);
+          }}
         />
         {logoLabel && <span>{logoLabel}</span>}
       </div>
@@ -2084,6 +2089,9 @@ function ImageWithFallback({
       data-image-kind={imageKind}
       referrerPolicy="no-referrer"
       onError={() => setBroken(true)}
+      onLoad={(event) => {
+        if (!event.currentTarget.naturalWidth) setBroken(true);
+      }}
     />
   );
 }

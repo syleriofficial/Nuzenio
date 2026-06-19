@@ -299,10 +299,23 @@ function tagAttribute(item, tag, attribute) {
 function extractImage(item) {
   const media = item.match(/<media:content[^>]+url=["']([^"']+)["']/i);
   const thumbnail = item.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
-  const enclosure = item.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
+  const enclosure = item.match(/<enclosure[^>]+(?:type=["']image\/[^"']+["'][^>]+)?url=["']([^"']+)["']/i);
+  const imageTag = item.match(/<image>\s*<url>([\s\S]*?)<\/url>\s*<\/image>/i);
+  const itunesImage = item.match(/<itunes:image[^>]+href=["']([^"']+)["']/i);
+  const contentEncoded = first(item, 'content:encoded');
   const rawHtml = decodeHtml(item);
   const htmlImage = rawHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return normalizeImageUrl(media?.[1] || thumbnail?.[1] || enclosure?.[1] || htmlImage?.[1] || '');
+  const contentImage = decodeHtml(contentEncoded).match(/<img[^>]+src=["']([^"']+)["']/i);
+  return normalizeImageUrl(
+    media?.[1]
+    || thumbnail?.[1]
+    || enclosure?.[1]
+    || imageTag?.[1]
+    || itunesImage?.[1]
+    || htmlImage?.[1]
+    || contentImage?.[1]
+    || '',
+  );
 }
 
 function publisherLogoUrl(sourceUrl = '') {

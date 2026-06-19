@@ -813,6 +813,7 @@ button {
 }
 
 .publisherLogoVisual {
+  position: relative;
   display: grid;
   place-items: center;
   gap: 9px;
@@ -820,16 +821,30 @@ button {
   height: 100%;
   padding: 18px;
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 42%),
-    linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    linear-gradient(135deg, rgba(37, 99, 235, 0.14), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(225, 29, 72, 0.12), transparent 26%),
+    linear-gradient(135deg, #ffffff 0%, #eff6ff 58%, #f8fafc 100%);
   text-align: center;
 }
 
+.publisherLogoVisual::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
 .publisherLogoVisual img {
-  width: 58px;
-  height: 58px;
-  border-radius: 14px;
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #fff;
   object-fit: contain;
+  padding: 8px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
 }
 
 .publisherLogoVisual span {
@@ -842,6 +857,23 @@ button {
   line-height: 1.15;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.publisherLogoVisual .sourceBadge {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  width: auto;
+  max-width: none;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #1d4ed8;
+  padding: 5px 8px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .largePublisherLogo img {
@@ -859,6 +891,11 @@ button {
   padding: 8px;
 }
 
+.smallPublisherLogo::after,
+.smallPublisherLogo .sourceBadge {
+  display: none;
+}
+
 .smallPublisherLogo img {
   width: 28px;
   height: 28px;
@@ -870,6 +907,7 @@ button {
 }
 
 .newsFallbackVisual {
+  position: relative;
   display: grid;
   place-items: center;
   gap: 7px;
@@ -877,14 +915,33 @@ button {
   height: 100%;
   padding: 16px;
   background:
-    linear-gradient(135deg, rgba(225, 29, 72, 0.08), transparent 42%),
-    linear-gradient(135deg, #eff6ff 0%, #ffffff 48%, #f8fafc 100%);
+    linear-gradient(135deg, rgba(225, 29, 72, 0.12), transparent 38%),
+    radial-gradient(circle at 84% 20%, rgba(37, 99, 235, 0.14), transparent 28%),
+    linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f8fafc 100%);
   color: #1e3a8a;
   text-align: center;
 }
 
-.newsFallbackVisual svg {
+.newsFallbackVisual::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(225, 29, 72, 0.14);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.fallbackInitial {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #fff;
   color: var(--red);
+  font-size: 28px;
+  font-weight: 950;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
 }
 
 .newsFallbackVisual span {
@@ -902,6 +959,17 @@ button {
   line-height: 1.15;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.smallFallback::after {
+  display: none;
+}
+
+.smallFallback .fallbackInitial {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 15px;
 }
 
 .largeFallback b {
