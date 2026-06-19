@@ -287,6 +287,13 @@ function first(item, tag) {
   return match ? clean(match[1]) : '';
 }
 
+function tagAttribute(item, tag, attribute) {
+  const tagMatch = item.match(new RegExp(`<${tag}\\b[^>]*>`, 'i'));
+  if (!tagMatch) return '';
+  const attrMatch = tagMatch[0].match(new RegExp(`${attribute}=["']([^"']+)["']`, 'i'));
+  return attrMatch ? decodeHtml(attrMatch[1]).trim() : '';
+}
+
 function extractImage(item) {
   const media = item.match(/<media:content[^>]+url=["']([^"']+)["']/i);
   const thumbnail = item.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
@@ -294,6 +301,16 @@ function extractImage(item) {
   const rawHtml = decodeHtml(item);
   const htmlImage = rawHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
   return normalizeImageUrl(media?.[1] || thumbnail?.[1] || enclosure?.[1] || htmlImage?.[1] || '');
+}
+
+function publisherLogoUrl(sourceUrl = '') {
+  try {
+    const hostname = new URL(sourceUrl).hostname.replace(/^www\./, '');
+    if (!hostname) return '';
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=256`;
+  } catch {
+    return '';
+  }
 }
 
 function decodeHtml(value = '') {
@@ -321,19 +338,23 @@ function parse(xml, category, country, language = 'en') {
       const title = first(item, 'title');
       const description = first(item, 'description');
       const source = first(item, 'source') || 'Google News';
+      const sourceUrl = normalizeImageUrl(tagAttribute(item, 'source', 'url'));
       const link = first(item, 'link');
       const pubDate = first(item, 'pubDate');
       const summary = buildSummary(description || title);
       const fullBrief = clean(description || title);
+      const rssImage = extractImage(item);
       return {
         id: `${country}-${category}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 24)}`,
         title,
         link,
         source,
+        sourceUrl,
         pubDate,
         category,
         country,
-        image: extractImage(item),
+        image: rssImage || publisherLogoUrl(sourceUrl),
+        imageKind: rssImage ? 'photo' : 'logo',
         readTime: Math.max(1, Math.ceil((description || title).split(/\s+/).length / 180)),
         trustScore: Math.max(84, 99 - (index % 12)),
         summary,

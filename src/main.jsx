@@ -1013,6 +1013,7 @@ function Home({
             <div className="leadVisual">
               <ImageWithFallback
                 src={lead?.image}
+                imageKind={lead?.imageKind}
                 loading="eager"
                 fetchPriority="high"
                 fallback={(
@@ -1664,6 +1665,7 @@ function SmallStory({ article, copy, openArticle }) {
       <div className="miniThumb">
         <ImageWithFallback
           src={article.image}
+          imageKind={article.imageKind}
           fallback={(
           <NewsFallbackVisual article={article} size="small" />
           )}
@@ -1687,6 +1689,7 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
       <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
         <ImageWithFallback
           src={image}
+          imageKind={article.imageKind}
           fallback={(
           <NewsFallbackVisual article={article} />
           )}
@@ -1751,7 +1754,7 @@ function NewsFallbackVisual({ article, size = 'default' }) {
   );
 }
 
-function ImageWithFallback({ src, alt = '', loading = 'lazy', fetchPriority, fallback }) {
+function ImageWithFallback({ src, alt = '', imageKind = 'photo', loading = 'lazy', fetchPriority, fallback }) {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     setBroken(false);
@@ -1765,6 +1768,7 @@ function ImageWithFallback({ src, alt = '', loading = 'lazy', fetchPriority, fal
       loading={loading}
       decoding="async"
       fetchPriority={fetchPriority}
+      data-image-kind={imageKind}
       referrerPolicy="no-referrer"
       onError={() => setBroken(true)}
     />
@@ -2043,6 +2047,7 @@ function RelatedStoryCard({ article, openArticle }) {
       <div className="relatedThumb">
         <ImageWithFallback
           src={image}
+          imageKind={article.imageKind}
           fallback={(
           <NewsFallbackVisual article={article} size="small" />
           )}
