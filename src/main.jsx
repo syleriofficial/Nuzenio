@@ -501,6 +501,7 @@ function App() {
       country: location.country,
     });
     loadNews(category, location.country, location.region, location.city, 'en');
+    if (isRootHome) loadHomeSectionFeeds(location.country);
   }
 
   function updateLocation(next) {
