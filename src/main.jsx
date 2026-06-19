@@ -2373,6 +2373,7 @@ function Footer({ copy, onPrivacySettings }) {
       <a href="/about.html">About</a>
       <a href="/sources.html">Sources</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
+      <a href="/corrections.html">Corrections</a>
       <a href="/contact.html">Contact</a>
       <a href="/advertise.html">Advertise</a>
       <a href="/feed.xml">RSS</a>
