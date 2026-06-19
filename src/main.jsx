@@ -1316,6 +1316,7 @@ function HomeSectionStack({
   toggleSave,
 }) {
   const sections = buildHomeSections(articles, homeSectionFeeds);
+  const mustReadArticles = buildMustReadStories(articles, homeSectionFeeds);
   return (
     <div className="homeSectionStack">
       <div className="sectionHead">
@@ -1330,6 +1331,13 @@ function HomeSectionStack({
           status={status}
         />
       </div>
+      <MustReadBand
+        articles={mustReadArticles}
+        copy={copy}
+        openArticle={openArticle}
+        savedIds={savedIds}
+        toggleSave={toggleSave}
+      />
       {sections.map((section) => (
         <section className="homeTopicSection" key={section.key}>
           <div className="homeTopicHead">
@@ -1361,6 +1369,79 @@ function HomeSectionStack({
   );
 }
 
+function MustReadBand({ articles, copy, openArticle, savedIds, toggleSave }) {
+  if (!articles.length) return null;
+  const [lead, ...items] = articles.slice(0, 4);
+  const leadSaved = savedIds.includes(lead.id);
+  return (
+    <section className="mustReadBand" aria-label="Must read live news">
+      <div className="mustReadHead">
+        <div>
+          <span>Must Read</span>
+          <h3>Start with the biggest live stories right now</h3>
+        </div>
+        <a href={categoryRoutes.top}>
+          More top news <ChevronRight size={14} />
+        </a>
+      </div>
+      <div className="mustReadGrid">
+        <article className="mustReadLead">
+          <a className="mustReadLeadVisual" href={articleHref(lead)} onClick={(event) => openArticleFromLink(event, lead, openArticle)}>
+            <ImageWithFallback
+              src={lead.image}
+              alt={`${lead.source || 'Publisher'} image for ${displayTitle(lead)}`}
+              imageKind={lead.imageKind}
+              logoLabel={lead.source}
+              logoSize="large"
+              fallback={<NewsFallbackVisual article={lead} size="large" />}
+            />
+          </a>
+          <div className="mustReadLeadBody">
+            <div className="cardTop">
+              <span className="category">{lead.category?.toUpperCase()}</span>
+              <span>
+                <Clock size={13} /> {formatFreshAge(lead.pubDate)}
+              </span>
+            </div>
+            <a className="headline" href={articleHref(lead)} onClick={(event) => openArticleFromLink(event, lead, openArticle)}>
+              {displayTitle(lead)}
+            </a>
+            <p>{displaySummary(lead)}</p>
+            <div className="cardActions">
+              <button className="primaryAction" onClick={() => openArticle(lead)}>
+                <Sparkles size={15} /> {copy.aiBrief}
+              </button>
+              <button onClick={() => toggleSave(lead)}>
+                <Bookmark size={15} fill={leadSaved ? 'currentColor' : 'none'} /> {leadSaved ? copy.saved : copy.save}
+              </button>
+            </div>
+          </div>
+        </article>
+        <div className="mustReadList">
+          {items.map((article) => (
+            <a className="mustReadItem" key={article.id} href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
+              <div className="mustReadItemThumb">
+                <ImageWithFallback
+                  src={article.image}
+                  alt={`${article.source || 'Publisher'} image for ${displayTitle(article)}`}
+                  imageKind={article.imageKind}
+                  logoLabel={article.source}
+                  logoSize="small"
+                  fallback={<NewsFallbackVisual article={article} size="small" />}
+                />
+              </div>
+              <div>
+                <span>{article.source} · {formatFreshAge(article.pubDate)}</span>
+                <b>{displayTitle(article)}</b>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function buildHomeSections(articles, homeSectionFeeds = {}) {
   const fallback = articles.slice(0, 6);
   return homeSectionConfigs
@@ -1378,6 +1459,12 @@ function buildHomeSections(articles, homeSectionFeeds = {}) {
       };
     })
     .filter((section) => section.articles.length > 0);
+}
+
+function buildMustReadStories(articles, homeSectionFeeds = {}) {
+  const priorityFeeds = ['world', 'aiTech', 'business', 'science', 'health', 'entertainment', 'sports']
+    .flatMap((key) => (homeSectionFeeds[key] || []).slice(0, 2));
+  return uniqueArticles([...articles.slice(0, 8), ...priorityFeeds]).slice(0, 4);
 }
 
 function articleMatchesHomeSection(article, keywords) {
