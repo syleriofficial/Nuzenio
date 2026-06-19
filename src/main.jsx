@@ -40,6 +40,7 @@ const categories = [
   ['world', 'World'],
   ['business', 'Business'],
   ['tech', 'Technology'],
+  ['ai', 'AI'],
   ['sports', 'Sports'],
   ['entertainment', 'Entertainment'],
   ['health', 'Health'],
@@ -50,6 +51,7 @@ const categories = [
 
 const primarySectionRoutes = {
   local: '/local',
+  ai: '/ai',
   live: '/live',
   video: '/video',
 };
@@ -181,6 +183,7 @@ const translations = {
       world: 'World',
       business: 'Business',
       tech: 'Technology',
+      ai: 'AI',
       sports: 'Sports',
       entertainment: 'Entertainment',
       health: 'Health',
@@ -791,6 +794,16 @@ function Header({
           }}
         >
           {copy.categories.local}
+        </a>
+        <a
+          href={categoryRoutes.ai}
+          className={screen === 'home' && category === 'ai' ? 'active' : ''}
+          onClick={(event) => {
+            event.preventDefault();
+            navigateCategory('ai');
+          }}
+        >
+          {copy.categories.ai}
         </a>
         <a
           href={categoryRoutes.live}
@@ -1909,6 +1922,7 @@ function sectionContent(category, copy, location) {
     world: 'Global headlines from the world news section, separated from local and business feeds.',
     business: 'Business, markets, economy, companies, and money headlines from dedicated business sources.',
     tech: 'Technology, startups, AI, gadgets, platforms, and science-adjacent innovation headlines.',
+    ai: 'Artificial intelligence headlines, AI companies, models, tools, policy, chips, research, and product launches.',
     sports: 'Sports headlines, match updates, teams, leagues, and athlete news from the sports feed.',
     entertainment: 'Entertainment, film, television, music, celebrity, and culture stories in one feed.',
     health: 'Health, medicine, public health, wellness, and research headlines from the health feed.',
@@ -2455,6 +2469,7 @@ function siteNavigationSchema() {
     ['World News', '/world'],
     ['Business News', '/business'],
     ['Technology News', '/technology'],
+    ['AI News', '/ai'],
     ['Sports News', '/sports'],
     ['Entertainment News', '/entertainment'],
     ['Health News', '/health'],

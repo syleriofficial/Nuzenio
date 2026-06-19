@@ -99,6 +99,9 @@ const CATEGORY_SEARCH_TERMS = {
     ur: 'ٹیکنالوجی خبریں AI اسمارٹ فون اسٹارٹ اپ',
     zh: '科技 新闻 AI 智能手机 创业公司',
   },
+  ai: {
+    en: 'artificial intelligence AI news OpenAI Google Anthropic Nvidia models tools policy',
+  },
   sports: {
     ar: 'أخبار الرياضة مباراة نتيجة كرة القدم كريكيت',
     bn: 'খেলার খবর ম্যাচ স্কোর ক্রিকেট ফুটবল',
@@ -190,7 +193,7 @@ const CATEGORY_SEARCH_TERMS = {
 };
 
 const VIDEO_CATEGORIES = new Set(['video', 'live']);
-const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS)]);
+const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS), 'ai']);
 const LIVE_SOURCE_PROVIDERS = new Set(['youtube', 'twitch', 'official_embed', 'hls']);
 const MAX_RSS_AGE_DAYS = 14;
 
@@ -1091,6 +1094,10 @@ function googleNewsUrl({ category, country, q, region, city, language }) {
   if (category === 'live') {
     const liveQuery = ['site:youtube.com/watch', liveNewsQuery(newsLanguage), countryLabel(countryCode)].filter(Boolean).join(' ');
     return `https://news.google.com/rss/search?q=${encodeURIComponent(liveQuery)}&${params}`;
+  }
+  if (category === 'ai') {
+    const aiQuery = `${CATEGORY_SEARCH_TERMS.ai.en} ${countryLabel(countryCode)} when:7d`;
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(aiQuery)}&${params}`;
   }
   if (TOPICS[category]) {
     return `https://news.google.com/rss/headlines/section/topic/${TOPICS[category]}?${params}`;

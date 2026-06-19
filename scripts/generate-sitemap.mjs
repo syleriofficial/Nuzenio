@@ -10,6 +10,7 @@ const categories = [
   ['world', '0.85'],
   ['business', '0.85'],
   ['technology', '0.85'],
+  ['ai', '0.85'],
   ['sports', '0.80'],
   ['entertainment', '0.75'],
   ['health', '0.75'],
