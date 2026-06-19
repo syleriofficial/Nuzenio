@@ -245,7 +245,7 @@ function initialLocation() {
 }
 
 function contextUrl({ category, location }) {
-  const url = new URL(window.location.href);
+  const url = new URL('/', window.location.origin);
   const currentArticle = readArticleIdFromUrl();
   url.pathname = categoryRoutes[category] || '/';
   if (categoryRoutes[category]) url.searchParams.delete('category');
@@ -711,6 +711,14 @@ function App() {
   const breakingLabel = ['live', 'video'].includes(category)
     ? videoSectionLabel(category, copy).toUpperCase()
     : copy.breaking;
+  const currentSearchTerm = (readUrlParam('q') || query).trim();
+  const semanticPageTitle = pageSeoTitle({
+    category,
+    isRootHome,
+    location,
+    language,
+    searchTerm: currentSearchTerm,
+  }).replace(/\s\|\sNuzenio$/, '');
 
   return (
     <div className="appShell" data-section={category} data-local-page={isLocalPage ? 'true' : 'false'}>
@@ -736,6 +744,7 @@ function App() {
         setQuery={setQuery}
         user={user}
       />
+      {!selected && <h1 className="srOnly">{semanticPageTitle}</h1>}
 
       {screen === 'home' && (
         <Home
@@ -758,7 +767,7 @@ function App() {
           status={status}
           toggleSave={toggleSave}
           refreshNews={refreshCurrentNews}
-          searchTerm={(readUrlParam('q') || query).trim()}
+          searchTerm={currentSearchTerm}
           clearSearch={() => {
             setQuery('');
             clearSearchUrl();
@@ -3169,7 +3178,7 @@ function articleEventParams(article) {
 }
 
 function shareArticleUrl(article) {
-  const url = new URL(window.location.href);
+  const url = new URL('/', window.location.origin);
   url.pathname = `/article/${encodeURIComponent(article.id)}`;
   url.searchParams.delete('article');
   url.hash = '';
