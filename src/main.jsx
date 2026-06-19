@@ -2033,6 +2033,7 @@ function Footer({ copy, onPrivacySettings }) {
       <a href="/sources.html">Sources</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
       <a href="/contact.html">Contact</a>
+      <a href="/advertise.html">Advertise</a>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
       <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
