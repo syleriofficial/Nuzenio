@@ -450,6 +450,7 @@ function App() {
   async function searchNewsByTerm(searchTerm, { updateUrl = true } = {}) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
+    setIsRootHome(false);
     setIsLoadingNews(true);
     setStatus('Searching live RSS news...');
     setArticles([]);
