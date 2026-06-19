@@ -729,20 +729,61 @@ button {
   object-fit: cover;
 }
 
-.leadVisual img[data-image-kind="logo"],
-.articleThumb img[data-image-kind="logo"],
-.miniThumb img[data-image-kind="logo"],
-.relatedThumb img[data-image-kind="logo"] {
-  object-fit: contain;
-  padding: 22px;
+.publisherLogoVisual {
+  display: grid;
+  place-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 42%),
     linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  text-align: center;
 }
 
-.miniThumb img[data-image-kind="logo"],
-.relatedThumb img[data-image-kind="logo"] {
-  padding: 15px;
+.publisherLogoVisual img {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  object-fit: contain;
+}
+
+.publisherLogoVisual span {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 86%;
+  color: #1e3a8a;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.largePublisherLogo img {
+  width: 92px;
+  height: 92px;
+  border-radius: 20px;
+}
+
+.largePublisherLogo span {
+  font-size: 30px;
+}
+
+.smallPublisherLogo {
+  gap: 5px;
+  padding: 8px;
+}
+
+.smallPublisherLogo img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.smallPublisherLogo span {
+  font-size: 10px;
 }
 
 .newsFallbackVisual {

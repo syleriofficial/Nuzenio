@@ -1014,6 +1014,8 @@ function Home({
               <ImageWithFallback
                 src={lead?.image}
                 imageKind={lead?.imageKind}
+                logoLabel={lead?.source}
+                logoSize="large"
                 loading="eager"
                 fetchPriority="high"
                 fallback={(
@@ -1666,6 +1668,8 @@ function SmallStory({ article, copy, openArticle }) {
         <ImageWithFallback
           src={article.image}
           imageKind={article.imageKind}
+          logoLabel={article.source}
+          logoSize="small"
           fallback={(
           <NewsFallbackVisual article={article} size="small" />
           )}
@@ -1690,6 +1694,7 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
         <ImageWithFallback
           src={image}
           imageKind={article.imageKind}
+          logoLabel={article.source}
           fallback={(
           <NewsFallbackVisual article={article} />
           )}
@@ -1754,13 +1759,38 @@ function NewsFallbackVisual({ article, size = 'default' }) {
   );
 }
 
-function ImageWithFallback({ src, alt = '', imageKind = 'photo', loading = 'lazy', fetchPriority, fallback }) {
+function ImageWithFallback({
+  src,
+  alt = '',
+  imageKind = 'photo',
+  loading = 'lazy',
+  fetchPriority,
+  fallback,
+  logoLabel = '',
+  logoSize = 'default',
+}) {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     setBroken(false);
   }, [src]);
 
   if (!src || broken) return fallback || null;
+  if (imageKind === 'logo') {
+    return (
+      <div className={`publisherLogoVisual ${logoSize === 'large' ? 'largePublisherLogo' : ''} ${logoSize === 'small' ? 'smallPublisherLogo' : ''}`}>
+        <img
+          src={src}
+          alt={alt}
+          loading={loading}
+          decoding="async"
+          fetchPriority={fetchPriority}
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+        />
+        {logoLabel && <span>{logoLabel}</span>}
+      </div>
+    );
+  }
   return (
     <img
       src={src}
@@ -2048,6 +2078,8 @@ function RelatedStoryCard({ article, openArticle }) {
         <ImageWithFallback
           src={image}
           imageKind={article.imageKind}
+          logoLabel={article.source}
+          logoSize="small"
           fallback={(
           <NewsFallbackVisual article={article} size="small" />
           )}
