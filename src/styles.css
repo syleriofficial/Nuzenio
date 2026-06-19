@@ -240,6 +240,7 @@ button {
 }
 
 .breaking {
+  --ticker-duration: 32s;
   display: flex;
   align-items: center;
   margin: 18px 5vw;
@@ -249,8 +250,33 @@ button {
   background: var(--red-soft);
 }
 
+.breaking.isLong {
+  --ticker-duration: 38s;
+}
+
 .header .breaking {
   margin: 0 5vw 12px;
+}
+
+.breakingAction {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+button.breakingAction {
+  cursor: pointer;
+}
+
+button.breakingAction:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  outline-offset: -3px;
 }
 
 .breaking b {
@@ -272,7 +298,7 @@ button {
 .breakingTrack {
   display: inline-flex;
   min-width: max-content;
-  animation: breakingTicker 50s linear infinite;
+  animation: breakingTicker var(--ticker-duration) linear infinite;
   will-change: transform;
 }
 
@@ -2533,7 +2559,17 @@ button {
   }
 
   .breaking {
+    --ticker-duration: 28s;
     margin: 12px 4vw;
+  }
+
+  .breaking.isLong {
+    --ticker-duration: 38s;
+  }
+
+  .breaking b,
+  .breakingTrack span {
+    white-space: nowrap;
   }
 
   .main,

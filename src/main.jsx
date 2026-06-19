@@ -716,6 +716,7 @@ function App() {
       <a className="skipLink" href="#main-content">Skip to main content</a>
       <Header
         authNotice={authNotice}
+        breakingArticle={lead}
         breakingLabel={breakingLabel}
         breakingText={ticker || status}
         category={category}
@@ -727,6 +728,7 @@ function App() {
         query={query}
         screen={screen}
         searchNews={searchNews}
+        openArticle={openArticle}
         navigateCategory={navigateCategory}
         navigateHome={navigateHome}
         setMobileSearchOpen={setMobileSearchOpen}
@@ -801,6 +803,7 @@ function AnalyticsConsentBanner({ onAccept, onDecline }) {
 
 function Header({
   authNotice,
+  breakingArticle,
   breakingLabel,
   breakingText,
   category,
@@ -809,6 +812,7 @@ function Header({
   logout,
   mobileSearchOpen,
   isRootHome,
+  openArticle,
   navigateCategory,
   navigateHome,
   query,
@@ -917,7 +921,7 @@ function Header({
           {copy.categories.video}
         </a>
       </nav>
-      <BreakingStrip label={breakingLabel} text={breakingText} />
+      <BreakingStrip article={breakingArticle} label={breakingLabel} onOpenArticle={openArticle} text={breakingText} />
       <nav className="newsNav" aria-label="News sections">
         {categories.filter(([key]) => !primarySectionRoutes[key]).map(([key, label]) => (
           <a
@@ -1345,11 +1349,13 @@ function QuickSectionGrid({ copy, localPreview, livePreview, openArticle, videoP
   );
 }
 
-function BreakingStrip({ label, text }) {
+function BreakingStrip({ article, label, onOpenArticle, text }) {
   const safeText = text || 'Loading live news...';
   const tickerText = `${safeText}   •   ${safeText}`;
-  return (
-    <div className="breaking" aria-label={`${label}: ${safeText}`}>
+  const isLong = safeText.length > 220;
+  const canOpenArticle = article && typeof onOpenArticle === 'function';
+  const content = (
+    <>
       <b>{label}</b>
       <div className="breakingViewport">
         <div className="breakingTrack">
@@ -1357,6 +1363,20 @@ function BreakingStrip({ label, text }) {
           <span aria-hidden="true">{tickerText}</span>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div className={`breaking${isLong ? ' isLong' : ''}`} aria-label={`${label}: ${safeText}`}>
+      {canOpenArticle ? (
+        <button className="breakingAction" type="button" onClick={() => onOpenArticle(article)}>
+          {content}
+        </button>
+      ) : (
+        <div className="breakingAction" role="presentation">
+          {content}
+        </div>
+      )}
     </div>
   );
 }
