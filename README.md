@@ -15,10 +15,11 @@ Production-oriented Netlify + Supabase AI news platform.
 - Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, and analytics schema
 - English-only launch flow for cleaner UX, SEO, AdSense review, and source consistency
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
-- Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, and languages
+- Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate link manager structure with visible disclosure
-- SEO basics: meta tags, Open Graph tags, `robots.txt`, and `sitemap.xml`
-- Trust pages: about, sources, editorial policy, contact, advertise, privacy, terms, and affiliate disclosure
+- SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
+- Trust pages: about, sources, editorial policy, AI policy, corrections, contact, advertise, privacy, terms, and affiliate disclosure
+- Transparency files: `ads.txt`, `humans.txt`, `llms.txt`, and `.well-known/security.txt`
 - Google AdSense publisher script and `ads.txt` configured for `pub-5589150014762971`
 - Mobile bottom navigation and readable article view
 
@@ -32,7 +33,7 @@ Publish directory: dist
 Functions directory: netlify/functions
 ```
 
-`netlify.toml` already maps `/api/news` to `/.netlify/functions/news`.
+`netlify.toml` maps `/api/news`, `/api/location`, `/feed.xml`, and `/news-sitemap.xml` to Netlify Functions.
 
 ## Supabase setup
 
@@ -104,14 +105,24 @@ CNAME www   <netlify-site-name>.netlify.app
 ```text
 https://nuzenio.com
 https://nuzenio.com/api/news
+https://nuzenio.com/feed.xml
+https://nuzenio.com/news-sitemap.xml
 https://nuzenio.com/about.html
+https://nuzenio.com/editorial-policy.html
+https://nuzenio.com/ai-policy.html
+https://nuzenio.com/corrections.html
 https://nuzenio.com/contact.html
 https://nuzenio.com/privacy.html
 https://nuzenio.com/sitemap.xml
+https://nuzenio.com/robots.txt
+https://nuzenio.com/ads.txt
+https://nuzenio.com/llms.txt
+https://nuzenio.com/.well-known/security.txt
 ```
 
-8. Submit `https://nuzenio.com/sitemap.xml` in Google Search Console.
-9. Keep `https://nuzenio.com` as the canonical production URL.
+8. Submit `https://nuzenio.com/sitemap.xml` and `https://nuzenio.com/news-sitemap.xml` in Google Search Console.
+9. Confirm `/feed.xml` and `/news-sitemap.xml` return XML, not the SPA HTML shell.
+10. Keep `https://nuzenio.com` as the canonical production URL.
 
 ## Local development
 
@@ -131,7 +142,7 @@ npm run build
 - AdSense publisher script is configured in `index.html`; create real ad units in AdSense and replace reserved inventory slots only with approved slot IDs.
 - Keep paid placements labeled and separate from editorial RSS stories.
 - Keep `public/ads.txt` in sync with the active AdSense publisher account.
-- Use the public trust pages in `public/` for review readiness.
+- Use the public trust pages in `public/` for AdSense and publisher review readiness.
 - Store approved partner links in `public.affiliate_links` and keep `enabled=false` until reviewed.
 
 ## Deploy
