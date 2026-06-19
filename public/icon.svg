@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Nuzenio icon">
-  <rect width="512" height="512" rx="96" fill="#e11d48"/>
-  <path d="M133 126h70l112 174V126h64v260h-70L197 213v173h-64V126Z" fill="#ffffff"/>
-  <path d="M112 414h288" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity=".9"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Nuzenio icon</title>
+  <desc id="desc">Original Nuzenio news mark with a blue global frame, dark N, and red signal stroke.</desc>
+  <rect width="512" height="512" rx="108" fill="#ffffff"/>
+  <rect x="26" y="26" width="460" height="460" rx="96" fill="#ffffff" stroke="#bfdbfe" stroke-width="20"/>
+  <circle cx="256" cy="256" r="160" fill="#eff6ff"/>
+  <path d="M149 352V160h54l106 136V160h54v192h-54L203 216v136h-54Z" fill="#111827"/>
+  <path d="M130 303c56-68 110-86 162-50 31 22 59 25 90 4" fill="none" stroke="#e11d48" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M379 208l35 56-65 5 30-61Z" fill="#e11d48"/>
 </svg>

@@ -830,9 +830,8 @@ function Header({
           }}
           aria-label="Nuzenio home"
         >
-          <div className="logo">N</div>
           <div>
-            <h1>Nuzenio</h1>
+            <img className="brandLogo" src="/logo.svg" alt="Nuzenio" width="171" height="44" />
             <small>{copy.tagline}</small>
           </div>
         </a>

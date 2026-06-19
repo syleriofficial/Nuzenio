@@ -91,6 +91,12 @@
     Cache-Control = "public, max-age=86400"
 
 [[headers]]
+  for = "/logo.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/og-image.svg"
   [headers.values]
     Content-Type = "image/svg+xml"

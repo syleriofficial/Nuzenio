@@ -90,7 +90,7 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 204px;
   border: 0;
   background: transparent;
@@ -99,16 +99,11 @@ button {
   text-decoration: none;
 }
 
-.logo {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  background: var(--red);
-  color: #fff;
-  font-size: 26px;
-  font-weight: 950;
+.brandLogo {
+  display: block;
+  width: 171px;
+  max-width: 42vw;
+  height: auto;
 }
 
 .brand h1 {
@@ -2520,8 +2515,8 @@ button {
     padding: 0 4vw 10px;
   }
 
-  .brand h1 {
-    font-size: 22px;
+  .brandLogo {
+    width: 148px;
   }
 
   .searchBox {
