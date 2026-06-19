@@ -1,0 +1,29 @@
+/* Nuzenio */
+
+Site: https://nuzenio.com
+Name: Nuzenio
+Description: Professional English news platform for live RSS headlines, local news, video news, live news channels, and AI-powered context.
+
+/* Contact */
+
+Owner: SyleriOfficial
+Contact: syleriofficial@gmail.com
+Corrections: https://nuzenio.com/corrections.html
+Editorial Policy: https://nuzenio.com/editorial-policy.html
+AI Policy: https://nuzenio.com/ai-policy.html
+Privacy Policy: https://nuzenio.com/privacy.html
+
+/* Technology */
+
+Frontend: React, Vite
+Hosting: Netlify
+Functions: Netlify Functions
+Auth/Data: Supabase-ready structure
+Analytics: Google Analytics with consent controls
+Advertising: Google AdSense-ready structure
+
+/* Standards */
+
+Language: English
+Source Model: Publisher-attributed RSS and approved playable news sources
+Last Updated: 2026-06-19
