@@ -1186,54 +1186,63 @@ const homeSectionConfigs = [
     key: 'top',
     title: 'Top Stories',
     intro: 'The most important live headlines in your selected region.',
+    href: categoryRoutes.top,
     match: ['breaking', 'latest', 'top', 'headline', 'exclusive', 'update'],
   },
   {
     key: 'trending',
     title: 'Trending Now',
     intro: 'Fast-moving stories readers are likely to follow next.',
+    href: categoryRoutes.top,
     match: ['viral', 'trend', 'breaking', 'live', 'update', 'market', 'election'],
   },
   {
     key: 'world',
     title: 'World Headlines',
     intro: 'Global developments and international updates.',
+    href: categoryRoutes.world,
     match: ['world', 'global', 'international', 'war', 'summit', 'diplomacy', 'border', 'europe', 'china', 'us ', 'russia'],
   },
   {
     key: 'aiTech',
     title: 'AI & Technology',
     intro: 'AI, technology, chips, startups, products, platforms, and research.',
+    href: categoryRoutes.ai,
     match: ['ai', 'artificial intelligence', 'openai', 'google', 'anthropic', 'nvidia', 'chip', 'tech', 'startup', 'model'],
   },
   {
     key: 'business',
     title: 'Business & Markets',
     intro: 'Markets, companies, economy, money, jobs, and business policy.',
+    href: categoryRoutes.business,
     match: ['business', 'market', 'stock', 'economy', 'company', 'bank', 'trade', 'rupee', 'dollar', 'profit'],
   },
   {
     key: 'sports',
     title: 'Sports Highlights',
     intro: 'Matches, teams, scores, tournaments, and sports personalities.',
+    href: categoryRoutes.sports,
     match: ['sport', 'match', 'cricket', 'football', 'tennis', 'score', 'league', 'cup', 'team', 'player'],
   },
   {
     key: 'science',
     title: 'Science & Space',
     intro: 'Science, space, climate, discoveries, and research updates.',
+    href: categoryRoutes.science,
     match: ['science', 'space', 'nasa', 'isro', 'climate', 'research', 'study', 'moon', 'mars', 'discovery'],
   },
   {
     key: 'health',
     title: 'Health Updates',
     intro: 'Public health, medicine, wellness, hospitals, and research.',
+    href: categoryRoutes.health,
     match: ['health', 'medicine', 'doctor', 'hospital', 'disease', 'virus', 'wellness', 'medical', 'study'],
   },
   {
     key: 'entertainment',
     title: 'Entertainment',
     intro: 'Film, streaming, music, celebrity, culture, and media stories.',
+    href: categoryRoutes.entertainment,
     match: ['entertainment', 'film', 'movie', 'bollywood', 'hollywood', 'music', 'actor', 'celebrity', 'ott'],
   },
 ];
@@ -1261,7 +1270,9 @@ function HomeSectionStack({ articles, copy, isLoadingNews, lastUpdated, openArti
               <h3>{section.title}</h3>
               <p>{section.intro}</p>
             </div>
-            <span>{section.articles.length} stories</span>
+            <a href={section.href}>
+              View all <ChevronRight size={14} />
+            </a>
           </div>
           <div className="homeSectionGrid">
             {section.articles.map((article) => (

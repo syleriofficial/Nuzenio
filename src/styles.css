@@ -1125,7 +1125,10 @@ button {
   line-height: 1.45;
 }
 
-.homeTopicHead span {
+.homeTopicHead a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex: 0 0 auto;
   border: 1px solid #bfdbfe;
   border-radius: 999px;
@@ -1134,6 +1137,12 @@ button {
   padding: 7px 10px;
   font-size: 13px;
   font-weight: 950;
+  text-decoration: none;
+}
+
+.homeTopicHead a:hover {
+  border-color: var(--blue);
+  background: #dbeafe;
 }
 
 .homeSectionGrid {
