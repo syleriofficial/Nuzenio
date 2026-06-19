@@ -2223,8 +2223,14 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           <X size={20} />
         </button>
         <div className="progress" />
-        <div className="articleTopline">
-          <span className="category">{article.category?.toUpperCase()}</span>
+        <div className="articleMasthead">
+          <div>
+            <span className="category">{article.category?.toUpperCase()}</span>
+            <strong>{article.source || 'Publisher'}</strong>
+          </div>
+          <span>
+            <ShieldCheck size={15} /> Publisher attributed
+          </span>
         </div>
         <h1 id="article-modal-title">{displayTitle(article)}</h1>
         <div className="articleMeta">
@@ -2236,7 +2242,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           </span>
           <span>{formatDate(article.pubDate)}</span>
           <span>
-            <ShieldCheck size={15} /> Source attributed
+            <ShieldCheck size={15} /> Trust score {article.trustScore || 90}
           </span>
         </div>
         <div className="articleActionBar" aria-label="Article actions">
@@ -2264,6 +2270,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           <h3>
             <Sparkles size={18} /> {isVideo ? 'Video brief' : copy.brandBrief}
           </h3>
+          <span className="aiDisclosure">AI context, separated from publisher reporting</span>
           <p>{displayFullBrief(article)}</p>
         </div>
         <div className="fullStoryPanel">
@@ -2273,15 +2280,15 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           </div>
         </div>
         <div className="infoGrid">
-          <div>
+          <div className="infoCard">
             <h3>{copy.whatHappened}</h3>
             <p>{article.whatHappened || displaySummary(article)}</p>
           </div>
-          <div>
+          <div className="infoCard">
             <h3>{copy.whyItMatters}</h3>
             <p>{article.whyItMatters}</p>
           </div>
-          <div>
+          <div className="infoCard">
             <h3>{copy.keyFacts}</h3>
             <ul>
               {facts.map((fact) => (
@@ -2338,14 +2345,6 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
             Nuzenio keeps editorial RSS stories separate from commercial placements. Any paid or affiliate link must be
             labeled before publication.
           </p>
-        </div>
-        <div className="readerTools">
-          <button onClick={() => toggleSave(article)}>
-            <Bookmark size={16} /> {savedIds.includes(article.id) ? copy.saved : copy.save}
-          </button>
-          <button onClick={() => shareArticle(article)}>
-            <Share2 size={16} /> Share
-          </button>
         </div>
         <a
           className="original"
