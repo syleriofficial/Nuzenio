@@ -285,6 +285,7 @@ function App() {
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
   const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState('');
   const language = initialLanguage();
@@ -298,7 +299,9 @@ function App() {
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
   const [isRootHome, setIsRootHome] = useState(() => isRootHomePath());
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
+  const [homeSectionFeeds, setHomeSectionFeeds] = useState({});
   const newsRequestId = useRef(0);
+  const homeSectionsRequestId = useRef(0);
 
   useEffect(() => {
     document.documentElement.dir = language.dir;
@@ -321,6 +324,14 @@ function App() {
   useEffect(() => {
     loadNews(category, location.country, location.region, location.city, 'en');
   }, [category, location.country, location.region, location.city]);
+
+  useEffect(() => {
+    if (!isRootHome) {
+      setHomeSectionFeeds({});
+      return;
+    }
+    loadHomeSectionFeeds(location.country);
+  }, [isRootHome, location.country]);
 
   useEffect(() => {
     if (isRootHome && category === 'top') {
@@ -449,6 +460,38 @@ function App() {
       setStatus(`Search error: ${error.message}`);
     } finally {
       if (requestId === newsRequestId.current) setIsLoadingNews(false);
+    }
+  }
+
+  async function loadHomeSectionFeeds(country = location.country) {
+    const requestId = homeSectionsRequestId.current + 1;
+    homeSectionsRequestId.current = requestId;
+    const sectionCategories = {
+      world: 'world',
+      aiTech: 'ai',
+      business: 'business',
+      sports: 'sports',
+      science: 'science',
+      health: 'health',
+      entertainment: 'entertainment',
+    };
+    setIsLoadingHomeSections(true);
+    try {
+      const results = await Promise.all(Object.entries(sectionCategories).map(async ([key, cat]) => {
+        const res = await fetch(
+          `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}&language=en&fresh=${Date.now()}`,
+          { cache: 'no-store' },
+        );
+        const data = await res.json();
+        return [key, data.ok ? data.articles || [] : []];
+      }));
+      if (requestId === homeSectionsRequestId.current) {
+        setHomeSectionFeeds(Object.fromEntries(results));
+      }
+    } catch {
+      if (requestId === homeSectionsRequestId.current) setHomeSectionFeeds({});
+    } finally {
+      if (requestId === homeSectionsRequestId.current) setIsLoadingHomeSections(false);
     }
   }
 
@@ -626,6 +669,7 @@ function App() {
     () => articles.slice(0, 6).map((article) => article.title).join(' | '),
     [articles],
   );
+  const modalArticles = uniqueArticles([...articles, ...Object.values(homeSectionFeeds).flat()]);
   const breakingLabel = ['live', 'video'].includes(category)
     ? videoSectionLabel(category, copy).toUpperCase()
     : copy.breaking;
@@ -658,7 +702,9 @@ function App() {
           category={category}
           copy={copy}
           feed={feed}
+          homeSectionFeeds={homeSectionFeeds}
           isRootHome={isRootHome}
+          isLoadingHomeSections={isLoadingHomeSections}
           language={language}
           isLoadingNews={isLoadingNews}
           lastUpdated={lastUpdated}
@@ -676,7 +722,7 @@ function App() {
       {selected && (
         <ArticleModal
           article={selected}
-          articles={articles}
+          articles={modalArticles}
           copy={copy}
           language={language}
           onClose={closeArticle}
@@ -852,6 +898,8 @@ function Home({
   category,
   copy,
   feed,
+  homeSectionFeeds,
+  isLoadingHomeSections,
   isLoadingNews,
   isRootHome,
   language,
@@ -1016,6 +1064,8 @@ function Home({
           <HomeSectionStack
             articles={articles}
             copy={copy}
+            homeSectionFeeds={homeSectionFeeds}
+            isLoadingHomeSections={isLoadingHomeSections}
             isLoadingNews={isLoadingNews}
             lastUpdated={lastUpdated}
             openArticle={openArticle}
@@ -1247,8 +1297,20 @@ const homeSectionConfigs = [
   },
 ];
 
-function HomeSectionStack({ articles, copy, isLoadingNews, lastUpdated, openArticle, refreshNews, savedIds, status, toggleSave }) {
-  const sections = buildHomeSections(articles);
+function HomeSectionStack({
+  articles,
+  copy,
+  homeSectionFeeds,
+  isLoadingHomeSections,
+  isLoadingNews,
+  lastUpdated,
+  openArticle,
+  refreshNews,
+  savedIds,
+  status,
+  toggleSave,
+}) {
+  const sections = buildHomeSections(articles, homeSectionFeeds);
   return (
     <div className="homeSectionStack">
       <div className="sectionHead">
@@ -1257,7 +1319,7 @@ function HomeSectionStack({ articles, copy, isLoadingNews, lastUpdated, openArti
           <p>Nuzenio homepage sections: breaking ticker, trending, world, AI, business, sports, science, health, and entertainment.</p>
         </div>
         <SectionStatus
-          isLoading={isLoadingNews}
+          isLoading={isLoadingNews || isLoadingHomeSections}
           lastUpdated={lastUpdated}
           onRefresh={refreshNews}
           status={status}
@@ -1294,7 +1356,7 @@ function HomeSectionStack({ articles, copy, isLoadingNews, lastUpdated, openArti
   );
 }
 
-function buildHomeSections(articles) {
+function buildHomeSections(articles, homeSectionFeeds = {}) {
   const fallback = articles.slice(0, 6);
   return homeSectionConfigs
     .map((section, index) => {
@@ -1302,7 +1364,9 @@ function buildHomeSections(articles) {
         ? articles.slice(0, 6)
         : section.key === 'trending'
           ? articles.slice(1, 7)
-          : articles.filter((article) => articleMatchesHomeSection(article, section.match));
+          : homeSectionFeeds[section.key]?.length
+            ? homeSectionFeeds[section.key]
+            : articles.filter((article) => articleMatchesHomeSection(article, section.match));
       return {
         ...section,
         articles: uniqueArticles(matched.length ? matched : fallback.slice(index % 3, index % 3 + 3)).slice(0, 3),
