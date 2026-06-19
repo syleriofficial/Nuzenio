@@ -10,6 +10,36 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "categories": ["news", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Top News",
+      "short_name": "Top",
+      "description": "Open Nuzenio top headlines.",
+      "url": "/top-news",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Local News",
+      "short_name": "Local",
+      "description": "Open Nuzenio local news.",
+      "url": "/local",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Live News",
+      "short_name": "Live",
+      "description": "Open Nuzenio live news channels.",
+      "url": "/live",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Video News",
+      "short_name": "Video",
+      "description": "Open Nuzenio video news.",
+      "url": "/video",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icon.svg",
