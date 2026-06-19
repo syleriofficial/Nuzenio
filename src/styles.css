@@ -43,6 +43,33 @@ button {
   min-height: 100vh;
 }
 
+.skipLink {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  transform: translateY(-140%);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  padding: 10px 12px;
+  font-weight: 950;
+  text-decoration: none;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+  transition: transform 160ms ease;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 2px;
+}
+
+.main:focus {
+  outline: none;
+}
+
 .header {
   position: sticky;
   top: 0;

@@ -677,6 +677,7 @@ function App() {
 
   return (
     <div className="appShell" data-section={category} data-local-page={isLocalPage ? 'true' : 'false'}>
+      <a className="skipLink" href="#main-content">Skip to main content</a>
       <Header
         authNotice={authNotice}
         breakingLabel={breakingLabel}
@@ -800,6 +801,7 @@ function Header({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={copy.searchPlaceholder}
+            aria-label="Search live news"
           />
           <button className="searchSubmit" type="submit">
             {copy.search}
@@ -923,7 +925,7 @@ function Home({
 
   if (isVideoSection) {
     return (
-      <main className={`main videoMain ${category === 'video' ? 'recordedVideoMain' : 'liveVideoMain'}`}>
+      <main id="main-content" className={`main videoMain ${category === 'video' ? 'recordedVideoMain' : 'liveVideoMain'}`} tabIndex="-1">
         <section>
           <div className="videoHero">
             <div>
@@ -1000,7 +1002,7 @@ function Home({
   }
 
   return (
-    <main className="main">
+    <main id="main-content" className="main" tabIndex="-1">
       <section>
         <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
 
