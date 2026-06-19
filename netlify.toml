@@ -49,6 +49,12 @@
     Cache-Control = "public, max-age=3600"
 
 [[headers]]
+  for = "/feed.xml"
+  [headers.values]
+    Content-Type = "application/rss+xml; charset=utf-8"
+    Cache-Control = "public, max-age=300, stale-while-revalidate=300"
+
+[[headers]]
   for = "/icon.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
@@ -78,6 +84,11 @@
 [[redirects]]
   from = "/api/location"
   to = "/.netlify/functions/location"
+  status = 200
+
+[[redirects]]
+  from = "/feed.xml"
+  to = "/.netlify/functions/feed"
   status = 200
 
 [[redirects]]
