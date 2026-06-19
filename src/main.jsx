@@ -1013,6 +1013,7 @@ function Home({
             <div className="leadVisual">
               <ImageWithFallback
                 src={lead?.image}
+                alt={lead ? `${lead.source || 'Publisher'} image for ${displayTitle(lead)}` : 'Nuzenio lead story image'}
                 imageKind={lead?.imageKind}
                 logoLabel={lead?.source}
                 logoSize="large"
@@ -1501,7 +1502,7 @@ function VideoThumbMedia({ article, compact = false }) {
     </div>
   );
 
-  return <ImageWithFallback src={thumbnail} fallback={fallback} />;
+  return <ImageWithFallback src={thumbnail} alt={`${article.source || 'Publisher'} video thumbnail for ${displayTitle(article)}`} fallback={fallback} />;
 }
 
 function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
@@ -1667,6 +1668,7 @@ function SmallStory({ article, copy, openArticle }) {
       <div className="miniThumb">
         <ImageWithFallback
           src={article.image}
+          alt={`${article.source || 'Publisher'} image for ${displayTitle(article)}`}
           imageKind={article.imageKind}
           logoLabel={article.source}
           logoSize="small"
@@ -1693,6 +1695,7 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
       <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
         <ImageWithFallback
           src={image}
+          alt={`${article.source || 'Publisher'} image for ${displayTitle(article)}`}
           imageKind={article.imageKind}
           logoLabel={article.source}
           fallback={(
@@ -2077,6 +2080,7 @@ function RelatedStoryCard({ article, openArticle }) {
       <div className="relatedThumb">
         <ImageWithFallback
           src={image}
+          alt={`${article.source || 'Publisher'} image for ${displayTitle(article)}`}
           imageKind={article.imageKind}
           logoLabel={article.source}
           logoSize="small"
