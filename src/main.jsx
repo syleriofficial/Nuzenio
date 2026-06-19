@@ -31,6 +31,7 @@ import './styles.css';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
@@ -244,6 +245,24 @@ function initialLocation() {
   };
 }
 
+function parseConfiguredAffiliateLinks(value = '[]') {
+  try {
+    const parsed = JSON.parse(value || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item?.title && item?.url && /^https:\/\//i.test(item.url))
+      .map((item, index) => ({
+        id: item.id || `env-affiliate-${index}`,
+        title: String(item.title).trim(),
+        category: String(item.category || 'news').trim().toLowerCase(),
+        url: String(item.url).trim(),
+        disclosure: String(item.disclosure || 'Nuzenio may earn a commission from this link.').trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 function contextUrl({ category, location }) {
   const url = new URL('/', window.location.origin);
   const currentArticle = readArticleIdFromUrl();
@@ -300,6 +319,7 @@ function App() {
   const [isRootHome, setIsRootHome] = useState(() => isRootHomePath());
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
   const [homeSectionFeeds, setHomeSectionFeeds] = useState({});
+  const [affiliateLinks, setAffiliateLinks] = useState(configuredAffiliateLinks);
   const newsRequestId = useRef(0);
   const homeSectionsRequestId = useRef(0);
 
@@ -314,6 +334,10 @@ function App() {
   useEffect(() => {
     updateGoogleConsent(analyticsConsent);
   }, [analyticsConsent]);
+
+  useEffect(() => {
+    loadAffiliateLinks();
+  }, []);
 
   useEffect(() => {
     if (!['manual', 'link'].includes(location.source)) {
@@ -512,6 +536,24 @@ function App() {
     } finally {
       if (requestId === homeSectionsRequestId.current) setIsLoadingHomeSections(false);
     }
+  }
+
+  async function loadAffiliateLinks() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('affiliate_links')
+      .select('id,title,category,destination_url,disclosure')
+      .eq('enabled', true)
+      .order('updated_at', { ascending: false })
+      .limit(8);
+    if (error || !data?.length) return;
+    setAffiliateLinks(data.map((item) => ({
+      id: item.id,
+      title: item.title,
+      category: item.category || 'news',
+      url: item.destination_url,
+      disclosure: item.disclosure || 'Nuzenio may earn a commission from this link.',
+    })));
   }
 
   function refreshCurrentNews() {
@@ -756,6 +798,7 @@ function App() {
           copy={copy}
           feed={feed}
           homeSectionFeeds={homeSectionFeeds}
+          affiliateLinks={affiliateLinks}
           isRootHome={isRootHome}
           isLoadingHomeSections={isLoadingHomeSections}
           language={language}
@@ -788,6 +831,7 @@ function App() {
           openArticle={openArticle}
           savedIds={savedIds}
           toggleSave={toggleSave}
+          affiliateLinks={affiliateLinks}
         />
       )}
       {!analyticsConsent && (
@@ -956,6 +1000,7 @@ function Header({
 
 function Home({
   articles,
+  affiliateLinks,
   category,
   copy,
   feed,
@@ -1054,6 +1099,7 @@ function Home({
           <Trending articles={articles} copy={copy} openArticle={openArticle} />
           <AISummaryBox copy={copy} />
           <TopicRail />
+          <AffiliateRail links={affiliateLinks} context={category} />
           <Newsletter copy={copy} language={language} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
@@ -1199,11 +1245,12 @@ function Home({
       </section>
 
       <aside className="rightRail">
-        <Trending articles={articles} copy={copy} openArticle={openArticle} />
-        <AISummaryBox copy={copy} />
-        <TopicRail />
-        <Newsletter copy={copy} language={language} />
-        <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
+          <Trending articles={articles} copy={copy} openArticle={openArticle} />
+          <AISummaryBox copy={copy} />
+          <TopicRail />
+          <AffiliateRail links={affiliateLinks} context={category} />
+          <Newsletter copy={copy} language={language} />
+          <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
   );
@@ -2151,6 +2198,46 @@ function TopicRail() {
   );
 }
 
+function AffiliateRail({ compact = false, context = 'top', links = [] }) {
+  const approvedLinks = (links || [])
+    .filter((link) => link?.title && link?.url && /^https:\/\//i.test(link.url))
+    .sort((a, b) => Number((b.category || '').toLowerCase() === context) - Number((a.category || '').toLowerCase() === context))
+    .slice(0, compact ? 2 : 3);
+
+  if (!approvedLinks.length) return null;
+
+  return (
+    <div className={`railCard affiliatePanel ${compact ? 'compactAffiliatePanel' : ''}`}>
+      <h3>
+        <BriefcaseBusiness size={18} /> Partner picks
+      </h3>
+      <span className="affiliateDisclosure">Sponsored / affiliate links</span>
+      <div className="affiliateLinks">
+        {approvedLinks.map((link) => (
+          <a
+            key={link.id || link.url}
+            href={link.url}
+            target="_blank"
+            rel="sponsored nofollow noopener noreferrer"
+            onClick={() => trackEvent('affiliate_click', {
+              affiliate_category: link.category || 'news',
+              affiliate_title: link.title,
+              placement: compact ? 'article' : 'sidebar',
+            })}
+          >
+            <span>{(link.category || 'Partner').toUpperCase()}</span>
+            <b>{link.title}</b>
+            <small>{link.disclosure || 'Nuzenio may earn a commission from this link.'}</small>
+            <em>
+              Open partner link <ExternalLink size={13} />
+            </em>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Newsletter({ copy, language }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -2207,7 +2294,7 @@ function Newsletter({ copy, language }) {
   );
 }
 
-function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds, toggleSave }) {
+function ArticleModal({ affiliateLinks, article, articles, copy, onClose, openArticle, savedIds, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -2342,6 +2429,7 @@ function ArticleModal({ article, articles, copy, onClose, openArticle, savedIds,
           </p>
         </div>
         <AdSlot name="article-inline" label="Article advertising inventory" />
+        <AffiliateRail links={affiliateLinks} context={article.category} compact />
         <div className="sourceBox affiliateDisclosureBox">
           <h3>Affiliate disclosure</h3>
           <p>

@@ -2133,6 +2133,10 @@ button {
   background: #fffdf7;
 }
 
+.compactAffiliatePanel {
+  margin-top: 14px;
+}
+
 .affiliateDisclosure {
   display: inline-flex;
   width: fit-content;
@@ -2140,6 +2144,55 @@ button {
   border-color: #fde68a;
   background: #fffbeb;
   color: #92400e;
+}
+
+.affiliateLinks {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.affiliateLinks a {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 12px;
+  text-decoration: none;
+}
+
+.affiliateLinks a:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.affiliateLinks span {
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.affiliateLinks b {
+  line-height: 1.25;
+}
+
+.affiliateLinks small {
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.affiliateLinks em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  color: var(--blue);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 950;
 }
 
 .railCard input {

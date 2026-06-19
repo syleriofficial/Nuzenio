@@ -50,11 +50,13 @@ YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 LIVE_NEWS_SOURCES=[]
 TWITCH_EMBED_PARENTS=nuzenio.com,<netlify-site-name>.netlify.app
+VITE_AFFILIATE_LINKS=[]
 ```
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 `LIVE_NEWS_SOURCES` is optional JSON for verified free live channels outside normal YouTube search. Only add official/publicly embeddable sources that the publisher allows. Supported providers are `youtube`, `twitch`, `official_embed`, and `hls`.
+`VITE_AFFILIATE_LINKS` is optional JSON for approved partner links. Links must be real, HTTPS, labeled, and relevant. If Supabase is configured, enabled rows from `public.affiliate_links` are loaded first.
 
 Example `LIVE_NEWS_SOURCES` value:
 
@@ -71,6 +73,19 @@ Example `LIVE_NEWS_SOURCES` value:
     "link": "https://publisher.example/live",
     "active": true,
     "priority": 100
+  }
+]
+```
+
+Example `VITE_AFFILIATE_LINKS` value:
+
+```json
+[
+  {
+    "title": "Approved partner offer title",
+    "category": "technology",
+    "url": "https://partner.example/your-approved-affiliate-url",
+    "disclosure": "Nuzenio may earn a commission from this partner link."
   }
 ]
 ```
@@ -143,7 +158,7 @@ npm run build
 - Keep paid placements labeled and separate from editorial RSS stories.
 - Keep `public/ads.txt` in sync with the active AdSense publisher account.
 - Use the public trust pages in `public/` for AdSense and publisher review readiness.
-- Store approved partner links in `public.affiliate_links` and keep `enabled=false` until reviewed.
+- Store approved partner links in `public.affiliate_links` and keep `enabled=false` until reviewed. Only set `enabled=true` after the destination, disclosure, and category are approved.
 
 ## Deploy
 
