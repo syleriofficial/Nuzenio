@@ -1,5 +1,6 @@
 /api/news /.netlify/functions/news 200
 /api/location /.netlify/functions/location 200
+/api/admin-rss-test /.netlify/functions/admin-rss-test 200
 /feed.xml /.netlify/functions/feed 200
 /news-sitemap.xml /.netlify/functions/news-sitemap 200
 /article/* /.netlify/functions/article 200

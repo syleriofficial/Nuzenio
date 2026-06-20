@@ -123,6 +123,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/admin-rss-test"
+  to = "/.netlify/functions/admin-rss-test"
+  status = 200
+
+[[redirects]]
   from = "/feed.xml"
   to = "/.netlify/functions/feed"
   status = 200

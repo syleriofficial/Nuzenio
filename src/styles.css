@@ -39,6 +39,265 @@ button {
   cursor: pointer;
 }
 
+.adminMain {
+  min-height: 100vh;
+  padding: 28px 5vw 72px;
+  background: #f8fafc;
+}
+
+.adminBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  padding: 10px 12px;
+  font-weight: 850;
+}
+
+.adminHero,
+.adminPanel,
+.adminGate,
+.statCard {
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.adminHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 26px;
+}
+
+.adminHero span,
+.adminGate svg {
+  color: var(--blue);
+}
+
+.adminHero span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 900;
+}
+
+.adminHero h1,
+.adminGate h1 {
+  margin: 8px 0;
+  color: #0f172a;
+  letter-spacing: 0;
+}
+
+.adminHero p,
+.adminGate p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.adminHero button,
+.adminForm button,
+.adminToolbar button,
+.adminActions button,
+.adminGate button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  padding: 8px 12px;
+  font-weight: 850;
+}
+
+.adminNotice {
+  margin: 16px 0;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #1d4ed8;
+  padding: 12px 14px;
+  font-weight: 850;
+}
+
+.adminGrid {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.statsGrid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.twoColumn {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.statCard {
+  display: grid;
+  gap: 8px;
+  min-height: 116px;
+  padding: 16px;
+}
+
+.statCard svg {
+  color: var(--blue);
+}
+
+.statCard span,
+.metricRow span,
+.adminTable small {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.statCard b {
+  font-size: clamp(24px, 3vw, 34px);
+  color: #0f172a;
+}
+
+.adminPanel {
+  margin-top: 18px;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.adminPanel h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.adminPanel h4 {
+  margin: 18px 0 8px;
+}
+
+.adminGate {
+  max-width: 680px;
+  margin: 8vh auto;
+  padding: 34px;
+  text-align: center;
+}
+
+.adminGate button {
+  margin-top: 18px;
+}
+
+.adminForm,
+.adminToolbar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.adminForm.stacked {
+  grid-template-columns: 1fr;
+}
+
+.adminForm input,
+.adminForm select,
+.adminToolbar input,
+.adminToolbar select {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 10px;
+  font-weight: 750;
+}
+
+.adminForm label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-weight: 850;
+}
+
+.adminForm .primaryAction,
+.adminToolbar button:first-of-type,
+.adminGate .primaryAction {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.dangerAction {
+  border-color: #fecdd3 !important;
+  background: var(--red-soft) !important;
+  color: var(--red) !important;
+}
+
+.metricRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.metricRow b {
+  text-align: end;
+}
+
+.adminTableWrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.adminTable {
+  width: 100%;
+  min-width: 840px;
+  border-collapse: collapse;
+}
+
+.adminTable th,
+.adminTable td {
+  border-bottom: 1px solid var(--line);
+  padding: 11px 12px;
+  text-align: start;
+  vertical-align: top;
+}
+
+.adminTable th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.adminTable td b,
+.adminTable td small {
+  display: block;
+}
+
+.adminTable td small {
+  max-width: 460px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .appShell {
   min-height: 100vh;
 }
@@ -2952,8 +3211,29 @@ button {
 
   .trustStrip,
   .newsBriefingStats,
-  .quickSectionGrid {
+  .quickSectionGrid,
+  .statsGrid,
+  .twoColumn {
     grid-template-columns: 1fr;
+  }
+
+  .adminMain {
+    padding: 18px 4vw 84px;
+  }
+
+  .adminHero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .adminForm,
+  .adminToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .adminTable {
+    min-width: 760px;
   }
 
   .trustStrip div {

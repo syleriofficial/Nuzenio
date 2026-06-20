@@ -28,6 +28,7 @@ import {
   Zap,
 } from 'lucide-react';
 import './styles.css';
+import { AdminDashboard } from './components/AdminDashboard.jsx';
 import { AdSlot } from './components/AdSlot.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { fetchNewsJson } from './services/newsApi.js';
@@ -217,6 +218,10 @@ function isRootHomePath() {
   return normalizedPathname() === '/' && !readArticleIdFromUrl();
 }
 
+function isAdminPath() {
+  return normalizedPathname() === '/admin';
+}
+
 function readArticleIdFromUrl() {
   const [, articleId] = window.location.pathname.match(/^\/article\/([^/]+)\/?$/) || [];
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
@@ -303,7 +308,7 @@ function articleContextUrl(article, context) {
 }
 
 function App() {
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState(() => (isAdminPath() ? 'admin' : 'home'));
   const [category, setCategory] = useState(initialCategory);
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
@@ -320,7 +325,7 @@ function App() {
   const [authNotice, setAuthNotice] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
-  const [isRootHome, setIsRootHome] = useState(() => isRootHomePath());
+  const [isRootHome, setIsRootHome] = useState(() => !isAdminPath() && isRootHomePath());
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
   const [homeSectionFeeds, setHomeSectionFeeds] = useState({});
   const [affiliateLinks, setAffiliateLinks] = useState(configuredAffiliateLinks);
@@ -376,6 +381,13 @@ function App() {
 
   useEffect(() => {
     function syncArticleFromUrl() {
+      if (isAdminPath()) {
+        setScreen('admin');
+        setSelected(null);
+        setIsRootHome(false);
+        return;
+      }
+      setScreen('home');
       setIsRootHome(isRootHomePath());
       setIsLocalPage(window.location.pathname === categoryRoutes.local);
       setCategory(initialCategory());
@@ -409,6 +421,12 @@ function App() {
   useEffect(() => {
     updatePageSeo(selected, { category, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
   }, [selected, articles, category, isRootHome, query, location.country, location.region, location.city]);
+
+  useEffect(() => {
+    if (screen !== 'admin') return;
+    document.title = 'Admin | Nuzenio';
+    setMeta('meta[name="robots"]', 'content', 'noindex, nofollow');
+  }, [screen]);
 
   useEffect(() => {
     document.body.classList.toggle('articleModalOpen', Boolean(selected));
@@ -622,6 +640,18 @@ function App() {
     });
   }
 
+  function navigateAdmin() {
+    setScreen('admin');
+    setSelected(null);
+    setIsRootHome(false);
+    setMobileSearchOpen(false);
+    window.history.pushState({}, '', '/admin');
+    trackEvent('select_content', {
+      content_type: 'admin',
+      item_id: 'admin',
+    });
+  }
+
   function chooseAnalyticsConsent(nextConsent) {
     setAnalyticsConsent(nextConsent);
     writeLocal('nuzenio_analytics_consent', nextConsent);
@@ -764,6 +794,21 @@ function App() {
     searchTerm: currentSearchTerm,
   }).replace(/\s\|\sNuzenio$/, '');
 
+  if (screen === 'admin') {
+    return (
+      <div className="appShell" data-section="admin">
+        <a className="skipLink" href="#main-content">Skip to main content</a>
+        <AdminDashboard
+          supabase={supabase}
+          user={user}
+          onBack={navigateHome}
+          onLogin={loginWithGoogle}
+          onLogout={logout}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="appShell" data-section={category} data-local-page={isLocalPage ? 'true' : 'false'}>
       <a className="skipLink" href="#main-content">Skip to main content</a>
@@ -784,6 +829,7 @@ function App() {
         openArticle={openArticle}
         navigateCategory={navigateCategory}
         navigateHome={navigateHome}
+        navigateAdmin={navigateAdmin}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
         user={user}
@@ -871,6 +917,7 @@ function Header({
   openArticle,
   navigateCategory,
   navigateHome,
+  navigateAdmin,
   query,
   screen,
   searchNews,
@@ -965,6 +1012,16 @@ function Header({
           }}
         >
           {copy.categories.live}
+        </a>
+        <a
+          href="/admin"
+          className={screen === 'admin' ? 'active' : ''}
+          onClick={(event) => {
+            event.preventDefault();
+            navigateAdmin();
+          }}
+        >
+          Admin
         </a>
         <a
           href={categoryRoutes.video}
@@ -2882,20 +2939,34 @@ function updatePageSeo(article, context) {
 }
 
 function trackPageView(url, title) {
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
-  window.gtag('event', 'page_view', {
-    page_location: url,
-    page_title: title,
-    send_to: 'G-7TQQHY9XDV',
-  });
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
+      page_location: url,
+      page_title: title,
+      send_to: 'G-7TQQHY9XDV',
+    });
+  }
+  recordAnalyticsEvent('page_view', { page_location: url, page_title: title });
 }
 
 function trackEvent(name, params = {}) {
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
-  window.gtag('event', name, {
-    send_to: 'G-7TQQHY9XDV',
-    ...params,
-  });
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', name, {
+      send_to: 'G-7TQQHY9XDV',
+      ...params,
+    });
+  }
+  recordAnalyticsEvent(name, params);
+}
+
+function recordAnalyticsEvent(name, params = {}) {
+  if (!supabase) return;
+  supabase.from('analytics_events').insert({
+    event_name: name,
+    article_id: params.item_id || params.article_id || null,
+    category: params.category || params.content_type || null,
+    metadata: params,
+  }).then(() => {});
 }
 
 function updateGoogleConsent(consent) {
