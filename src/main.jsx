@@ -43,6 +43,12 @@ const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.V
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
+const defaultAiSettings = {
+  enabled: true,
+  categories: ['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'local'],
+  simpleBriefEnabled: true,
+  comparisonEnabled: true,
+};
 
 const categories = [
   ['local', 'Local'],
@@ -332,6 +338,7 @@ function App() {
   const [affiliateLinks, setAffiliateLinks] = useState(configuredAffiliateLinks);
   const [adSlots, setAdSlots] = useState(null);
   const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
+  const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const newsRequestId = useRef(0);
   const homeSectionsRequestId = useRef(0);
 
@@ -343,6 +350,7 @@ function App() {
 
   useEffect(() => {
     loadMonetization();
+    loadAiSettings();
   }, []);
 
   useEffect(() => {
@@ -590,6 +598,22 @@ function App() {
       image: item.image_url || '',
       disclosure: item.disclosure || 'Nuzenio may earn a commission from this link.',
     })));
+  }
+
+  async function loadAiSettings() {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('ai_settings')
+      .select('enabled,categories,simple_brief_enabled,comparison_enabled')
+      .eq('key', 'global')
+      .maybeSingle();
+    if (error || !data) return;
+    setAiSettings({
+      enabled: data.enabled !== false,
+      categories: Array.isArray(data.categories) && data.categories.length ? data.categories : defaultAiSettings.categories,
+      simpleBriefEnabled: data.simple_brief_enabled !== false,
+      comparisonEnabled: data.comparison_enabled !== false,
+    });
   }
 
   function refreshCurrentNews() {
@@ -903,6 +927,7 @@ function App() {
           toggleSave={toggleSave}
           affiliateLinks={affiliateLinks}
           adSlots={adSlots}
+          aiSettings={aiSettings}
           sponsoredBlocks={sponsoredBlocks}
         />
       )}
@@ -2435,6 +2460,146 @@ function SponsoredBlock({ blocks = [], context = 'top', placement = 'sidebar' })
   );
 }
 
+function aiSummaryEnabled(article, settings = defaultAiSettings) {
+  if (settings?.enabled === false) return false;
+  const categories = Array.isArray(settings?.categories) && settings.categories.length ? settings.categories : defaultAiSettings.categories;
+  return categories.includes(article?.category || 'top');
+}
+
+function splitSentences(text = '') {
+  return String(text)
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildAiDigest(article) {
+  const title = displayTitle(article);
+  const summary = displaySummary(article);
+  const sentences = splitSentences(summary);
+  const lineOne = title;
+  const lineTwo = sentences[0] || `${article.source || 'A publisher'} reported this update through RSS.`;
+  const lineThree = article.whyItMatters || buildWhyItMatters(article);
+  return {
+    threeLine: [lineOne, lineTwo, lineThree].filter(Boolean).slice(0, 3),
+    keyPoints: buildKeyFacts(article),
+    why: article.whyItMatters || buildWhyItMatters(article),
+    timeline: buildTimeline(article),
+    background: buildBackground(article),
+    simple: buildSimpleBrief(article),
+  };
+}
+
+function buildWhyItMatters(article) {
+  const category = article?.category === 'top' || article?.category === 'local' ? 'public-interest' : article?.category || 'news';
+  return `This ${category} update may affect readers because it is connected to current events, markets, policy, public safety, culture, or daily decisions.`;
+}
+
+function buildSimpleBrief(article) {
+  const source = article?.source || 'the publisher';
+  return {
+    short: `${source} says: ${displayTitle(article)}`,
+    simple: `${displaySummary(article)} Nuzenio is not adding new facts here; this is a simpler explanation of the publisher RSS brief.`,
+    beginner: `In simple terms, this story is about ${displayTitle(article).toLowerCase()}. Read the original source for the complete report and latest updates.`,
+  };
+}
+
+function AiExplainPanel({ article, aiSettings, copy, isVideo }) {
+  const [simpleMode, setSimpleMode] = useState(false);
+  const digest = buildAiDigest(article);
+
+  return (
+    <section className="summaryPanel aiExplainPanel">
+      <div className="aiPanelHead">
+        <div>
+          <h3>
+            <Sparkles size={18} /> {isVideo ? 'AI video brief' : copy.brandBrief}
+          </h3>
+          <span className="aiDisclosure">AI summary from RSS/source content only</span>
+        </div>
+        {aiSettings?.simpleBriefEnabled !== false && (
+          <button type="button" onClick={() => setSimpleMode((value) => !value)}>
+            {simpleMode ? 'Original AI brief' : 'Explain simply'}
+          </button>
+        )}
+      </div>
+
+      {simpleMode ? (
+        <div className="simpleExplainBox">
+          <b>10-second brief</b>
+          <p>{digest.simple.short}</p>
+          <b>Simple English</b>
+          <p>{digest.simple.simple}</p>
+          <b>Beginner-friendly</b>
+          <p>{digest.simple.beginner}</p>
+        </div>
+      ) : (
+        <>
+          <ol className="threeLineSummary">
+            {digest.threeLine.map((line) => <li key={line}>{line}</li>)}
+          </ol>
+          <div className="aiDigestGrid">
+            <div>
+              <h4>Key points</h4>
+              <ul>
+                {digest.keyPoints.map((point) => <li key={point}>{point}</li>)}
+              </ul>
+            </div>
+            <div>
+              <h4>Why it matters</h4>
+              <p>{digest.why}</p>
+            </div>
+            <div>
+              <h4>Timeline</h4>
+              {digest.timeline.map((item) => (
+                <p key={item.label}><b>{item.label}:</b> {item.text}</p>
+              ))}
+            </div>
+            <div>
+              <h4>Background</h4>
+              <p>{digest.background}</p>
+            </div>
+          </div>
+        </>
+      )}
+      <small className="aiSafetyNote">Safety: Nuzenio does not invent facts here. It summarizes only the RSS brief, source metadata, timestamps, and original publisher links.</small>
+    </section>
+  );
+}
+
+function SourceComparisonPanel({ article }) {
+  const reports = Array.isArray(article.alsoReportedBy) ? article.alsoReportedBy.filter((item) => item?.source) : [];
+  if (!reports.length) {
+    return (
+      <section className="sourceComparisonPanel">
+        <h3>Source comparison</h3>
+        <p>Only one source is currently available in this Nuzenio cluster. Comparison will appear when multiple publishers report the same story.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="sourceComparisonPanel">
+      <h3>How sources report this story</h3>
+      <p>Nuzenio keeps this neutral: it compares source presence and timing, not political intent or opinion.</p>
+      <div>
+        <article>
+          <b>{article.source || 'Primary source'}</b>
+          <span>Primary RSS card · {formatFreshAge(article.pubDate)}</span>
+          <p>{displaySummary(article)}</p>
+        </article>
+        {reports.slice(0, 4).map((item) => (
+          <article key={`${item.source}-${item.link}`}>
+            <b>{item.source}</b>
+            <span>{item.rssSourceName || 'Also reported'} · {formatFreshAge(item.publishedAt)}</span>
+            <p>Also reported this topic. Open the publisher link to compare exact wording and updates.</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function sourceQualityLabels(article = {}) {
   if (Array.isArray(article.sourceLabels) && article.sourceLabels.length) return article.sourceLabels;
   const labels = [];
@@ -2836,12 +3001,13 @@ function RetentionPanel({ location, user }) {
   );
 }
 
-function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
+function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, copy, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
   const isVideo = isVideoArticle(article);
   const related = buildRelatedArticles(article, articles, 4);
+  const showAi = aiSummaryEnabled(article, aiSettings);
   return (
     <div className="modalOverlay" onClick={onClose}>
       <article
@@ -2899,13 +3065,17 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
             <LiveVideoPlayer article={article} />
           </div>
         )}
-        <div className="summaryPanel">
-          <h3>
-            <Sparkles size={18} /> {isVideo ? 'Video brief' : copy.brandBrief}
-          </h3>
-          <span className="aiDisclosure">AI context, separated from publisher reporting</span>
-          <p>{displayFullBrief(article)}</p>
-        </div>
+        {showAi ? (
+          <AiExplainPanel article={article} aiSettings={aiSettings} copy={copy} isVideo={isVideo} />
+        ) : (
+          <div className="summaryPanel">
+            <h3>
+              <Sparkles size={18} /> AI summary disabled
+            </h3>
+            <span className="aiDisclosure">Admin-controlled setting</span>
+            <p>Nuzenio is showing only the publisher RSS brief and source links for this category.</p>
+          </div>
+        )}
         <FactCheckPanel article={article} />
         <div className="fullStoryPanel">
           <div>
@@ -2946,6 +3116,7 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
             <p>{buildBackground(article)}</p>
           </section>
         </div>
+        {showAi && aiSettings?.comparisonEnabled !== false && <SourceComparisonPanel article={article} />}
         <section className="faqPanel">
           <h3>{copy.quickFaq}</h3>
           {faqs.map((item) => (

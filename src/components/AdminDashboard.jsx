@@ -43,6 +43,16 @@ const emptySponsored = {
   end_at: '',
 };
 
+const aiCategoryOptions = ['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'local'];
+
+const defaultAiSettings = {
+  key: 'global',
+  enabled: true,
+  categories: aiCategoryOptions,
+  simple_brief_enabled: true,
+  comparison_enabled: true,
+};
+
 function groupCount(rows = [], key) {
   return rows.reduce((acc, row) => {
     const value = row?.[key] || 'unknown';
@@ -74,6 +84,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [affiliates, setAffiliates] = useState([]);
   const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
   const [correctionReports, setCorrectionReports] = useState([]);
+  const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
   const [logs, setLogs] = useState([]);
   const [sourceForm, setSourceForm] = useState(emptySource);
@@ -138,6 +149,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         affiliateResult,
         sponsoredResult,
         correctionResult,
+        aiSettingsResult,
         newsletterResult,
         logResult,
         articleCount,
@@ -155,6 +167,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('affiliate_links').select('*').order('updated_at', { ascending: false }),
         supabase.from('sponsored_blocks').select('*').order('updated_at', { ascending: false }),
         supabase.from('correction_reports').select('*').order('created_at', { ascending: false }).limit(80),
+        supabase.from('ai_settings').select('*').eq('key', 'global').maybeSingle(),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
         countRows('news_cache'),
@@ -174,6 +187,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setAffiliates(affiliateResult.data || []);
       setSponsoredBlocks(sponsoredResult.data || []);
       setCorrectionReports(correctionResult.data || []);
+      if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
       setLogs(logResult.data || []);
       setOverview({
@@ -372,6 +386,36 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     loadAdmin();
   }
 
+  function toggleAiCategory(category) {
+    setAiSettings((current) => {
+      const categories = current.categories || [];
+      const next = categories.includes(category)
+        ? categories.filter((item) => item !== category)
+        : [...categories, category];
+      return { ...current, categories: next.length ? next : [category] };
+    });
+  }
+
+  async function saveAiSettings() {
+    const payload = {
+      key: 'global',
+      enabled: aiSettings.enabled !== false,
+      categories: aiSettings.categories?.length ? aiSettings.categories : aiCategoryOptions,
+      simple_brief_enabled: aiSettings.simple_brief_enabled !== false,
+      comparison_enabled: aiSettings.comparison_enabled !== false,
+      updated_by: user.id,
+    };
+    const { error } = await supabase.from('ai_settings').upsert(payload, { onConflict: 'key' });
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('ai_settings_update', 'error', { table: 'ai_settings', id: 'global', message: error.message });
+      return;
+    }
+    setNotice('AI summary settings saved.');
+    await logAdmin('ai_settings_update', 'ok', { table: 'ai_settings', id: 'global' });
+    loadAdmin();
+  }
+
   if (!supabase) {
     return <AdminShell onBack={onBack}><AdminGate title="Supabase required" message="Add Supabase env variables before using the admin dashboard." /></AdminShell>;
   }
@@ -498,6 +542,28 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             </tr>
           ))}
         </AdminTable>
+      </AdminPanel>
+
+      <AdminPanel title="AI Summary Controls">
+        <div className="adminToolbar">
+          <label><input type="checkbox" checked={aiSettings.enabled !== false} onChange={(event) => setAiSettings({ ...aiSettings, enabled: event.target.checked })} /> Enable AI summaries</label>
+          <label><input type="checkbox" checked={aiSettings.simple_brief_enabled !== false} onChange={(event) => setAiSettings({ ...aiSettings, simple_brief_enabled: event.target.checked })} /> Explain simply</label>
+          <label><input type="checkbox" checked={aiSettings.comparison_enabled !== false} onChange={(event) => setAiSettings({ ...aiSettings, comparison_enabled: event.target.checked })} /> Source comparison</label>
+          <button className="primaryAction" onClick={saveAiSettings}>Save AI settings</button>
+        </div>
+        <div className="preferenceChips">
+          {aiCategoryOptions.map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={(aiSettings.categories || []).includes(category) ? 'active' : ''}
+              onClick={() => toggleAiCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <p className="adminHint">AI summaries use only RSS title, summary, source metadata, timestamps, and publisher links. No invented facts.</p>
       </AdminPanel>
 
       <section className="adminGrid twoColumn">

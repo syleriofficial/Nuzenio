@@ -152,6 +152,17 @@ create table if not exists public.sponsored_blocks (
   updated_at timestamptz default now()
 );
 
+create table if not exists public.ai_settings (
+  key text primary key default 'global',
+  enabled boolean default true,
+  categories text[] default array['top','world','business','tech','ai','sports','health','science','entertainment','local'],
+  simple_brief_enabled boolean default true,
+  comparison_enabled boolean default true,
+  updated_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table if not exists public.news_cache (
   id uuid primary key default gen_random_uuid(),
   article_id text not null,
@@ -218,6 +229,7 @@ alter table public.rss_sources enable row level security;
 alter table public.adsense_slots enable row level security;
 alter table public.affiliate_links enable row level security;
 alter table public.sponsored_blocks enable row level security;
+alter table public.ai_settings enable row level security;
 alter table public.news_cache enable row level security;
 alter table public.analytics_events enable row level security;
 alter table public.correction_reports enable row level security;
@@ -249,6 +261,7 @@ drop policy if exists "RSS sources are publicly readable" on public.rss_sources;
 drop policy if exists "Ad slots are publicly readable" on public.adsense_slots;
 drop policy if exists "Approved affiliate links are publicly readable" on public.affiliate_links;
 drop policy if exists "Enabled sponsored blocks are publicly readable" on public.sponsored_blocks;
+drop policy if exists "AI settings are publicly readable" on public.ai_settings;
 drop policy if exists "News cache is publicly readable" on public.news_cache;
 drop policy if exists "Users can insert analytics events" on public.analytics_events;
 drop policy if exists "Anyone can report corrections" on public.correction_reports;
@@ -260,6 +273,7 @@ drop policy if exists "Admins can manage rss sources" on public.rss_sources;
 drop policy if exists "Admins can manage ad slots" on public.adsense_slots;
 drop policy if exists "Admins can manage affiliate links" on public.affiliate_links;
 drop policy if exists "Admins can manage sponsored blocks" on public.sponsored_blocks;
+drop policy if exists "Admins can manage AI settings" on public.ai_settings;
 drop policy if exists "Admins can manage news cache" on public.news_cache;
 drop policy if exists "Admins can read newsletter subscribers" on public.newsletter_subscribers;
 drop policy if exists "Admins can manage newsletter subscribers" on public.newsletter_subscribers;
@@ -307,6 +321,9 @@ on public.sponsored_blocks for select using (
   and (end_at is null or end_at >= now())
 );
 
+create policy "AI settings are publicly readable"
+on public.ai_settings for select using (true);
+
 create policy "News cache is publicly readable"
 on public.news_cache for select using (true);
 
@@ -351,6 +368,11 @@ with check (public.is_admin());
 
 create policy "Admins can manage sponsored blocks"
 on public.sponsored_blocks for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can manage AI settings"
+on public.ai_settings for all
 using (public.is_admin())
 with check (public.is_admin());
 
@@ -447,6 +469,11 @@ create trigger sponsored_blocks_touch_updated_at
 before update on public.sponsored_blocks
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists ai_settings_touch_updated_at on public.ai_settings;
+create trigger ai_settings_touch_updated_at
+before update on public.ai_settings
+for each row execute function public.touch_updated_at();
+
 drop trigger if exists news_cache_touch_updated_at on public.news_cache;
 create trigger news_cache_touch_updated_at
 before update on public.news_cache
@@ -519,6 +546,10 @@ values
   ('mobile-feed', 'Mobile feed after story cards', 'responsive', 'Mobile-first revenue slot.'),
   ('newsletter-sponsor', 'Daily brief sponsorship', 'sponsor', 'Sponsor slot for newsletter campaigns.')
 on conflict (slot_key) do nothing;
+
+insert into public.ai_settings (key, enabled, categories, simple_brief_enabled, comparison_enabled)
+values ('global', true, array['top','world','business','tech','ai','sports','health','science','entertainment','local'], true, true)
+on conflict (key) do nothing;
 
 create or replace function public.handle_new_user()
 returns trigger
