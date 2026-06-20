@@ -851,6 +851,7 @@ function App() {
           lastUpdated={lastUpdated}
           lead={lead}
           location={location}
+          user={user}
           setLocation={updateLocation}
           openArticle={openArticle}
           savedIds={savedIds}
@@ -1077,6 +1078,7 @@ function Home({
   sideStories,
   status,
   toggleSave,
+  user,
 }) {
   const isVideoSection = ['live', 'video'].includes(category);
   const section = sectionContent(category, copy, location);
@@ -1156,7 +1158,8 @@ function Home({
           <AISummaryBox copy={copy} />
           <TopicRail />
           <AffiliateRail links={affiliateLinks} context={category} />
-          <Newsletter copy={copy} language={language} />
+          <Newsletter copy={copy} language={language} location={location} />
+          <RetentionPanel location={location} user={user} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
@@ -1305,7 +1308,8 @@ function Home({
           <AISummaryBox copy={copy} />
           <TopicRail />
           <AffiliateRail links={affiliateLinks} context={category} />
-          <Newsletter copy={copy} language={language} />
+          <Newsletter copy={copy} language={language} location={location} />
+          <RetentionPanel location={location} user={user} />
           <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
@@ -2294,8 +2298,10 @@ function AffiliateRail({ compact = false, context = 'top', links = [] }) {
   );
 }
 
-function Newsletter({ copy, language }) {
+function Newsletter({ copy, language, location }) {
   const [email, setEmail] = useState('');
+  const [frequency, setFrequency] = useState('daily');
+  const [consent, setConsent] = useState(false);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -2307,22 +2313,37 @@ function Newsletter({ copy, language }) {
       setMessage('Enter a valid email address.');
       return;
     }
+    if (!consent) {
+      setMessage('Confirm consent to receive Nuzenio emails.');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      if (supabase) {
-        const { error } = await supabase
-          .from('newsletter_subscribers')
-          .insert({ email: normalizedEmail, language: language.code });
-        if (error && error.code !== '23505') {
-          setMessage('Subscription could not be saved. Please try again.');
-          return;
-        }
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          frequency,
+          country: location.country,
+          categories: ['top', 'local', 'business', 'tech', 'sports'],
+          consent,
+          source: 'site-sidebar',
+        }),
+      });
+      const data = await response.json();
+      if (!data.ok) {
+        setMessage(data.error || 'Subscription could not be saved. Please try again.');
+        return;
       }
-      setMessage('Subscribed for the daily brief.');
+      setMessage(data.emailQueued ? 'Check your email to confirm the Nuzenio brief.' : 'Double opt-in saved. Email sending is ready when provider webhook is connected.');
       setEmail('');
+      setConsent(false);
       trackEvent('newsletter_subscribe', {
-        method: supabase ? 'supabase' : 'local',
+        method: 'double_opt_in',
         language: language.code,
+        frequency,
+        country: location.country,
       });
     } finally {
       setIsSubmitting(false);
@@ -2334,7 +2355,7 @@ function Newsletter({ copy, language }) {
       <h3>
         <Mail size={18} /> {copy.dailyBrief}
       </h3>
-      <p>Top English stories every morning.</p>
+      <p>Top, local, business, tech, and sports headlines. Double opt-in, no spam.</p>
       <input
         value={email}
         onChange={(event) => setEmail(event.target.value)}
@@ -2343,10 +2364,136 @@ function Newsletter({ copy, language }) {
         autoComplete="email"
         aria-label="Email address for Nuzenio daily brief"
       />
+      <select value={frequency} onChange={(event) => setFrequency(event.target.value)} aria-label="Digest frequency">
+        <option value="daily">Daily digest</option>
+        <option value="weekly">Weekly digest</option>
+      </select>
+      <label className="consentCheck">
+        <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+        <span>I agree to receive Nuzenio news digest emails and can unsubscribe anytime.</span>
+      </label>
       <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Subscribing...' : copy.subscribe}</button>
-      <small className="newsletterNote">No spam. Unsubscribe anytime.</small>
+      <small className="newsletterNote">Includes unsubscribe link in every email.</small>
       {message && <small>{message}</small>}
     </form>
+  );
+}
+
+function RetentionPanel({ location, user }) {
+  const defaultCategories = ['top', 'local', 'business', 'tech', 'sports'];
+  const [preferences, setPreferences] = useState({
+    preferred_country: location.country || 'IN',
+    preferred_categories: defaultCategories,
+    digest_frequency: 'daily',
+    email_notifications: false,
+    push_notifications: false,
+    marketing_consent: false,
+  });
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (!supabase || !user) return;
+    supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setPreferences({
+          preferred_country: data.preferred_country || location.country || 'IN',
+          preferred_categories: data.preferred_categories?.length ? data.preferred_categories : defaultCategories,
+          digest_frequency: data.digest_frequency || 'daily',
+          email_notifications: Boolean(data.email_notifications),
+          push_notifications: Boolean(data.push_notifications),
+          marketing_consent: Boolean(data.marketing_consent),
+        });
+      });
+  }, [user?.id]);
+
+  function toggleCategory(category) {
+    setPreferences((current) => {
+      const next = current.preferred_categories.includes(category)
+        ? current.preferred_categories.filter((item) => item !== category)
+        : [...current.preferred_categories, category];
+      return { ...current, preferred_categories: next.length ? next : [category] };
+    });
+  }
+
+  async function savePreferences() {
+    if (!supabase || !user) {
+      setMessage('Login to save personalized Nuzenio preferences.');
+      return;
+    }
+    const payload = {
+      user_id: user.id,
+      ...preferences,
+      preferred_country: String(preferences.preferred_country || 'IN').toUpperCase(),
+    };
+    const { error } = await supabase.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage('Preferences saved for future digest and notification features.');
+    trackEvent('save_preferences', {
+      country: payload.preferred_country,
+      categories: payload.preferred_categories.join(','),
+      digest_frequency: payload.digest_frequency,
+    });
+  }
+
+  return (
+    <div className="railCard retentionPanel">
+      <h3>
+        <ShieldCheck size={18} /> Reader preferences
+      </h3>
+      <p>Personalize country, topics, saved stories, reading history, and future notifications.</p>
+      <input
+        value={preferences.preferred_country}
+        onChange={(event) => setPreferences({ ...preferences, preferred_country: event.target.value.toUpperCase() })}
+        aria-label="Preferred country"
+      />
+      <select
+        value={preferences.digest_frequency}
+        onChange={(event) => setPreferences({ ...preferences, digest_frequency: event.target.value })}
+        aria-label="Digest frequency"
+      >
+        <option value="daily">Daily digest</option>
+        <option value="weekly">Weekly digest</option>
+        <option value="off">No digest</option>
+      </select>
+      <div className="preferenceChips">
+        {defaultCategories.map((category) => (
+          <button
+            key={category}
+            type="button"
+            className={preferences.preferred_categories.includes(category) ? 'active' : ''}
+            onClick={() => toggleCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+      <label className="consentCheck">
+        <input
+          type="checkbox"
+          checked={preferences.email_notifications}
+          onChange={(event) => setPreferences({ ...preferences, email_notifications: event.target.checked, marketing_consent: event.target.checked })}
+        />
+        <span>Email notification ready</span>
+      </label>
+      <label className="consentCheck">
+        <input
+          type="checkbox"
+          checked={preferences.push_notifications}
+          onChange={(event) => setPreferences({ ...preferences, push_notifications: event.target.checked })}
+        />
+        <span>Future push notifications</span>
+      </label>
+      <button onClick={savePreferences}>Save preferences</button>
+      <small>{user ? 'Stored privately in your Nuzenio account.' : 'Login required to sync preferences.'}</small>
+      {message && <small>{message}</small>}
+    </div>
   );
 }
 

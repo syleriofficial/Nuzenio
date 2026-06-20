@@ -124,19 +124,23 @@ export function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
         savedCount,
         historyCount,
         newsletterCount,
+        preferencesCount,
+        digestLogCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
         supabase.from('news_cache').select('id,article_id,title,link,source,category,country,published_at,updated_at').order('published_at', { ascending: false }).limit(250),
         supabase.from('analytics_events').select('event_name,article_id,category,metadata,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('adsense_slots').select('*').order('updated_at', { ascending: false }),
         supabase.from('affiliate_links').select('*').order('updated_at', { ascending: false }),
-        supabase.from('newsletter_subscribers').select('email,status,language,created_at').order('created_at', { ascending: false }).limit(50),
+        supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
         countRows('news_cache'),
         countRows('profiles'),
         countRows('saved_articles'),
         countRows('reading_history'),
         countRows('newsletter_subscribers'),
+        countRows('user_preferences'),
+        countRows('email_digest_logs'),
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
@@ -153,6 +157,8 @@ export function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
         savedCount,
         historyCount,
         newsletterCount,
+        preferencesCount,
+        digestLogCount,
         sourceCount: sourceResult.data?.length || 0,
         enabledSources: (sourceResult.data || []).filter((item) => item.enabled).length,
       });
@@ -344,6 +350,7 @@ export function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
         <StatCard icon={Users} label="Users" value={overview.userCount || 0} />
         <StatCard icon={Eye} label="Page events" value={analytics.length} />
         <StatCard icon={Megaphone} label="Newsletter" value={overview.newsletterCount || 0} />
+        <StatCard icon={BarChart3} label="Digest logs" value={overview.digestLogCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
@@ -424,8 +431,10 @@ export function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
           <MetricRow label="Saved articles" value={overview.savedCount || 0} />
           <MetricRow label="Reading history rows" value={overview.historyCount || 0} />
           <MetricRow label="Newsletter subscribers" value={overview.newsletterCount || 0} />
+          <MetricRow label="User preferences" value={overview.preferencesCount || 0} />
+          <MetricRow label="Digest logs" value={overview.digestLogCount || 0} />
           <h4>Latest subscribers</h4>
-          {newsletters.slice(0, 10).map((item) => <MetricRow key={item.email} label={item.email} value={item.status} />)}
+          {newsletters.slice(0, 10).map((item) => <MetricRow key={item.email} label={`${item.email} · ${item.frequency || 'daily'} · ${item.country || 'IN'}`} value={item.status} />)}
         </AdminPanel>
       </section>
 

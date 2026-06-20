@@ -422,6 +422,64 @@ button {
   color: #fff;
 }
 
+.railCard select,
+.retentionPanel input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 10px;
+  font-weight: 800;
+}
+
+.consentCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.consentCheck input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.retentionPanel {
+  gap: 10px;
+}
+
+.retentionPanel p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.preferenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.preferenceChips button {
+  min-height: 34px;
+  border-color: #dbe1ea;
+  background: #fff;
+  color: #475569;
+  padding: 6px 9px;
+}
+
+.preferenceChips button.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: #1d4ed8;
+}
+
 .searchSubmit,
 .iconBtn,
 .loginBtn {

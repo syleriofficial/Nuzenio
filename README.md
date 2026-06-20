@@ -14,6 +14,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Red breaking-news accent and blue AI/action buttons
 - Google login wiring with Supabase Auth
 - Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, and analytics schema
+- Newsletter retention system with double opt-in, unsubscribe tokens, reader preferences, and digest logs
 - English-only launch flow for cleaner UX, SEO, AdSense review, and source consistency
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
 - Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, affiliate links, and policies
@@ -53,6 +54,8 @@ YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 LIVE_NEWS_SOURCES=[]
 TWITCH_EMBED_PARENTS=nuzenio.com,<netlify-site-name>.netlify.app
 VITE_AFFILIATE_LINKS=[]
+EMAIL_WEBHOOK_URL=<optional-email-provider-webhook>
+CRON_SECRET=<optional-secret-for-digest-cron>
 ```
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
@@ -60,6 +63,8 @@ VITE_AFFILIATE_LINKS=[]
 `SUPABASE_SERVICE_ROLE_KEY` is used only inside Netlify Functions to read/write the server-side `news_cache` table. Do not expose it in client-side `VITE_` variables.
 `LIVE_NEWS_SOURCES` is optional JSON for verified free live channels and approved publisher RSS feeds. Only add official/publicly available sources that the publisher allows. Live video providers are `youtube`, `twitch`, `official_embed`, and `hls`. Publisher RSS entries use `type: "rss"` plus an HTTPS `rssUrl`.
 `VITE_AFFILIATE_LINKS` is optional JSON for approved partner links. Links must be real, HTTPS, labeled, and relevant. If Supabase is configured, enabled rows from `public.affiliate_links` are loaded first.
+`EMAIL_WEBHOOK_URL` is optional. When configured, `/api/newsletter` posts opt-in emails to your email provider webhook. Without it, subscriptions are stored as pending and the API returns the confirmation URL for testing/integration.
+`CRON_SECRET` is optional. If set, call `/api/newsletter-digest` with header `X-Nuzenio-Cron: <secret>` from a scheduler to generate daily/weekly digest logs.
 
 Example `LIVE_NEWS_SOURCES` value:
 
