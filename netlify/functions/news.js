@@ -366,6 +366,7 @@ function normalizeImageUrl(value = '') {
 
 function parse(xml, category, country, language = 'en', sourceConfig = {}) {
   const newsLanguage = normalizeLanguage(language);
+  const fetchedAt = new Date().toISOString();
   const entries = [
     ...(xml.match(/<item\b[\s\S]*?<\/item>/gi) || []),
     ...(xml.match(/<entry\b[\s\S]*?<\/entry>/gi) || []),
@@ -400,6 +401,9 @@ function parse(xml, category, country, language = 'en', sourceConfig = {}) {
         whatHappened: summary,
         whyItMatters: buildWhyItMatters(category, source, newsLanguage),
         rssSourceId: sourceConfig.id || '',
+        rssSourceName: sourceConfig.name || 'Google News RSS',
+        rssSourceUrl: sourceConfig.rssUrl || sourceConfig.url || '',
+        fetchedAt,
       };
     })
     .filter((article) => article.title && article.link)
@@ -425,16 +429,36 @@ function isRecentArticle(article, days = 14) {
   return Date.now() - time <= days * 24 * 60 * 60 * 1000;
 }
 
-function dedupeArticles(articles) {
-  const seen = new Set();
-  return articles.filter((article) => {
+function compactDuplicateArticles(articles) {
+  const seen = new Map();
+  const compacted = [];
+  for (const article of articles) {
     const linkKey = normalizeUrlKey(article.link);
     const titleKey = normalizeTitleKey(article.title);
     const keys = [linkKey, titleKey].filter(Boolean);
-    if (!keys.length || keys.some((key) => seen.has(key))) return false;
-    keys.forEach((key) => seen.add(key));
-    return true;
-  });
+    const duplicateKey = keys.find((key) => seen.has(key));
+    if (duplicateKey) {
+      const primary = seen.get(duplicateKey);
+      const alsoReportedBy = primary.alsoReportedBy || [];
+      if (article.source && !alsoReportedBy.some((item) => normalizeSourceKey(item.source) === normalizeSourceKey(article.source))) {
+        alsoReportedBy.push({
+          source: article.source,
+          link: article.link,
+          publishedAt: article.pubDate,
+          rssSourceName: article.rssSourceName || '',
+        });
+      }
+      primary.alsoReportedBy = alsoReportedBy.slice(0, 6);
+      primary.clusterSize = 1 + primary.alsoReportedBy.length;
+      primary.trustScore = Math.min(99, Math.max(primary.trustScore || 90, article.trustScore || 90) + Math.min(4, primary.clusterSize - 1));
+      keys.forEach((key) => seen.set(key, primary));
+      continue;
+    }
+    const next = { ...article, alsoReportedBy: article.alsoReportedBy || [], clusterSize: article.clusterSize || 1 };
+    keys.forEach((key) => seen.set(key, next));
+    compacted.push(next);
+  }
+  return compacted;
 }
 
 function diversifySources(articles, perSourceLimit = 12) {
@@ -454,7 +478,7 @@ function diversifySources(articles, perSourceLimit = 12) {
 }
 
 function polishFeed(articles, { days = 14, perSourceLimit = 12 } = {}) {
-  return diversifySources(sortByNewest(dedupeArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
+  return diversifySources(sortByNewest(compactDuplicateArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
 }
 
 function normalizeUrlKey(value = '') {
@@ -1321,6 +1345,13 @@ function rowToArticle(row) {
     imageKind: row.image_kind || payload.imageKind || 'logo',
     readTime: payload.readTime || 1,
     trustScore: payload.trustScore || 90,
+    sourceLabels: payload.sourceLabels || [],
+    alsoReportedBy: payload.alsoReportedBy || [],
+    clusterSize: payload.clusterSize || 1,
+    rssSourceName: payload.rssSourceName || 'Supabase news cache',
+    rssSourceUrl: payload.rssSourceUrl || '',
+    fetchedAt: payload.fetchedAt || row.updated_at || '',
+    correctionNotice: payload.correctionNotice || '',
     summary,
     fullBrief: summary,
     whatHappened: summary,
@@ -1377,6 +1408,13 @@ async function writeSupabaseNewsCache({ category, country, q, articles }) {
           slug: article.slug || slugifyTitle(article.title),
           readTime: article.readTime || 1,
           trustScore: article.trustScore || 90,
+          sourceLabels: article.sourceLabels || sourceCredibilityLabels(article),
+          alsoReportedBy: article.alsoReportedBy || [],
+          clusterSize: article.clusterSize || 1,
+          rssSourceName: article.rssSourceName || '',
+          rssSourceUrl: article.rssSourceUrl || '',
+          fetchedAt: article.fetchedAt || new Date().toISOString(),
+          correctionNotice: article.correctionNotice || '',
           whyItMatters: article.whyItMatters || '',
         },
       };
@@ -1394,13 +1432,44 @@ async function writeSupabaseNewsCache({ category, country, q, articles }) {
 function copyrightSafeArticles(articles = []) {
   return articles.map((article) => {
     const summary = buildSummary(article.summary || article.fullBrief || article.title);
+    const enriched = enrichTrustMetadata(article);
     return {
-      ...article,
+      ...enriched,
       summary,
       fullBrief: summary,
       whatHappened: article.whatHappened ? buildSummary(article.whatHappened) : summary,
     };
   });
+}
+
+function sourceCredibilityLabels(article = {}) {
+  const labels = [];
+  const sourceText = `${article.source || ''} ${article.sourceUrl || ''} ${article.link || ''}`.toLowerCase();
+  const titleText = String(article.title || '').toLowerCase();
+  const trustScore = Number(article.trustScore || 0);
+  if (trustScore >= 90 || article.rssSourceName) labels.push('Verified source');
+  if (/\b(gov|government|official|ministry|department|who|un|sec|federal|parliament|court|police)\b|\.gov\b/.test(sourceText)) {
+    labels.push('Official source');
+  }
+  if (article.category === 'local') labels.push('Local source');
+  if (/\b(live|breaking|developing|updates?)\b/i.test(titleText) || Date.now() - articleTime(article.pubDate) < 3 * 60 * 60 * 1000) {
+    labels.push('Developing story');
+  }
+  return [...new Set(labels)].slice(0, 4);
+}
+
+function enrichTrustMetadata(article = {}) {
+  const alsoReportedBy = Array.isArray(article.alsoReportedBy) ? article.alsoReportedBy.slice(0, 6) : [];
+  return {
+    ...article,
+    sourceLabels: article.sourceLabels?.length ? article.sourceLabels : sourceCredibilityLabels(article),
+    alsoReportedBy,
+    clusterSize: article.clusterSize || (alsoReportedBy.length ? alsoReportedBy.length + 1 : 1),
+    rssSourceName: article.rssSourceName || 'Google News RSS',
+    rssSourceUrl: article.rssSourceUrl || '',
+    fetchedAt: article.fetchedAt || new Date().toISOString(),
+    correctionNotice: article.correctionNotice || '',
+  };
 }
 
 function newsPayload({ category, country, region, city, language, q, articles, sourceType, updatedAt = new Date().toISOString(), stale = false }) {
@@ -1455,6 +1524,9 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
       source: source.name || article.source,
       sourceUrl: source.homepage || article.sourceUrl,
       trustScore: Math.min(99, (article.trustScore || 90) + Math.max(0, Math.min(5, Math.floor(source.priority / 20)))),
+      rssSourceId: source.id || article.rssSourceId || '',
+      rssSourceName: source.name || article.rssSourceName || 'Approved publisher RSS',
+      rssSourceUrl: source.rssUrl || article.rssSourceUrl || '',
     }));
   }));
 

@@ -2194,6 +2194,7 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
         </span>
         <span>{formatDate(article.pubDate)}</span>
       </div>
+      <SourceQualityLabels article={article} compact />
       <a className="headline" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
         {displayTitle(article)}
       </a>
@@ -2202,6 +2203,11 @@ function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
         <span>
           <ShieldCheck size={14} /> Source attributed
         </span>
+        {article.clusterSize > 1 && (
+          <span>
+            <CheckCircle2 size={14} /> {article.clusterSize} sources
+          </span>
+        )}
         <span>
           <Clock size={14} /> {article.readTime || 2} min read
         </span>
@@ -2426,6 +2432,174 @@ function SponsoredBlock({ blocks = [], context = 'top', placement = 'sidebar' })
         {block.sponsor_name || 'Sponsor'} <ExternalLink size={14} />
       </a>
     </aside>
+  );
+}
+
+function sourceQualityLabels(article = {}) {
+  if (Array.isArray(article.sourceLabels) && article.sourceLabels.length) return article.sourceLabels;
+  const labels = [];
+  const sourceText = `${article.source || ''} ${article.sourceUrl || ''} ${article.link || ''}`.toLowerCase();
+  const titleText = String(article.title || '').toLowerCase();
+  if ((article.trustScore || 0) >= 90 || article.rssSourceName) labels.push('Verified source');
+  if (/\b(gov|government|official|ministry|department|who|un|court|police)\b|\.gov\b/.test(sourceText)) labels.push('Official source');
+  if (article.category === 'local') labels.push('Local source');
+  if (/\b(live|breaking|developing|updates?)\b/.test(titleText)) labels.push('Developing story');
+  return [...new Set(labels)].slice(0, 4);
+}
+
+function SourceQualityLabels({ article, compact = false }) {
+  const labels = sourceQualityLabels(article);
+  if (!labels.length) return null;
+  return (
+    <div className={`sourceQualityLabels ${compact ? 'compactSourceLabels' : ''}`} aria-label="Source quality labels">
+      {labels.map((label) => (
+        <span key={label}>
+          <ShieldCheck size={compact ? 12 : 14} /> {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FactCheckPanel({ article }) {
+  const clusterCount = article.clusterSize || 1;
+  const status = clusterCount > 1
+    ? `Cross-source context available from ${clusterCount} sources`
+    : 'Source attributed, not independently verified';
+  return (
+    <section className="factCheckPanel">
+      <h3>
+        <CheckCircle2 size={18} /> Fact-check status
+      </h3>
+      <div className="factCheckGrid">
+        <div>
+          <span>Claim</span>
+          <p>{displayTitle(article)}</p>
+        </div>
+        <div>
+          <span>Source</span>
+          <p>{article.source || 'Publisher'} · {formatFreshAge(article.pubDate)}</p>
+        </div>
+        <div>
+          <span>Context</span>
+          <p>{displaySummary(article)}</p>
+        </div>
+        <div>
+          <span>Verification status</span>
+          <p>{status}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AlsoReportedBy({ article }) {
+  const reports = Array.isArray(article.alsoReportedBy) ? article.alsoReportedBy.filter((item) => item?.source && item?.link) : [];
+  if (!reports.length) return null;
+  return (
+    <section className="alsoReportedPanel">
+      <h3>Also reported by</h3>
+      <div>
+        {reports.map((item) => (
+          <a key={`${item.source}-${item.link}`} href={item.link} target="_blank" rel="noreferrer">
+            <b>{item.source}</b>
+            <span>{item.rssSourceName || 'RSS source'} · {formatFreshAge(item.publishedAt)}</span>
+            <ExternalLink size={14} />
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SourceTransparency({ article, isVideo }) {
+  return (
+    <section className="sourceTransparency">
+      <h3>Source transparency</h3>
+      <dl>
+        <div>
+          <dt>Original publisher</dt>
+          <dd><a href={article.link} target="_blank" rel="noreferrer">{article.source || 'Publisher'} <ExternalLink size={13} /></a></dd>
+        </div>
+        <div>
+          <dt>RSS source</dt>
+          <dd>{isVideo ? sourceProviderLabel(article) : article.rssSourceName || 'Google News RSS'}</dd>
+        </div>
+        <div>
+          <dt>Published</dt>
+          <dd>{formatDate(article.pubDate)}</dd>
+        </div>
+        <div>
+          <dt>Fetched</dt>
+          <dd>{article.fetchedAt ? formatDate(article.fetchedAt) : 'Latest feed refresh'}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function CorrectionPanel({ article }) {
+  const [details, setDetails] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function reportCorrection(event) {
+    event.preventDefault();
+    if (!details.trim()) {
+      setMessage('Add a short note about what looks incorrect.');
+      return;
+    }
+    if (!supabase) {
+      setMessage('Correction reporting needs Supabase. Use the Corrections page contact link for now.');
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.from('correction_reports').insert({
+      article_id: article.id,
+      article_title: displayTitle(article),
+      article_source: article.source || '',
+      article_link: article.link || '',
+      reporter_email: email.trim() || null,
+      details: details.trim(),
+      issue_type: 'incorrect',
+    });
+    setIsSubmitting(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setDetails('');
+    setEmail('');
+    setMessage('Report received. Nuzenio will review the source and add a correction notice if needed.');
+    trackEvent('correction_report', articleEventParams(article));
+  }
+
+  return (
+    <section className="correctionPanel">
+      <h3>Corrections</h3>
+      {article.correctionNotice ? (
+        <p className="correctionNotice">{article.correctionNotice}</p>
+      ) : (
+        <p>No correction notice has been attached to this Nuzenio brief.</p>
+      )}
+      <form onSubmit={reportCorrection}>
+        <textarea
+          value={details}
+          onChange={(event) => setDetails(event.target.value)}
+          placeholder="Report incorrect context, wrong source, outdated information, or duplicate handling"
+          rows="3"
+        />
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          type="email"
+          placeholder="Email optional"
+        />
+        <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending...' : 'Report incorrect news'}</button>
+      </form>
+      {message && <small>{message}</small>}
+    </section>
   );
 }
 
@@ -2703,6 +2877,7 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
             <ShieldCheck size={15} /> Trust score {article.trustScore || 90}
           </span>
         </div>
+        <SourceQualityLabels article={article} />
         <div className="articleActionBar" aria-label="Article actions">
           <button onClick={() => toggleSave(article)}>
             <Bookmark size={16} /> {savedIds.includes(article.id) ? copy.saved : copy.save}
@@ -2731,6 +2906,7 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
           <span className="aiDisclosure">AI context, separated from publisher reporting</span>
           <p>{displayFullBrief(article)}</p>
         </div>
+        <FactCheckPanel article={article} />
         <div className="fullStoryPanel">
           <div>
             <h3>{copy.fullStoryAccess}</h3>
@@ -2789,6 +2965,7 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
             </div>
           </section>
         )}
+        <AlsoReportedBy article={article} openArticle={openArticle} />
         <div className="sourceBox">
           <h3>{copy.sourceAttribution}</h3>
           <p>
@@ -2796,6 +2973,8 @@ function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClos
             Published {formatFreshAge(article.pubDate)}. Nuzenio links back to the original publisher for the full report.
           </p>
         </div>
+        <SourceTransparency article={article} isVideo={isVideo} />
+        <CorrectionPanel article={article} />
         <AdSlot slots={adSlots} name="article-inline" label="Article advertising inventory" />
         <SponsoredBlock blocks={sponsoredBlocks} context={article.category} placement="article" />
         <AffiliateRail links={affiliateLinks} context={article.category} compact />

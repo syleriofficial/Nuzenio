@@ -73,6 +73,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [adSlots, setAdSlots] = useState([]);
   const [affiliates, setAffiliates] = useState([]);
   const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
+  const [correctionReports, setCorrectionReports] = useState([]);
   const [newsletters, setNewsletters] = useState([]);
   const [logs, setLogs] = useState([]);
   const [sourceForm, setSourceForm] = useState(emptySource);
@@ -136,6 +137,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         adResult,
         affiliateResult,
         sponsoredResult,
+        correctionResult,
         newsletterResult,
         logResult,
         articleCount,
@@ -152,6 +154,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('adsense_slots').select('*').order('updated_at', { ascending: false }),
         supabase.from('affiliate_links').select('*').order('updated_at', { ascending: false }),
         supabase.from('sponsored_blocks').select('*').order('updated_at', { ascending: false }),
+        supabase.from('correction_reports').select('*').order('created_at', { ascending: false }).limit(80),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
         countRows('news_cache'),
@@ -170,6 +173,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setAdSlots(adResult.data || []);
       setAffiliates(affiliateResult.data || []);
       setSponsoredBlocks(sponsoredResult.data || []);
+      setCorrectionReports(correctionResult.data || []);
       setNewsletters(newsletterResult.data || []);
       setLogs(logResult.data || []);
       setOverview({
@@ -180,6 +184,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         newsletterCount,
         preferencesCount,
         digestLogCount,
+        correctionCount: correctionResult.data?.length || 0,
         sourceCount: sourceResult.data?.length || 0,
         enabledSources: (sourceResult.data || []).filter((item) => item.enabled).length,
       });
@@ -352,6 +357,21 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     loadAdmin();
   }
 
+  async function toggleCorrectionStatus(report) {
+    const nextStatus = report.status === 'reviewed' ? 'new' : 'reviewed';
+    const { error } = await supabase.from('correction_reports').update({
+      status: nextStatus,
+      reviewed_by: user.id,
+    }).eq('id', report.id);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('correction_report_update', 'error', { table: 'correction_reports', id: report.id, message: error.message });
+      return;
+    }
+    await logAdmin('correction_report_update', 'ok', { table: 'correction_reports', id: report.id, message: nextStatus });
+    loadAdmin();
+  }
+
   if (!supabase) {
     return <AdminShell onBack={onBack}><AdminGate title="Supabase required" message="Add Supabase env variables before using the admin dashboard." /></AdminShell>;
   }
@@ -398,6 +418,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Users} label="Users" value={overview.userCount || 0} />
         <StatCard icon={Eye} label="Page events" value={analytics.length} />
         <StatCard icon={Megaphone} label="Newsletter" value={overview.newsletterCount || 0} />
+        <StatCard icon={ShieldCheck} label="Corrections" value={overview.correctionCount || 0} />
         <StatCard icon={BarChart3} label="Digest logs" value={overview.digestLogCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
@@ -456,6 +477,24 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
               <td>{article.country}</td>
               <td>{localDate(article.published_at)}</td>
               <td><button className="dangerAction" onClick={() => deleteRow('news_cache', article.id, article.title)}>Delete</button></td>
+            </tr>
+          ))}
+        </AdminTable>
+      </AdminPanel>
+
+      <AdminPanel title="Correction Reports">
+        <AdminTable headers={['Story', 'Source', 'Issue', 'Status', 'Time', 'Actions']}>
+          {correctionReports.map((report) => (
+            <tr key={report.id}>
+              <td><b>{report.article_title || 'Untitled story'}</b><small>{report.article_link}</small></td>
+              <td>{report.article_source || '-'}</td>
+              <td>{report.details || report.issue_type}</td>
+              <td>{report.status}</td>
+              <td>{localDate(report.created_at)}</td>
+              <td className="adminActions">
+                <button onClick={() => toggleCorrectionStatus(report)}>{report.status === 'reviewed' ? 'Reopen' : 'Mark reviewed'}</button>
+                <button className="dangerAction" onClick={() => deleteRow('correction_reports', report.id, report.article_title || 'correction report')}>Delete</button>
+              </td>
             </tr>
           ))}
         </AdminTable>

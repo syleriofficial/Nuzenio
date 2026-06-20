@@ -17,6 +17,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Newsletter retention system with double opt-in, unsubscribe tokens, reader preferences, and digest logs
 - English-only launch flow for cleaner UX, SEO, AdSense review, and source consistency
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
+- Trust layer with source credibility labels, story clustering, fact-check status, source transparency, and correction reporting
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
@@ -169,6 +170,13 @@ npm run build
 - Use the public trust pages in `public/` for AdSense and publisher review readiness.
 - Store approved Amazon Associates or other partner links in `public.affiliate_links` and keep `enabled=false` until reviewed. Only set `enabled=true` after the destination, disclosure, category, and network are approved.
 - Manage sponsored campaigns in `public.sponsored_blocks` with label, sponsor name, destination, placement, and optional start/end dates.
+
+## Trust and corrections
+
+- Nuzenio labels stories as verified, official, local, or developing using source metadata, category, freshness, and publisher signals.
+- Duplicate headlines are clustered so the feed avoids repeated cards and article pages can show "Also reported by" sources.
+- Fact-check panels are source-transparency aids, not independent verification claims.
+- Reader correction reports are stored in `public.correction_reports` for admin review.
 
 ## Deploy
 
