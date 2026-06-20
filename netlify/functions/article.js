@@ -34,20 +34,37 @@ function articleIdFromPath(path = '') {
   return encodedId ? decodeURIComponent(encodedId) : '';
 }
 
-function articleUrl(articleId, category, country) {
-  const url = new URL(`/article/${encodeURIComponent(articleId)}`, siteUrl);
+function slugifyTitle(value = '') {
+  const slug = String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90)
+    .replace(/-+$/g, '');
+  return slug || 'news-story';
+}
+
+function articleSlug(article, fallback = '') {
+  return article?.slug || slugifyTitle(article?.title || fallback || 'news-story');
+}
+
+function articleUrl(slug, category, country) {
+  const url = new URL(`/article/${encodeURIComponent(slug)}`, siteUrl);
   url.searchParams.set('country', country);
   url.searchParams.set('category', category);
   return url.toString();
 }
 
-function appUrl(articleId, category, country) {
+function appUrl(slug, category, country) {
   const url = new URL(category === 'top' ? '/top-news' : `/${category}`, siteUrl);
   if (category === 'tech') url.pathname = '/technology';
   if (category === 'entertainment') url.pathname = '/entertainment';
   url.searchParams.set('country', country);
   url.searchParams.set('category', category);
-  url.searchParams.set('article', articleId);
+  url.searchParams.set('article', slug);
   return url.toString();
 }
 
@@ -61,10 +78,12 @@ function safeJsonScript(value) {
 }
 
 function htmlDocument({ article, articleId, category, country }) {
-  const canonical = articleUrl(articleId, category, country);
-  const app = appUrl(articleId, category, country);
-  const title = article?.title ? `${article.title} | Nuzenio` : 'Nuzenio Article';
-  const description = article?.summary || 'Read the latest source-attributed Nuzenio news brief with AI-powered context and original publisher attribution.';
+  const slug = articleSlug(article, articleId);
+  const canonical = articleUrl(slug, category, country);
+  const app = appUrl(slug, category, country);
+  const isFound = Boolean(article);
+  const title = article?.title ? `${article.title} | Nuzenio` : 'Story expired | Nuzenio';
+  const description = article?.summary || 'This RSS story is no longer available in Nuzenio live cache. Browse the latest source-attributed headlines on Nuzenio.';
   const image = seoImage(article);
   const publishedAt = article?.pubDate || new Date().toISOString();
   const modifiedAt = article?.updatedAt || publishedAt;
@@ -111,11 +130,13 @@ function htmlDocument({ article, articleId, category, country }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="robots" content="${isFound ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' : 'noindex, follow'}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(description)}">
+  <meta name="author" content="${escapeHtml(source)}">
+  <meta name="news-source" content="${escapeHtml(source)}">
   <meta property="og:type" content="article">
   <meta property="og:url" content="${escapeHtml(canonical)}">
   <meta property="og:title" content="${escapeHtml(title)}">
@@ -125,24 +146,26 @@ function htmlDocument({ article, articleId, category, country }) {
   <meta property="article:published_time" content="${escapeHtml(publishedAt)}">
   <meta property="article:modified_time" content="${escapeHtml(modifiedAt)}">
   <meta property="article:section" content="${escapeHtml(category)}">
+  <meta property="article:author" content="${escapeHtml(source)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
-  <script type="application/ld+json">${safeJsonScript(jsonLd)}</script>
-  <script>window.location.replace(${JSON.stringify(app)});</script>
+  ${isFound ? `<script type="application/ld+json">${safeJsonScript(jsonLd)}</script>` : ''}
 </head>
 <body>
   <main>
-    <h1>${escapeHtml(article?.title || 'Opening Nuzenio article...')}</h1>
+    <h1>${escapeHtml(article?.title || 'This story has expired')}</h1>
+    ${isFound ? `<p><strong>Source:</strong> ${escapeHtml(source)} · <time datetime="${escapeHtml(publishedAt)}">${escapeHtml(new Date(publishedAt).toUTCString())}</time></p>` : ''}
     <p>${escapeHtml(description)}</p>
-    <p><a href="${escapeHtml(app)}">Open this story on Nuzenio</a></p>
+    ${isFound && article?.link ? `<p><a href="${escapeHtml(article.link)}" rel="nofollow noopener noreferrer">Read original publisher story</a></p>` : ''}
+    <p><a href="${escapeHtml(isFound ? app : `${siteUrl}/top-news`)}">${escapeHtml(isFound ? 'Open live Nuzenio coverage' : 'Browse latest Nuzenio headlines')}</a></p>
   </main>
 </body>
 </html>`;
 }
 
-async function findArticle(articleId, category, country, event) {
+async function findArticle(articleKey, category, country, event) {
   const categories = [category, 'top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment'];
   for (const cat of [...new Set(categories)]) {
     const newsResponse = await newsHandler({
@@ -155,7 +178,7 @@ async function findArticle(articleId, category, country, event) {
       },
     });
     const data = JSON.parse(newsResponse.body || '{}');
-    const article = data.articles?.find((item) => item.id === articleId);
+    const article = data.articles?.find((item) => item.id === articleKey || articleSlug(item) === articleKey);
     if (article) return { article, category: cat };
   }
   return { article: null, category };

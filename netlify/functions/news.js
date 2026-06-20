@@ -290,6 +290,19 @@ function clean(value = '') {
     .trim();
 }
 
+function slugifyTitle(value = '') {
+  const slug = clean(value)
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90)
+    .replace(/-+$/g, '');
+  return slug || 'news-story';
+}
+
 function first(item, tag) {
   const match = item.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
   return match ? clean(match[1]) : '';
@@ -370,6 +383,7 @@ function parse(xml, category, country, language = 'en', sourceConfig = {}) {
       const rssImage = extractImage(item);
       return {
         id: `${country}-${category}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 24)}`,
+        slug: slugifyTitle(title),
         title,
         link,
         source,
@@ -1295,6 +1309,7 @@ function rowToArticle(row) {
   const summary = buildSummary(row.summary || row.title);
   return {
     id: row.article_id,
+    slug: payload.slug || slugifyTitle(row.title),
     title: row.title,
     link: row.link,
     source: row.source || payload.source || 'Publisher',
@@ -1359,6 +1374,7 @@ async function writeSupabaseNewsCache({ category, country, q, articles }) {
         published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
         payload: {
           sourceUrl: article.sourceUrl || '',
+          slug: article.slug || slugifyTitle(article.title),
           readTime: article.readTime || 1,
           trustScore: article.trustScore || 90,
           whyItMatters: article.whyItMatters || '',

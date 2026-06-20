@@ -20,8 +20,25 @@ function escapeXml(value = '') {
     .replace(/'/g, '&apos;');
 }
 
+function slugifyTitle(value = '') {
+  const slug = String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90)
+    .replace(/-+$/g, '');
+  return slug || 'news-story';
+}
+
+function articleSlug(article) {
+  return article?.slug || slugifyTitle(article?.title || article?.id || 'news-story');
+}
+
 function articleUrl(article) {
-  const url = new URL(`/article/${encodeURIComponent(article.id)}`, siteUrl);
+  const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, siteUrl);
   url.searchParams.set('country', article.country || 'IN');
   url.searchParams.set('category', article.category || 'top');
   return url.toString();
@@ -35,8 +52,10 @@ function isNewsSitemapFresh(article) {
 
 function newsEntry(article) {
   const publishedAt = new Date(article.pubDate).toISOString();
+  const source = article.source || 'Publisher';
   return `  <url>
     <loc>${escapeXml(articleUrl(article))}</loc>
+    <lastmod>${escapeXml(publishedAt)}</lastmod>
     <news:news>
       <news:publication>
         <news:name>Nuzenio</news:name>
@@ -44,8 +63,41 @@ function newsEntry(article) {
       </news:publication>
       <news:publication_date>${escapeXml(publishedAt)}</news:publication_date>
       <news:title>${escapeXml(article.title || 'Nuzenio headline')}</news:title>
+      <news:keywords>${escapeXml([source, article.category || 'news'].filter(Boolean).join(', '))}</news:keywords>
     </news:news>
   </url>`;
+}
+
+function supabaseConfig() {
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return { url, key, enabled: Boolean(url && key) };
+}
+
+async function readCachedArticles() {
+  const config = supabaseConfig();
+  if (!config.enabled) return [];
+  try {
+    const response = await fetch(`${config.url}/rest/v1/news_cache?select=article_id,title,link,source,summary,image,image_kind,category,country,published_at,updated_at,payload&order=published_at.desc&limit=180`, {
+      headers: {
+        apikey: config.key,
+        Authorization: `Bearer ${config.key}`,
+      },
+    });
+    if (!response.ok) return [];
+    const rows = await response.json();
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      id: row.article_id,
+      slug: row.payload?.slug || slugifyTitle(row.title),
+      title: row.title,
+      source: row.source || 'Publisher',
+      category: row.category || 'top',
+      country: row.country || 'IN',
+      pubDate: row.published_at || row.updated_at,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function sitemapDocument(articles = []) {
@@ -96,10 +148,12 @@ export const handler = async (event) => {
       const data = JSON.parse(newsResponse.body || '{}');
       return data.ok ? data.articles || [] : [];
     }));
+    const cachedArticles = await readCachedArticles();
     const seen = new Set();
-    const articles = responses.flat().filter((article) => {
-      if (!article?.id || seen.has(article.id)) return false;
-      seen.add(article.id);
+    const articles = [...cachedArticles, ...responses.flat()].filter((article) => {
+      const key = article?.id || articleSlug(article);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
     return {

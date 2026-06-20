@@ -222,6 +222,23 @@ function readArticleIdFromUrl() {
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
 }
 
+function slugifyTitle(value = '') {
+  const slug = String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90)
+    .replace(/-+$/g, '');
+  return slug || 'news-story';
+}
+
+function articleSlug(article) {
+  return article?.slug || slugifyTitle(article?.title || article?.id || 'news-story');
+}
+
 function initialCategory() {
   const path = normalizedPathname();
   const routeCategory = Object.entries(categoryRoutes)
@@ -279,7 +296,7 @@ function homeContextUrl({ category, location }) {
 
 function articleContextUrl(article, context) {
   const url = contextUrl(context);
-  url.pathname = `/article/${encodeURIComponent(article.id)}`;
+  url.pathname = `/article/${encodeURIComponent(articleSlug(article))}`;
   url.searchParams.set('category', article.category || context.category || 'top');
   url.searchParams.delete('article');
   return url;
@@ -362,12 +379,12 @@ function App() {
       setIsRootHome(isRootHomePath());
       setIsLocalPage(window.location.pathname === categoryRoutes.local);
       setCategory(initialCategory());
-      const articleId = readArticleIdFromUrl();
-      if (!articleId) {
+      const articleKey = readArticleIdFromUrl();
+      if (!articleKey) {
         setSelected(null);
         return;
       }
-      const linkedArticle = articles.find((article) => article.id === articleId);
+      const linkedArticle = articles.find((article) => article.id === articleKey || articleSlug(article) === articleKey);
       if (linkedArticle) setSelected(linkedArticle);
       else if (articles.length > 0) {
         setStatus('Shared story is no longer in the live feed. Showing the latest stories for this context.');
@@ -3202,7 +3219,7 @@ function articleEventParams(article) {
 
 function shareArticleUrl(article) {
   const url = new URL('/', window.location.origin);
-  url.pathname = `/article/${encodeURIComponent(article.id)}`;
+  url.pathname = `/article/${encodeURIComponent(articleSlug(article))}`;
   url.searchParams.delete('article');
   url.hash = '';
   if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
@@ -3212,7 +3229,7 @@ function shareArticleUrl(article) {
 }
 
 function articleHref(article) {
-  const url = new URL(`/article/${encodeURIComponent(article.id)}`, window.location.origin);
+  const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, window.location.origin);
   url.searchParams.set('country', article.country || 'IN');
   url.searchParams.set('category', article.category || 'top');
   return `${url.pathname}${url.search}`;

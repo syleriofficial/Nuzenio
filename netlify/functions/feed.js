@@ -20,8 +20,25 @@ function escapeXml(value = '') {
     .replace(/'/g, '&apos;');
 }
 
+function slugifyTitle(value = '') {
+  const slug = String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90)
+    .replace(/-+$/g, '');
+  return slug || 'news-story';
+}
+
+function articleSlug(article) {
+  return article?.slug || slugifyTitle(article?.title || article?.id || 'news-story');
+}
+
 function articleUrl(article) {
-  const url = new URL(`/article/${encodeURIComponent(article.id)}`, siteUrl);
+  const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, siteUrl);
   url.searchParams.set('country', article.country || 'IN');
   url.searchParams.set('category', article.category || 'top');
   return url.toString();
