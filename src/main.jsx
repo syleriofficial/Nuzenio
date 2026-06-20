@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -28,7 +28,6 @@ import {
   Zap,
 } from 'lucide-react';
 import './styles.css';
-import { AdminDashboard } from './components/AdminDashboard.jsx';
 import { AdSlot } from './components/AdSlot.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { fetchNewsJson } from './services/newsApi.js';
@@ -42,6 +41,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
 
 const categories = [
   ['local', 'Local'],
@@ -798,13 +798,15 @@ function App() {
     return (
       <div className="appShell" data-section="admin">
         <a className="skipLink" href="#main-content">Skip to main content</a>
-        <AdminDashboard
-          supabase={supabase}
-          user={user}
-          onBack={navigateHome}
-          onLogin={loginWithGoogle}
-          onLogout={logout}
-        />
+        <Suspense fallback={<main id="main-content" className="adminMain"><div className="adminGate"><h1>Loading admin</h1><p>Preparing Nuzenio control center...</p></div></main>}>
+          <AdminDashboard
+            supabase={supabase}
+            user={user}
+            onBack={navigateHome}
+            onLogin={loginWithGoogle}
+            onLogout={logout}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -883,6 +885,7 @@ function App() {
       {!analyticsConsent && (
         <AnalyticsConsentBanner onAccept={() => chooseAnalyticsConsent('granted')} onDecline={() => chooseAnalyticsConsent('denied')} />
       )}
+      <PWAInstallPrompt />
       <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
@@ -900,6 +903,56 @@ function AnalyticsConsentBanner({ onAccept, onDecline }) {
         <button className="primaryAction" onClick={onAccept}>Accept analytics</button>
         <button onClick={onDecline}>Keep private</button>
       </div>
+    </div>
+  );
+}
+
+function PWAInstallPrompt() {
+  const [installEvent, setInstallEvent] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(() => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone);
+  const [dismissed, setDismissed] = useState(() => readLocal('nuzenio_install_prompt_dismissed', false));
+
+  useEffect(() => {
+    function handlePrompt(event) {
+      event.preventDefault();
+      setInstallEvent(event);
+    }
+    function handleInstalled() {
+      setIsInstalled(true);
+      setInstallEvent(null);
+    }
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handlePrompt);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
+
+  async function installApp() {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice.catch(() => null);
+    setInstallEvent(null);
+    setDismissed(true);
+    writeLocal('nuzenio_install_prompt_dismissed', true);
+  }
+
+  function dismiss() {
+    setDismissed(true);
+    writeLocal('nuzenio_install_prompt_dismissed', true);
+  }
+
+  if (isInstalled || dismissed || !installEvent) return null;
+
+  return (
+    <div className="installPrompt" role="dialog" aria-label="Install Nuzenio app">
+      <div>
+        <b>Install Nuzenio</b>
+        <span>Faster launch, offline shell, and mobile app navigation.</span>
+      </div>
+      <button className="primaryAction" onClick={installApp}>Install</button>
+      <button onClick={dismiss} aria-label="Dismiss install prompt">Later</button>
     </div>
   );
 }
@@ -2381,6 +2434,7 @@ function Newsletter({ copy, language, location }) {
 
 function RetentionPanel({ location, user }) {
   const defaultCategories = ['top', 'local', 'business', 'tech', 'sports'];
+  const [notificationPermission, setNotificationPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
   const [preferences, setPreferences] = useState({
     preferred_country: location.country || 'IN',
     preferred_categories: defaultCategories,
@@ -2388,6 +2442,7 @@ function RetentionPanel({ location, user }) {
     email_notifications: false,
     push_notifications: false,
     marketing_consent: false,
+    breaking_alerts: false,
   });
   const [message, setMessage] = useState('');
 
@@ -2406,6 +2461,7 @@ function RetentionPanel({ location, user }) {
           email_notifications: Boolean(data.email_notifications),
           push_notifications: Boolean(data.push_notifications),
           marketing_consent: Boolean(data.marketing_consent),
+          breaking_alerts: Boolean(data.metadata?.breaking_alerts),
         });
       });
   }, [user?.id]);
@@ -2427,6 +2483,7 @@ function RetentionPanel({ location, user }) {
     const payload = {
       user_id: user.id,
       ...preferences,
+      metadata: { breaking_alerts: preferences.breaking_alerts },
       preferred_country: String(preferences.preferred_country || 'IN').toUpperCase(),
     };
     const { error } = await supabase.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
@@ -2440,6 +2497,25 @@ function RetentionPanel({ location, user }) {
       categories: payload.preferred_categories.join(','),
       digest_frequency: payload.digest_frequency,
     });
+  }
+
+  async function requestNotificationPermission() {
+    if (typeof Notification === 'undefined') {
+      setNotificationPermission('unsupported');
+      return;
+    }
+    const nextPermission = await Notification.requestPermission();
+    setNotificationPermission(nextPermission);
+    if (nextPermission === 'granted') {
+      setPreferences((current) => ({
+        ...current,
+        push_notifications: true,
+        breaking_alerts: true,
+      }));
+      trackEvent('notification_permission', { status: 'granted' });
+    } else {
+      trackEvent('notification_permission', { status: nextPermission });
+    }
   }
 
   return (
@@ -2490,6 +2566,17 @@ function RetentionPanel({ location, user }) {
         />
         <span>Future push notifications</span>
       </label>
+      <label className="consentCheck">
+        <input
+          type="checkbox"
+          checked={preferences.breaking_alerts}
+          onChange={(event) => setPreferences({ ...preferences, breaking_alerts: event.target.checked })}
+        />
+        <span>Breaking news alerts</span>
+      </label>
+      <button type="button" onClick={requestNotificationPermission} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'}>
+        {notificationPermission === 'granted' ? 'Notifications allowed' : notificationPermission === 'unsupported' ? 'Notifications unsupported' : 'Enable notifications'}
+      </button>
       <button onClick={savePreferences}>Save preferences</button>
       <small>{user ? 'Stored privately in your Nuzenio account.' : 'Login required to sync preferences.'}</small>
       {message && <small>{message}</small>}

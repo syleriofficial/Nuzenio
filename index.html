@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="theme-color" content="#ffffff"/>
+  <meta name="theme-color" content="#2563eb"/>
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
   <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
   <meta name="google-site-verification" content="FOF_QlCfK8GLMrLPThQOfvJR5ZqZbTEGJu4DFEcEzw0"/>
@@ -18,6 +18,7 @@
   <link rel="search" type="application/opensearchdescription+xml" title="Nuzenio" href="/opensearch.xml"/>
   <link rel="icon" type="image/svg+xml" href="/icon.svg"/>
   <link rel="apple-touch-icon" href="/icon.svg"/>
+  <link rel="mask-icon" href="/icon.svg" color="#2563eb"/>
   <link rel="manifest" href="/site.webmanifest"/>
   <link rel="preload" as="image" href="/logo.svg" type="image/svg+xml"/>
   <link rel="preconnect" href="https://www.google.com">
@@ -136,5 +137,12 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

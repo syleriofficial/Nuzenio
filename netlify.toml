@@ -31,6 +31,17 @@
     Cache-Control = "public, max-age=86400"
 
 [[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/offline.html"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
   for = "/robots.txt"
   [headers.values]
     Content-Type = "text/plain; charset=utf-8"

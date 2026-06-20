@@ -6,9 +6,12 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "prefer_related_applications": false,
   "categories": ["news", "productivity", "utilities"],
   "shortcuts": [
     {
@@ -46,6 +49,22 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Nuzenio global news home"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "512x132",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Nuzenio mobile news app"
     }
   ]
 }

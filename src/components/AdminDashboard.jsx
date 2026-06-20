@@ -46,7 +46,7 @@ function localDate(value) {
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
+export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
