@@ -28,6 +28,13 @@ import {
   Zap,
 } from 'lucide-react';
 import './styles.css';
+import { AdSlot } from './components/AdSlot.jsx';
+import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
+import { fetchNewsJson } from './services/newsApi.js';
+import { productionOrigin } from './constants/site.js';
+import { parseConfiguredAffiliateLinks } from './utils/affiliate.js';
+import { formatDate, formatFreshAge, formatLastUpdated } from './utils/format.js';
+import { readLocal, writeLocal } from './utils/storage.js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -137,8 +144,6 @@ const languages = [
   { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
 ];
 
-const productionOrigin = 'https://nuzenio.com';
-
 const translations = {
   en: {
     tagline: 'AI global news bridge',
@@ -245,24 +250,6 @@ function initialLocation() {
   };
 }
 
-function parseConfiguredAffiliateLinks(value = '[]') {
-  try {
-    const parsed = JSON.parse(value || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item) => item?.title && item?.url && /^https:\/\//i.test(item.url))
-      .map((item, index) => ({
-        id: item.id || `env-affiliate-${index}`,
-        title: String(item.title).trim(),
-        category: String(item.category || 'news').trim().toLowerCase(),
-        url: String(item.url).trim(),
-        disclosure: String(item.disclosure || 'Nuzenio may earn a commission from this link.').trim(),
-      }));
-  } catch {
-    return [];
-  }
-}
-
 function contextUrl({ category, location }) {
   const url = new URL('/', window.location.origin);
   const currentArticle = readArticleIdFromUrl();
@@ -323,13 +310,7 @@ function App() {
   const newsRequestId = useRef(0);
   const homeSectionsRequestId = useRef(0);
 
-  useEffect(() => {
-    document.documentElement.dir = language.dir;
-    document.documentElement.lang = language.code;
-    document.documentElement.dataset.newsLanguage = 'en';
-    localStorage.removeItem('nuzenio_news_language');
-    localStorage.removeItem('newssetu_news_language');
-  }, []);
+  useDocumentLanguage(language);
 
   useEffect(() => {
     updateGoogleConsent(analyticsConsent);
@@ -438,15 +419,14 @@ function App() {
     setStatus('Loading live RSS news...');
     setArticles([]);
     try {
-      const cityParam = cat === 'local' && city ? `&city=${encodeURIComponent(city)}` : '';
-      const regionParam = cat === 'local' && region ? `&region=${encodeURIComponent(region)}` : '';
-      const languageParam = `&language=${encodeURIComponent(newsLanguage)}`;
-      const freshParam = forceFresh ? `&fresh=${Date.now()}` : '';
-      const res = await fetch(
-        `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}${regionParam}${cityParam}${languageParam}${freshParam}`,
-        { cache: forceFresh ? 'no-store' : 'default' },
-      );
-      const data = await res.json();
+      const data = await fetchNewsJson({
+        category: cat,
+        country,
+        region,
+        city,
+        language: newsLanguage,
+        forceFresh,
+      });
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
@@ -484,10 +464,11 @@ function App() {
     setArticles([]);
     if (updateUrl) writeSearchUrl(searchTerm);
     try {
-      const res = await fetch(
-        `/api/news?q=${encodeURIComponent(searchTerm)}&country=${encodeURIComponent(location.country)}&language=en`,
-      );
-      const data = await res.json();
+      const data = await fetchNewsJson({
+        q: searchTerm,
+        country: location.country,
+        language: 'en',
+      });
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'Search failed');
       setArticles(data.articles || []);
@@ -521,11 +502,12 @@ function App() {
     setIsLoadingHomeSections(true);
     try {
       const results = await Promise.all(Object.entries(sectionCategories).map(async ([key, cat]) => {
-        const res = await fetch(
-          `/api/news?category=${encodeURIComponent(cat)}&country=${encodeURIComponent(country)}&language=en${forceFresh ? `&fresh=${Date.now()}` : ''}`,
-          { cache: forceFresh ? 'no-store' : 'default' },
-        );
-        const data = await res.json();
+        const data = await fetchNewsJson({
+          category: cat,
+          country,
+          language: 'en',
+          forceFresh,
+        });
         return [key, data.ok ? data.articles || [] : []];
       }));
       if (requestId === homeSectionsRequestId.current) {
@@ -2532,15 +2514,6 @@ function Footer({ copy, onPrivacySettings }) {
   );
 }
 
-function AdSlot({ compact = false, label, name }) {
-  return (
-    <div className={`adSlot ${compact ? 'sideAd' : ''}`} data-ad-slot={name}>
-      <span>{label}</span>
-      <small>Advertisement space</small>
-    </div>
-  );
-}
-
 function displayTitle(article) {
   if (!article) return '';
   return article.title;
@@ -2824,54 +2797,6 @@ function inferCountryFromTimezone(timeZone = '') {
   if (timeZone.includes('Moscow')) return 'RU';
   if (timeZone.includes('New_York') || timeZone.includes('Chicago') || timeZone.includes('Los_Angeles')) return 'US';
   return 'IN';
-}
-
-function formatDate(value) {
-  if (!value) return 'Just now';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function formatFreshAge(value) {
-  if (!value) return 'Latest';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
-  return formatDate(value);
-}
-
-function formatLastUpdated(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (seconds < 45) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function readLocal(key, fallback, legacyKey = '') {
-  try {
-    const value = localStorage.getItem(key) || (legacyKey ? localStorage.getItem(legacyKey) : '');
-    return JSON.parse(value || JSON.stringify(fallback));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeLocal(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Keep the app usable when storage is blocked or full.
-  }
 }
 
 function setMeta(selector, attribute, value) {

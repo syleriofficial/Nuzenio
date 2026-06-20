@@ -51,7 +51,7 @@ function newsEntry(article) {
 function sitemapDocument(articles = []) {
   const entries = articles
     .filter(isNewsSitemapFresh)
-    .slice(0, 80)
+    .slice(0, 180)
     .map(newsEntry)
     .join('\n');
 
@@ -78,21 +78,34 @@ export const handler = async (event) => {
   }
 
   try {
-    const newsResponse = await newsHandler({
-      httpMethod: 'GET',
-      headers: event.headers || {},
-      queryStringParameters: {
-        category: event.queryStringParameters?.category || 'top',
-        country: event.queryStringParameters?.country || 'IN',
-        language: 'en',
-      },
+    const country = event.queryStringParameters?.country || 'IN';
+    const requestedCategory = event.queryStringParameters?.category;
+    const categories = requestedCategory
+      ? [requestedCategory]
+      : ['top', 'world', 'business', 'tech', 'ai', 'sports', 'science', 'health', 'entertainment'];
+    const responses = await Promise.all(categories.map(async (category) => {
+      const newsResponse = await newsHandler({
+        httpMethod: 'GET',
+        headers: event.headers || {},
+        queryStringParameters: {
+          category,
+          country,
+          language: 'en',
+        },
+      });
+      const data = JSON.parse(newsResponse.body || '{}');
+      return data.ok ? data.articles || [] : [];
+    }));
+    const seen = new Set();
+    const articles = responses.flat().filter((article) => {
+      if (!article?.id || seen.has(article.id)) return false;
+      seen.add(article.id);
+      return true;
     });
-    const data = JSON.parse(newsResponse.body || '{}');
-    if (!data.ok) throw new Error(data.error || 'News sitemap failed');
     return {
       statusCode: 200,
       headers,
-      body: sitemapDocument(data.articles || []),
+      body: sitemapDocument(articles),
     };
   } catch {
     return {

@@ -223,11 +223,17 @@ const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Cache-Control': 'public, max-age=60, stale-while-revalidate=240',
+  'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
   'Content-Type': 'application/json; charset=utf-8',
   'X-Content-Type-Options': 'nosniff',
   'X-Robots-Tag': 'noindex, nofollow',
 };
+
+const MEMORY_CACHE_TTL_MS = 10 * 60 * 1000;
+const MEMORY_STALE_TTL_MS = 60 * 60 * 1000;
+const SUPABASE_CACHE_TTL_MS = 15 * 60 * 1000;
+const SUPABASE_STALE_TTL_MS = 24 * 60 * 60 * 1000;
+const memoryNewsCache = globalThis.__nuzenioNewsCache || (globalThis.__nuzenioNewsCache = new Map());
 
 function fetchText(url, redirects = 0, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
@@ -357,7 +363,6 @@ function parse(xml, category, country, language = 'en') {
       const link = first(item, 'link');
       const pubDate = first(item, 'pubDate');
       const summary = buildSummary(description || title);
-      const fullBrief = clean(description || title);
       const rssImage = extractImage(item);
       return {
         id: `${country}-${category}-${Buffer.from(`${title}${link}`).toString('base64url').slice(0, 24)}`,
@@ -373,7 +378,7 @@ function parse(xml, category, country, language = 'en') {
         readTime: Math.max(1, Math.ceil((description || title).split(/\s+/).length / 180)),
         trustScore: Math.max(84, 99 - (index % 12)),
         summary,
-        fullBrief,
+        fullBrief: summary,
         whatHappened: summary,
         whyItMatters: buildWhyItMatters(category, source, newsLanguage),
       };
@@ -1174,6 +1179,185 @@ function categorySearchQueries({ category, country, language }) {
   ];
 }
 
+function newsCacheKey({ category, country, region, city, language, q }) {
+  return JSON.stringify({
+    category: normalizeCategory(category),
+    country: normalizeCountry(country),
+    region: cleanRegion(region || ''),
+    city: cleanRegion(city || ''),
+    language: normalizeLanguage(language),
+    q: cleanQuery(q || ''),
+  });
+}
+
+function readMemoryCache(key, { allowStale = false } = {}) {
+  const hit = memoryNewsCache.get(key);
+  if (!hit) return null;
+  const ageMs = Date.now() - hit.cachedAt;
+  if (ageMs <= MEMORY_CACHE_TTL_MS || (allowStale && ageMs <= MEMORY_STALE_TTL_MS)) {
+    return { ...hit, ageMs, stale: ageMs > MEMORY_CACHE_TTL_MS };
+  }
+  memoryNewsCache.delete(key);
+  return null;
+}
+
+function writeMemoryCache(key, payload) {
+  memoryNewsCache.set(key, {
+    ...payload,
+    cachedAt: Date.now(),
+  });
+  if (memoryNewsCache.size > 120) {
+    const oldestKey = [...memoryNewsCache.entries()].sort((a, b) => a[1].cachedAt - b[1].cachedAt)[0]?.[0];
+    if (oldestKey) memoryNewsCache.delete(oldestKey);
+  }
+}
+
+function supabaseConfig() {
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return { url, key, enabled: Boolean(url && key) };
+}
+
+async function supabaseRequest(path, options = {}) {
+  const config = supabaseConfig();
+  if (!config.enabled) return null;
+  const response = await fetch(`${config.url}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Supabase news cache failed with ${response.status}${body ? `: ${body.slice(0, 160)}` : ''}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function canUseSupabaseNewsCache({ category, q }) {
+  return !q && category !== 'local' && !VIDEO_CATEGORIES.has(category);
+}
+
+function rowToArticle(row) {
+  const payload = row.payload && typeof row.payload === 'object' ? row.payload : {};
+  const summary = buildSummary(row.summary || row.title);
+  return {
+    id: row.article_id,
+    title: row.title,
+    link: row.link,
+    source: row.source || payload.source || 'Publisher',
+    sourceUrl: payload.sourceUrl || '',
+    pubDate: row.published_at,
+    category: row.category,
+    country: row.country,
+    image: row.image || '',
+    imageKind: row.image_kind || payload.imageKind || 'logo',
+    readTime: payload.readTime || 1,
+    trustScore: payload.trustScore || 90,
+    summary,
+    fullBrief: summary,
+    whatHappened: summary,
+    whyItMatters: payload.whyItMatters || buildWhyItMatters(row.category, row.source || 'Publisher', 'en'),
+  };
+}
+
+async function readSupabaseNewsCache({ category, country, q }, { allowStale = false } = {}) {
+  if (!canUseSupabaseNewsCache({ category, q })) return null;
+  try {
+    const path = [
+      'news_cache?select=article_id,title,link,source,summary,image,image_kind,category,country,published_at,updated_at,payload',
+      `category=eq.${encodeURIComponent(category)}`,
+      `country=eq.${encodeURIComponent(country)}`,
+      'order=published_at.desc',
+      'limit=60',
+    ].join('&');
+    const rows = await supabaseRequest(path);
+    if (!Array.isArray(rows) || rows.length < 6) return null;
+    const updatedAt = rows.reduce((latest, row) => Math.max(latest, new Date(row.updated_at || row.published_at).getTime() || 0), 0);
+    const ageMs = Date.now() - updatedAt;
+    if (ageMs <= SUPABASE_CACHE_TTL_MS || (allowStale && ageMs <= SUPABASE_STALE_TTL_MS)) {
+      return {
+        articles: rows.map(rowToArticle),
+        updatedAt: new Date(updatedAt || Date.now()).toISOString(),
+        stale: ageMs > SUPABASE_CACHE_TTL_MS,
+        ageMs,
+      };
+    }
+  } catch (error) {
+    console.error('Supabase news cache read skipped:', error.message);
+  }
+  return null;
+}
+
+async function writeSupabaseNewsCache({ category, country, q, articles }) {
+  if (!canUseSupabaseNewsCache({ category, q }) || !articles.length) return;
+  try {
+    const rows = articles.slice(0, 60).map((article) => {
+      const summary = buildSummary(article.summary || article.fullBrief || article.title);
+      return {
+        article_id: article.id,
+        title: article.title,
+        link: article.link,
+        source: article.source || 'Publisher',
+        summary,
+        image: article.image || null,
+        image_kind: article.imageKind || 'logo',
+        category,
+        country,
+        published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
+        payload: {
+          sourceUrl: article.sourceUrl || '',
+          readTime: article.readTime || 1,
+          trustScore: article.trustScore || 90,
+          whyItMatters: article.whyItMatters || '',
+        },
+      };
+    });
+    await supabaseRequest('news_cache?on_conflict=article_id,category,country', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    });
+  } catch (error) {
+    console.error('Supabase news cache write skipped:', error.message);
+  }
+}
+
+function copyrightSafeArticles(articles = []) {
+  return articles.map((article) => {
+    const summary = buildSummary(article.summary || article.fullBrief || article.title);
+    return {
+      ...article,
+      summary,
+      fullBrief: summary,
+      whatHappened: article.whatHappened ? buildSummary(article.whatHappened) : summary,
+    };
+  });
+}
+
+function newsPayload({ category, country, region, city, language, q, articles, sourceType, updatedAt = new Date().toISOString(), stale = false }) {
+  const safeArticles = copyrightSafeArticles(articles);
+  return {
+    ok: true,
+    category,
+    country,
+    countryName: countryLabel(country),
+    region: region || null,
+    city: city || null,
+    language,
+    query: q || null,
+    total: safeArticles.length,
+    sourceType,
+    updatedAt,
+    stale,
+    articles: safeArticles,
+  };
+}
+
 async function fetchFreshLocalArticles({ country, region, city, language }) {
   const queries = localSearchQueries({ country, region, city });
   const batches = [];
@@ -1255,54 +1439,149 @@ export const handler = async (event) => {
     const city = cleanRegion(event.queryStringParameters?.city || '');
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
     const q = cleanQuery(event.queryStringParameters?.q || '');
+    const forceFresh = Boolean(event.queryStringParameters?.fresh);
+    const key = newsCacheKey({ category, country, region, city, language, q });
 
     if (!q && VIDEO_CATEGORIES.has(category)) {
       const { articles, sourceType } = await fetchYouTubeVideos({ category, country, language });
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          ok: true,
+        body: JSON.stringify(newsPayload({
           category,
           country,
-          countryName: countryLabel(country),
-          region: region || null,
-          city: city || null,
+          region,
+          city,
           language,
-          query: null,
-          total: articles.length,
-          sourceType,
-          updatedAt: new Date().toISOString(),
+          q,
           articles,
-        }),
+          sourceType,
+        })),
       };
     }
 
+    if (!forceFresh) {
+      const memoryHit = readMemoryCache(key);
+      if (memoryHit) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(newsPayload({
+            category,
+            country,
+            region,
+            city,
+            language,
+            q,
+            articles: memoryHit.articles,
+            sourceType: memoryHit.sourceType || 'memory-cache',
+            updatedAt: memoryHit.updatedAt,
+            stale: memoryHit.stale,
+          })),
+        };
+      }
+
+      const supabaseHit = await readSupabaseNewsCache({ category, country, q });
+      if (supabaseHit) {
+        writeMemoryCache(key, {
+          articles: supabaseHit.articles,
+          sourceType: 'supabase-cache',
+          updatedAt: supabaseHit.updatedAt,
+        });
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(newsPayload({
+            category,
+            country,
+            region,
+            city,
+            language,
+            q,
+            articles: supabaseHit.articles,
+            sourceType: 'supabase-cache',
+            updatedAt: supabaseHit.updatedAt,
+            stale: supabaseHit.stale,
+          })),
+        };
+      }
+    }
+
     const articles = await fetchFreshNewsArticles({ category, country, region, city, language, q });
+    const updatedAt = new Date().toISOString();
+    const sourceType = !q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss';
+    writeMemoryCache(key, { articles, sourceType, updatedAt });
+    await writeSupabaseNewsCache({ category, country, q, articles });
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        ok: true,
+      body: JSON.stringify(newsPayload({
         category,
         country,
-        countryName: countryLabel(country),
-        region: region || null,
-        city: city || null,
+        region,
+        city,
         language,
-        query: q || null,
-        total: articles.length,
-        sourceType: !q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss',
-        updatedAt: new Date().toISOString(),
         articles,
-      }),
+        sourceType,
+        updatedAt,
+      })),
     };
   } catch (error) {
+    const category = normalizeCategory(event.queryStringParameters?.category || 'local');
+    const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
+    const region = cleanRegion(event.queryStringParameters?.region || '');
+    const city = cleanRegion(event.queryStringParameters?.city || '');
+    const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
+    const q = cleanQuery(event.queryStringParameters?.q || '');
+    const key = newsCacheKey({ category, country, region, city, language, q });
+    const memoryFallback = readMemoryCache(key, { allowStale: true });
+    if (memoryFallback) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(newsPayload({
+          category,
+          country,
+          region,
+          city,
+          language,
+          q,
+          articles: memoryFallback.articles,
+          sourceType: 'stale-memory-cache',
+          updatedAt: memoryFallback.updatedAt,
+          stale: true,
+        })),
+      };
+    }
+    const supabaseFallback = await readSupabaseNewsCache({ category, country, q }, { allowStale: true });
+    if (supabaseFallback) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(newsPayload({
+          category,
+          country,
+          region,
+          city,
+          language,
+          q,
+          articles: supabaseFallback.articles,
+          sourceType: 'stale-supabase-cache',
+          updatedAt: supabaseFallback.updatedAt,
+          stale: true,
+        })),
+      };
+    }
     return {
       statusCode: 502,
       headers,
-      body: JSON.stringify({ ok: false, error: error.message, sourceType: 'live-rss' }),
+      body: JSON.stringify({
+        ok: false,
+        error: error.message,
+        sourceType: 'live-rss',
+        articles: [],
+      }),
     };
   }
 };

@@ -67,17 +67,25 @@ function htmlDocument({ article, articleId, category, country }) {
   const description = article?.summary || 'Read the latest source-attributed Nuzenio news brief with AI-powered context and original publisher attribution.';
   const image = seoImage(article);
   const publishedAt = article?.pubDate || new Date().toISOString();
+  const modifiedAt = article?.updatedAt || publishedAt;
   const source = article?.source || 'RSS publisher';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
+    '@id': `${canonical}#article`,
     headline: article?.title || 'Nuzenio Article',
     description,
-    image,
+    image: [image],
     datePublished: publishedAt,
-    dateModified: publishedAt,
-    mainEntityOfPage: canonical,
+    dateModified: modifiedAt,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': canonical,
+    },
     url: canonical,
+    articleSection: category,
+    inLanguage: 'en',
+    isAccessibleForFree: true,
     publisher: {
       '@type': 'NewsMediaOrganization',
       name: 'Nuzenio',
@@ -85,6 +93,8 @@ function htmlDocument({ article, articleId, category, country }) {
       logo: {
         '@type': 'ImageObject',
         url: `${siteUrl}/icon.svg`,
+        width: 512,
+        height: 512,
       },
     },
     author: {
@@ -93,6 +103,7 @@ function htmlDocument({ article, articleId, category, country }) {
     },
     isBasedOn: article?.link || undefined,
     citation: source,
+    about: article?.category || category,
   };
 
   return `<!doctype html>
@@ -112,6 +123,7 @@ function htmlDocument({ article, articleId, category, country }) {
   <meta property="og:image" content="${escapeHtml(image)}">
   <meta property="og:site_name" content="Nuzenio">
   <meta property="article:published_time" content="${escapeHtml(publishedAt)}">
+  <meta property="article:modified_time" content="${escapeHtml(modifiedAt)}">
   <meta property="article:section" content="${escapeHtml(category)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
