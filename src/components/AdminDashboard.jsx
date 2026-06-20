@@ -23,8 +23,24 @@ const emptyAffiliate = {
   title: '',
   category: 'news',
   destination_url: '',
+  network: 'Amazon Associates',
+  image_url: '',
   disclosure: 'Nuzenio may earn a commission from this link.',
   enabled: false,
+};
+
+const emptySponsored = {
+  title: '',
+  sponsor_name: '',
+  category: 'all',
+  placement: 'sidebar',
+  destination_url: '',
+  image_url: '',
+  disclosure: 'Sponsored content from an approved Nuzenio partner.',
+  label: 'Sponsored',
+  enabled: false,
+  start_at: '',
+  end_at: '',
 };
 
 function groupCount(rows = [], key) {
@@ -56,12 +72,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [analytics, setAnalytics] = useState([]);
   const [adSlots, setAdSlots] = useState([]);
   const [affiliates, setAffiliates] = useState([]);
+  const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
   const [newsletters, setNewsletters] = useState([]);
   const [logs, setLogs] = useState([]);
   const [sourceForm, setSourceForm] = useState(emptySource);
   const [editingSourceId, setEditingSourceId] = useState('');
   const [adForm, setAdForm] = useState(emptyAdSlot);
   const [affiliateForm, setAffiliateForm] = useState(emptyAffiliate);
+  const [sponsoredForm, setSponsoredForm] = useState(emptySponsored);
   const [cacheRefresh, setCacheRefresh] = useState({ category: 'top', country: 'IN' });
 
   const isAdmin = profile?.role === 'admin';
@@ -117,6 +135,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         analyticsResult,
         adResult,
         affiliateResult,
+        sponsoredResult,
         newsletterResult,
         logResult,
         articleCount,
@@ -132,6 +151,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('analytics_events').select('event_name,article_id,category,metadata,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('adsense_slots').select('*').order('updated_at', { ascending: false }),
         supabase.from('affiliate_links').select('*').order('updated_at', { ascending: false }),
+        supabase.from('sponsored_blocks').select('*').order('updated_at', { ascending: false }),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
         countRows('news_cache'),
@@ -149,6 +169,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setAnalytics(analyticsResult.data || []);
       setAdSlots(adResult.data || []);
       setAffiliates(affiliateResult.data || []);
+      setSponsoredBlocks(sponsoredResult.data || []);
       setNewsletters(newsletterResult.data || []);
       setLogs(logResult.data || []);
       setOverview({
@@ -304,6 +325,33 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     }
   }
 
+  async function saveSponsored(event) {
+    event.preventDefault();
+    const payload = {
+      ...sponsoredForm,
+      start_at: sponsoredForm.start_at || null,
+      end_at: sponsoredForm.end_at || null,
+    };
+    const { error } = await supabase.from('sponsored_blocks').insert(payload);
+    if (error) setNotice(error.message);
+    else {
+      setSponsoredForm(emptySponsored);
+      await logAdmin('sponsored_create', 'ok', { table: 'sponsored_blocks', id: payload.destination_url });
+      loadAdmin();
+    }
+  }
+
+  async function toggleRow(table, item) {
+    const { error } = await supabase.from(table).update({ enabled: !item.enabled }).eq('id', item.id);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin(`${table}_toggle`, 'error', { table, id: item.id, message: error.message });
+      return;
+    }
+    await logAdmin(`${table}_toggle`, 'ok', { table, id: item.id });
+    loadAdmin();
+  }
+
   if (!supabase) {
     return <AdminShell onBack={onBack}><AdminGate title="Supabase required" message="Add Supabase env variables before using the admin dashboard." /></AdminShell>;
   }
@@ -446,9 +494,21 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             <input value={adForm.format} onChange={(event) => setAdForm({ ...adForm, format: event.target.value })} placeholder="Format" required />
             <input value={adForm.notes} onChange={(event) => setAdForm({ ...adForm, notes: event.target.value })} placeholder="Notes" />
             <label><input type="checkbox" checked={adForm.enabled} onChange={(event) => setAdForm({ ...adForm, enabled: event.target.checked })} /> Enabled</label>
-            <button className="primaryAction">Save ad/sponsor slot</button>
+            <button className="primaryAction">Save ad slot</button>
           </form>
-          {adSlots.map((slot) => <MetricRow key={slot.id} label={`${slot.slot_key} · ${slot.format}`} value={slot.enabled ? 'Enabled' : 'Disabled'} />)}
+          <AdminTable headers={['Slot', 'Placement', 'Format', 'Status', 'Actions']}>
+            {adSlots.map((slot) => (
+              <tr key={slot.id}>
+                <td><b>{slot.slot_key}</b><small>{slot.notes || 'Reserved inventory'}</small></td>
+                <td>{slot.placement || 'site'}</td>
+                <td>{slot.format}</td>
+                <td>{slot.enabled ? 'Enabled' : 'Disabled'}</td>
+                <td className="adminActions">
+                  <button onClick={() => toggleRow('adsense_slots', slot)}>{slot.enabled ? 'Disable' : 'Enable'}</button>
+                </td>
+              </tr>
+            ))}
+          </AdminTable>
         </AdminPanel>
 
         <AdminPanel title="Affiliate Blocks">
@@ -456,13 +516,64 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             <input value={affiliateForm.title} onChange={(event) => setAffiliateForm({ ...affiliateForm, title: event.target.value })} placeholder="Affiliate title" required />
             <input value={affiliateForm.destination_url} onChange={(event) => setAffiliateForm({ ...affiliateForm, destination_url: event.target.value })} placeholder="Destination URL" type="url" required />
             <input value={affiliateForm.category} onChange={(event) => setAffiliateForm({ ...affiliateForm, category: event.target.value })} placeholder="Category" />
+            <input value={affiliateForm.network} onChange={(event) => setAffiliateForm({ ...affiliateForm, network: event.target.value })} placeholder="Network, e.g. Amazon Associates" />
+            <input value={affiliateForm.image_url} onChange={(event) => setAffiliateForm({ ...affiliateForm, image_url: event.target.value })} placeholder="Image URL" type="url" />
             <input value={affiliateForm.disclosure} onChange={(event) => setAffiliateForm({ ...affiliateForm, disclosure: event.target.value })} placeholder="Disclosure" />
             <label><input type="checkbox" checked={affiliateForm.enabled} onChange={(event) => setAffiliateForm({ ...affiliateForm, enabled: event.target.checked })} /> Enabled</label>
             <button className="primaryAction">Add affiliate block</button>
           </form>
-          {affiliates.map((item) => <MetricRow key={item.id} label={`${item.title} · ${item.category}`} value={item.enabled ? 'Enabled' : 'Disabled'} />)}
+          <AdminTable headers={['Affiliate', 'Category', 'Network', 'Status', 'Actions']}>
+            {affiliates.map((item) => (
+              <tr key={item.id}>
+                <td><b>{item.title}</b><small>{item.destination_url}</small></td>
+                <td>{item.category}</td>
+                <td>{item.network || 'direct'}</td>
+                <td>{item.enabled ? 'Enabled' : 'Disabled'}</td>
+                <td className="adminActions">
+                  <button onClick={() => toggleRow('affiliate_links', item)}>{item.enabled ? 'Disable' : 'Enable'}</button>
+                  <button className="dangerAction" onClick={() => deleteRow('affiliate_links', item.id, item.title)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </AdminTable>
         </AdminPanel>
       </section>
+
+      <AdminPanel title="Sponsored Content Blocks">
+        <form className="adminForm" onSubmit={saveSponsored}>
+          <input value={sponsoredForm.title} onChange={(event) => setSponsoredForm({ ...sponsoredForm, title: event.target.value })} placeholder="Sponsored title" required />
+          <input value={sponsoredForm.sponsor_name} onChange={(event) => setSponsoredForm({ ...sponsoredForm, sponsor_name: event.target.value })} placeholder="Sponsor name" required />
+          <input value={sponsoredForm.destination_url} onChange={(event) => setSponsoredForm({ ...sponsoredForm, destination_url: event.target.value })} placeholder="Destination URL" type="url" required />
+          <input value={sponsoredForm.category} onChange={(event) => setSponsoredForm({ ...sponsoredForm, category: event.target.value })} placeholder="Category or all" />
+          <select value={sponsoredForm.placement} onChange={(event) => setSponsoredForm({ ...sponsoredForm, placement: event.target.value })}>
+            <option value="sidebar">Sidebar</option>
+            <option value="feed">In-feed</option>
+            <option value="article">Article</option>
+          </select>
+          <input value={sponsoredForm.image_url} onChange={(event) => setSponsoredForm({ ...sponsoredForm, image_url: event.target.value })} placeholder="Image URL" type="url" />
+          <input value={sponsoredForm.label} onChange={(event) => setSponsoredForm({ ...sponsoredForm, label: event.target.value })} placeholder="Label" />
+          <input value={sponsoredForm.disclosure} onChange={(event) => setSponsoredForm({ ...sponsoredForm, disclosure: event.target.value })} placeholder="Disclosure" />
+          <input value={sponsoredForm.start_at} onChange={(event) => setSponsoredForm({ ...sponsoredForm, start_at: event.target.value })} type="datetime-local" aria-label="Campaign start date" />
+          <input value={sponsoredForm.end_at} onChange={(event) => setSponsoredForm({ ...sponsoredForm, end_at: event.target.value })} type="datetime-local" aria-label="Campaign end date" />
+          <label><input type="checkbox" checked={sponsoredForm.enabled} onChange={(event) => setSponsoredForm({ ...sponsoredForm, enabled: event.target.checked })} /> Enabled</label>
+          <button className="primaryAction">Add sponsored block</button>
+        </form>
+        <AdminTable headers={['Campaign', 'Category', 'Placement', 'Window', 'Status', 'Actions']}>
+          {sponsoredBlocks.map((item) => (
+            <tr key={item.id}>
+              <td><b>{item.title}</b><small>{item.sponsor_name} · {item.destination_url}</small></td>
+              <td>{item.category}</td>
+              <td>{item.placement}</td>
+              <td>{localDate(item.start_at)} to {localDate(item.end_at)}</td>
+              <td>{item.enabled ? 'Enabled' : 'Disabled'}</td>
+              <td className="adminActions">
+                <button onClick={() => toggleRow('sponsored_blocks', item)}>{item.enabled ? 'Disable' : 'Enable'}</button>
+                <button className="dangerAction" onClick={() => deleteRow('sponsored_blocks', item.id, item.title)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </AdminTable>
+      </AdminPanel>
 
       <AdminPanel title="Security Audit Logs">
         <AdminTable headers={['Action', 'Status', 'Target', 'Message', 'Time']}>

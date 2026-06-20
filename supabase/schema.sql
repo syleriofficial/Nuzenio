@@ -123,9 +123,31 @@ create table if not exists public.affiliate_links (
   title text not null,
   category text not null,
   destination_url text not null,
+  network text default 'direct',
+  image_url text,
   disclosure text default 'Nuzenio may earn a commission from this link.',
   enabled boolean default false,
   approved_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.affiliate_links add column if not exists network text default 'direct';
+alter table public.affiliate_links add column if not exists image_url text;
+
+create table if not exists public.sponsored_blocks (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  sponsor_name text not null,
+  category text default 'all',
+  placement text default 'sidebar',
+  destination_url text not null,
+  image_url text,
+  disclosure text default 'Sponsored content',
+  label text default 'Sponsored',
+  enabled boolean default false,
+  start_at timestamptz,
+  end_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -179,6 +201,7 @@ alter table public.email_digest_logs enable row level security;
 alter table public.rss_sources enable row level security;
 alter table public.adsense_slots enable row level security;
 alter table public.affiliate_links enable row level security;
+alter table public.sponsored_blocks enable row level security;
 alter table public.news_cache enable row level security;
 alter table public.analytics_events enable row level security;
 alter table public.admin_logs enable row level security;
@@ -208,6 +231,7 @@ drop policy if exists "Users can manage own preferences" on public.user_preferen
 drop policy if exists "RSS sources are publicly readable" on public.rss_sources;
 drop policy if exists "Ad slots are publicly readable" on public.adsense_slots;
 drop policy if exists "Approved affiliate links are publicly readable" on public.affiliate_links;
+drop policy if exists "Enabled sponsored blocks are publicly readable" on public.sponsored_blocks;
 drop policy if exists "News cache is publicly readable" on public.news_cache;
 drop policy if exists "Users can insert analytics events" on public.analytics_events;
 drop policy if exists "Admins can manage profiles" on public.profiles;
@@ -216,6 +240,7 @@ drop policy if exists "Admins can read reading history" on public.reading_histor
 drop policy if exists "Admins can manage rss sources" on public.rss_sources;
 drop policy if exists "Admins can manage ad slots" on public.adsense_slots;
 drop policy if exists "Admins can manage affiliate links" on public.affiliate_links;
+drop policy if exists "Admins can manage sponsored blocks" on public.sponsored_blocks;
 drop policy if exists "Admins can manage news cache" on public.news_cache;
 drop policy if exists "Admins can read newsletter subscribers" on public.newsletter_subscribers;
 drop policy if exists "Admins can manage newsletter subscribers" on public.newsletter_subscribers;
@@ -256,6 +281,13 @@ on public.adsense_slots for select using (enabled = true);
 create policy "Approved affiliate links are publicly readable"
 on public.affiliate_links for select using (enabled = true);
 
+create policy "Enabled sponsored blocks are publicly readable"
+on public.sponsored_blocks for select using (
+  enabled = true
+  and (start_at is null or start_at <= now())
+  and (end_at is null or end_at >= now())
+);
+
 create policy "News cache is publicly readable"
 on public.news_cache for select using (true);
 
@@ -287,6 +319,11 @@ with check (public.is_admin());
 
 create policy "Admins can manage affiliate links"
 on public.affiliate_links for all
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Admins can manage sponsored blocks"
+on public.sponsored_blocks for all
 using (public.is_admin())
 with check (public.is_admin());
 
@@ -334,6 +371,7 @@ create index if not exists analytics_event_idx on public.analytics_events(event_
 create index if not exists analytics_category_idx on public.analytics_events(category, created_at desc);
 create index if not exists analytics_article_idx on public.analytics_events(article_id, created_at desc);
 create index if not exists affiliate_category_idx on public.affiliate_links(category, enabled);
+create index if not exists sponsored_blocks_active_idx on public.sponsored_blocks(category, placement, enabled, start_at, end_at);
 create index if not exists news_cache_lookup_idx on public.news_cache(category, country, published_at desc);
 create index if not exists news_cache_updated_idx on public.news_cache(category, country, updated_at desc);
 create index if not exists rss_sources_priority_idx on public.rss_sources(category, country, enabled, priority desc);
@@ -374,6 +412,11 @@ for each row execute function public.touch_updated_at();
 drop trigger if exists affiliate_links_touch_updated_at on public.affiliate_links;
 create trigger affiliate_links_touch_updated_at
 before update on public.affiliate_links
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists sponsored_blocks_touch_updated_at on public.sponsored_blocks;
+create trigger sponsored_blocks_touch_updated_at
+before update on public.sponsored_blocks
 for each row execute function public.touch_updated_at();
 
 drop trigger if exists news_cache_touch_updated_at on public.news_cache;
@@ -438,6 +481,8 @@ values
   ('top-native', 'Home feed top', 'native', 'Reserved until AdSense approval.'),
   ('sidebar-rectangle', 'Desktop right rail', 'rectangle', 'Reserved until AdSense approval.'),
   ('article-inline', 'Article detail body', 'responsive', 'Add publisher script after policy review.'),
+  ('header-leaderboard', 'Header below navigation', 'leaderboard', 'Policy-safe top ad with clear spacing.'),
+  ('footer-banner', 'Footer above site links', 'banner', 'Footer ad slot away from interactive buttons.'),
   ('mobile-feed', 'Mobile feed after story cards', 'responsive', 'Mobile-first revenue slot.'),
   ('newsletter-sponsor', 'Daily brief sponsorship', 'sponsor', 'Sponsor slot for newsletter campaigns.')
 on conflict (slot_key) do nothing;

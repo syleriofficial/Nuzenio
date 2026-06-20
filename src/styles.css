@@ -1636,6 +1636,10 @@ button {
   font-weight: 950;
 }
 
+.adSlot + .adSlot {
+  margin-top: 0;
+}
+
 .adSlot small {
   color: #94a3b8;
   font-weight: 750;
@@ -2480,6 +2484,15 @@ button {
   text-decoration: none;
 }
 
+.affiliateLinks img,
+.sponsoredBlock img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f8fafc;
+}
+
 .affiliateLinks a:hover {
   border-color: #f59e0b;
   background: #fffbeb;
@@ -2509,6 +2522,57 @@ button {
   color: var(--blue);
   font-size: 13px;
   font-style: normal;
+  font-weight: 950;
+}
+
+.sponsoredBlock {
+  border-color: #bae6fd;
+  background: #f8fdff;
+}
+
+.sponsoredBlock-feed {
+  margin: 18px 0;
+}
+
+.sponsoredBlock-article {
+  margin-top: 14px;
+}
+
+.sponsoredLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.sponsoredBlock h3 {
+  margin: 4px 0 0;
+}
+
+.sponsoredBlock p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sponsoredBlock a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  padding: 9px 11px;
+  text-decoration: none;
   font-weight: 950;
 }
 

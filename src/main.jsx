@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Megaphone,
   Newspaper,
   PlayCircle,
   RefreshCw,
@@ -329,6 +330,8 @@ function App() {
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
   const [homeSectionFeeds, setHomeSectionFeeds] = useState({});
   const [affiliateLinks, setAffiliateLinks] = useState(configuredAffiliateLinks);
+  const [adSlots, setAdSlots] = useState(null);
+  const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
   const newsRequestId = useRef(0);
   const homeSectionsRequestId = useRef(0);
 
@@ -339,7 +342,7 @@ function App() {
   }, [analyticsConsent]);
 
   useEffect(() => {
-    loadAffiliateLinks();
+    loadMonetization();
   }, []);
 
   useEffect(() => {
@@ -555,20 +558,36 @@ function App() {
     }
   }
 
-  async function loadAffiliateLinks() {
+  async function loadMonetization() {
     if (!supabase) return;
-    const { data, error } = await supabase
-      .from('affiliate_links')
-      .select('id,title,category,destination_url,disclosure')
-      .eq('enabled', true)
-      .order('updated_at', { ascending: false })
-      .limit(8);
-    if (error || !data?.length) return;
-    setAffiliateLinks(data.map((item) => ({
+    const [affiliateResult, adResult, sponsoredResult] = await Promise.all([
+      supabase
+        .from('affiliate_links')
+        .select('id,title,category,destination_url,disclosure,network,image_url')
+        .eq('enabled', true)
+        .order('updated_at', { ascending: false })
+        .limit(12),
+      supabase
+        .from('adsense_slots')
+        .select('slot_key,placement,format,enabled,notes')
+        .order('updated_at', { ascending: false }),
+      supabase
+        .from('sponsored_blocks')
+        .select('id,title,sponsor_name,category,placement,destination_url,image_url,disclosure,label,start_at,end_at')
+        .eq('enabled', true)
+        .order('updated_at', { ascending: false })
+        .limit(8),
+    ]);
+    if (!adResult.error) setAdSlots(adResult.data || []);
+    if (!sponsoredResult.error) setSponsoredBlocks(sponsoredResult.data || []);
+    if (affiliateResult.error || !affiliateResult.data?.length) return;
+    setAffiliateLinks(affiliateResult.data.map((item) => ({
       id: item.id,
       title: item.title,
       category: item.category || 'news',
       url: item.destination_url,
+      network: item.network || 'direct',
+      image: item.image_url || '',
       disclosure: item.disclosure || 'Nuzenio may earn a commission from this link.',
     })));
   }
@@ -836,6 +855,7 @@ function App() {
         setQuery={setQuery}
         user={user}
       />
+      <AdSlot slots={adSlots} name="header-leaderboard" label="Header advertising inventory" />
       {!selected && <h1 className="srOnly">{semanticPageTitle}</h1>}
 
       {screen === 'home' && (
@@ -845,7 +865,9 @@ function App() {
           copy={copy}
           feed={feed}
           homeSectionFeeds={homeSectionFeeds}
+          adSlots={adSlots}
           affiliateLinks={affiliateLinks}
+          sponsoredBlocks={sponsoredBlocks}
           isRootHome={isRootHome}
           isLoadingHomeSections={isLoadingHomeSections}
           language={language}
@@ -880,12 +902,15 @@ function App() {
           savedIds={savedIds}
           toggleSave={toggleSave}
           affiliateLinks={affiliateLinks}
+          adSlots={adSlots}
+          sponsoredBlocks={sponsoredBlocks}
         />
       )}
       {!analyticsConsent && (
         <AnalyticsConsentBanner onAccept={() => chooseAnalyticsConsent('granted')} onDecline={() => chooseAnalyticsConsent('denied')} />
       )}
       <PWAInstallPrompt />
+      <AdSlot slots={adSlots} name="footer-banner" label="Footer advertising inventory" />
       <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
@@ -1109,6 +1134,7 @@ function Header({
 }
 
 function Home({
+  adSlots,
   articles,
   affiliateLinks,
   category,
@@ -1129,6 +1155,7 @@ function Home({
   savedIds,
   setLocation,
   sideStories,
+  sponsoredBlocks,
   status,
   toggleSave,
   user,
@@ -1177,7 +1204,8 @@ function Home({
           ) : isLoadingNews ? (
             <VideoShowcaseSkeleton />
           ) : null}
-          <AdSlot name="top-native" label="Top advertising inventory" />
+          <AdSlot slots={adSlots} name="top-native" label="In-feed native advertising inventory" />
+          <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="feed" />
           <div className="sectionHead">
             <div>
               <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
@@ -1211,9 +1239,10 @@ function Home({
           <AISummaryBox copy={copy} />
           <TopicRail />
           <AffiliateRail links={affiliateLinks} context={category} />
+          <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="sidebar" />
           <Newsletter copy={copy} language={language} location={location} />
           <RetentionPanel location={location} user={user} />
-          <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
+          <AdSlot slots={adSlots} name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
     );
@@ -1291,7 +1320,8 @@ function Home({
           videoPreview={videoPreview}
         />
 
-        <AdSlot name="top-native" label="Top advertising inventory" />
+        <AdSlot slots={adSlots} name="top-native" label="In-feed native advertising inventory" />
+        <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="feed" />
 
         {searchTerm && (
           <SearchResultPanel
@@ -1361,9 +1391,10 @@ function Home({
           <AISummaryBox copy={copy} />
           <TopicRail />
           <AffiliateRail links={affiliateLinks} context={category} />
+          <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="sidebar" />
           <Newsletter copy={copy} language={language} location={location} />
           <RetentionPanel location={location} user={user} />
-          <AdSlot name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
+          <AdSlot slots={adSlots} name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
   );
@@ -2335,10 +2366,12 @@ function AffiliateRail({ compact = false, context = 'top', links = [] }) {
             onClick={() => trackEvent('affiliate_click', {
               affiliate_category: link.category || 'news',
               affiliate_title: link.title,
+              affiliate_network: link.network || 'direct',
               placement: compact ? 'article' : 'sidebar',
             })}
           >
-            <span>{(link.category || 'Partner').toUpperCase()}</span>
+            {link.image && <img src={link.image} alt="" loading="lazy" />}
+            <span>{(link.category || 'Partner').toUpperCase()} · {link.network || 'Direct'}</span>
             <b>{link.title}</b>
             <small>{link.disclosure || 'Nuzenio may earn a commission from this link.'}</small>
             <em>
@@ -2348,6 +2381,51 @@ function AffiliateRail({ compact = false, context = 'top', links = [] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function isSponsoredActive(block) {
+  const now = Date.now();
+  const startsAt = block.start_at ? new Date(block.start_at).getTime() : 0;
+  const endsAt = block.end_at ? new Date(block.end_at).getTime() : Number.POSITIVE_INFINITY;
+  return (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now);
+}
+
+function SponsoredBlock({ blocks = [], context = 'top', placement = 'sidebar' }) {
+  const block = (blocks || []).find((item) => {
+    if (!item?.title || !item?.destination_url || !/^https:\/\//i.test(item.destination_url)) return false;
+    const category = String(item.category || 'all').toLowerCase();
+    const itemPlacement = String(item.placement || 'sidebar').toLowerCase();
+    return isSponsoredActive(item)
+      && (category === 'all' || category === String(context || 'top').toLowerCase())
+      && itemPlacement === placement;
+  });
+
+  if (!block) return null;
+
+  return (
+    <aside className={`railCard sponsoredBlock sponsoredBlock-${placement}`} aria-label="Sponsored content">
+      <div className="sponsoredLabel">
+        <Megaphone size={16} /> {block.label || 'Sponsored'}
+      </div>
+      {block.image_url && <img src={block.image_url} alt="" loading="lazy" />}
+      <h3>{block.title}</h3>
+      <p>{block.disclosure || 'Sponsored content from an approved Nuzenio partner.'}</p>
+      <a
+        href={block.destination_url}
+        target="_blank"
+        rel="sponsored nofollow noopener noreferrer"
+        onClick={() => trackEvent('sponsored_click', {
+          sponsored_id: block.id,
+          sponsored_title: block.title,
+          sponsor_name: block.sponsor_name,
+          placement,
+          category: block.category || 'all',
+        })}
+      >
+        {block.sponsor_name || 'Sponsor'} <ExternalLink size={14} />
+      </a>
+    </aside>
   );
 }
 
@@ -2584,7 +2662,7 @@ function RetentionPanel({ location, user }) {
   );
 }
 
-function ArticleModal({ affiliateLinks, article, articles, copy, onClose, openArticle, savedIds, toggleSave }) {
+function ArticleModal({ adSlots, affiliateLinks, article, articles, copy, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -2718,7 +2796,8 @@ function ArticleModal({ affiliateLinks, article, articles, copy, onClose, openAr
             Published {formatFreshAge(article.pubDate)}. Nuzenio links back to the original publisher for the full report.
           </p>
         </div>
-        <AdSlot name="article-inline" label="Article advertising inventory" />
+        <AdSlot slots={adSlots} name="article-inline" label="Article advertising inventory" />
+        <SponsoredBlock blocks={sponsoredBlocks} context={article.category} placement="article" />
         <AffiliateRail links={affiliateLinks} context={article.category} compact />
         <div className="sourceBox affiliateDisclosureBox">
           <h3>Affiliate disclosure</h3>

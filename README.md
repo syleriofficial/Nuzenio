@@ -13,12 +13,12 @@ Production-oriented Netlify + Supabase AI news platform.
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
 - Google login wiring with Supabase Auth
-- Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, and analytics schema
+- Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, sponsored blocks, and analytics schema
 - Newsletter retention system with double opt-in, unsubscribe tokens, reader preferences, and digest logs
 - English-only launch flow for cleaner UX, SEO, AdSense review, and source consistency
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
-- Backend-ready admin structures for RSS sources, AdSense slots, newsletter, analytics, SEO, affiliate links, and policies
-- Affiliate link manager structure with visible disclosure
+- Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
+- Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
 - Trust pages: about, sources, editorial policy, AI policy, corrections, contact, advertise, privacy, terms, and affiliate disclosure
 - Transparency files: `ads.txt`, `humans.txt`, `llms.txt`, and `.well-known/security.txt`
@@ -163,10 +163,12 @@ npm run build
 ## Monetization notes
 
 - AdSense publisher script is configured in `index.html`; create real ad units in AdSense and replace reserved inventory slots only with approved slot IDs.
-- Keep paid placements labeled and separate from editorial RSS stories.
+- Header, in-feed, article, sidebar, and footer ad inventory is controlled by `public.adsense_slots`.
+- Keep paid placements labeled and separate from editorial RSS stories. Nuzenio never simulates ad clicks or hides commercial labels.
 - Keep `public/ads.txt` in sync with the active AdSense publisher account.
 - Use the public trust pages in `public/` for AdSense and publisher review readiness.
-- Store approved partner links in `public.affiliate_links` and keep `enabled=false` until reviewed. Only set `enabled=true` after the destination, disclosure, and category are approved.
+- Store approved Amazon Associates or other partner links in `public.affiliate_links` and keep `enabled=false` until reviewed. Only set `enabled=true` after the destination, disclosure, category, and network are approved.
+- Manage sponsored campaigns in `public.sponsored_blocks` with label, sponsor name, destination, placement, and optional start/end dates.
 
 ## Deploy
 
