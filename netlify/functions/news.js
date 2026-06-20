@@ -351,17 +351,21 @@ function normalizeImageUrl(value = '') {
   return /^https:\/\//i.test(url) ? url : '';
 }
 
-function parse(xml, category, country, language = 'en') {
+function parse(xml, category, country, language = 'en', sourceConfig = {}) {
   const newsLanguage = normalizeLanguage(language);
-  return (xml.match(/<item\b[\s\S]*?<\/item>/gi) || [])
+  const entries = [
+    ...(xml.match(/<item\b[\s\S]*?<\/item>/gi) || []),
+    ...(xml.match(/<entry\b[\s\S]*?<\/entry>/gi) || []),
+  ];
+  return entries
     .slice(0, 60)
     .map((item, index) => {
       const title = first(item, 'title');
-      const description = first(item, 'description');
-      const source = first(item, 'source') || 'Google News';
-      const sourceUrl = normalizeImageUrl(tagAttribute(item, 'source', 'url'));
-      const link = first(item, 'link');
-      const pubDate = first(item, 'pubDate');
+      const description = first(item, 'description') || first(item, 'summary') || first(item, 'content');
+      const source = first(item, 'source') || clean(sourceConfig.name || sourceConfig.source || '') || 'Google News';
+      const sourceUrl = normalizeImageUrl(tagAttribute(item, 'source', 'url') || sourceConfig.homepage || sourceConfig.link || '');
+      const link = first(item, 'link') || normalizeImageUrl(tagAttribute(item, 'link', 'href'));
+      const pubDate = first(item, 'pubDate') || first(item, 'published') || first(item, 'updated');
       const summary = buildSummary(description || title);
       const rssImage = extractImage(item);
       return {
@@ -381,6 +385,7 @@ function parse(xml, category, country, language = 'en') {
         fullBrief: summary,
         whatHappened: summary,
         whyItMatters: buildWhyItMatters(category, source, newsLanguage),
+        rssSourceId: sourceConfig.id || '',
       };
     })
     .filter((article) => article.title && article.link)
@@ -496,6 +501,49 @@ function approvedLiveSources({ country, language }) {
     .filter(Boolean)
     .sort((a, b) => (b.languageScore || 0) - (a.languageScore || 0) || (b.priority || 0) - (a.priority || 0))
     .slice(0, 24);
+}
+
+function approvedRssSources({ category, country, language }) {
+  const countryCode = normalizeCountry(country);
+  const newsLanguage = normalizeLanguage(language);
+  return parseApprovedLiveSources()
+    .filter((source) => source && source.enabled !== false && source.active !== false)
+    .filter((source) => {
+      const type = String(source.type || source.kind || source.provider || '').toLowerCase();
+      return type === 'rss' || Boolean(source.rssUrl || source.feedUrl);
+    })
+    .map((source, index) => normalizeApprovedRssSource(source, { index }))
+    .filter(Boolean)
+    .filter((source) => {
+      const sourceCountry = String(source.country || 'GLOBAL').toUpperCase();
+      return sourceCountry === 'GLOBAL' || sourceCountry === countryCode;
+    })
+    .filter((source) => {
+      const sourceLanguage = String(source.language || 'all').toLowerCase();
+      return sourceLanguage === 'all' || sourceLanguage === newsLanguage;
+    })
+    .filter((source) => {
+      const sourceCategory = String(source.category || 'all').toLowerCase();
+      return sourceCategory === 'all' || sourceCategory === category || (category === 'top' && sourceCategory === 'news');
+    })
+    .sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name))
+    .slice(0, 10);
+}
+
+function normalizeApprovedRssSource(source, { index }) {
+  const rssUrl = safeHttpsUrl(source.rssUrl || source.feedUrl || source.url);
+  const name = clean(source.name || source.source || source.title || '');
+  if (!rssUrl || !name) return null;
+  return {
+    id: clean(source.id || `rss-${index}-${name}`).toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+    name,
+    rssUrl,
+    country: String(source.country || 'GLOBAL').toUpperCase(),
+    language: String(source.language || 'en').toLowerCase(),
+    category: String(source.category || 'all').toLowerCase(),
+    priority: Number.isFinite(Number(source.priority)) ? Number(source.priority) : 0,
+    homepage: safeHttpsUrl(source.homepage || source.link || ''),
+  };
 }
 
 function normalizeApprovedLiveSource(source, { countryCode, newsLanguage, index }) {
@@ -1380,7 +1428,35 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
   return finalArticles;
 }
 
-async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
+async function fetchApprovedPublisherArticles({ category, country, language }) {
+  const sources = approvedRssSources({ category, country, language });
+  if (!sources.length) return { articles: [], sourceType: 'publisher-rss-empty', errors: [] };
+
+  const settled = await Promise.allSettled(sources.map(async (source) => {
+    const xml = await fetchText(source.rssUrl);
+    return parse(xml, category, country, language, source).map((article) => ({
+      ...article,
+      source: source.name || article.source,
+      sourceUrl: source.homepage || article.sourceUrl,
+      trustScore: Math.min(99, (article.trustScore || 90) + Math.max(0, Math.min(5, Math.floor(source.priority / 20)))),
+    }));
+  }));
+
+  const articles = [];
+  const errors = [];
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') articles.push(...result.value);
+    else errors.push(`${sources[index]?.name || 'RSS source'}: ${result.reason?.message || 'failed'}`);
+  });
+
+  return {
+    articles: polishFeed(articles, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 8 }).slice(0, 60),
+    sourceType: errors.length && articles.length ? 'publisher-rss-partial' : 'publisher-rss',
+    errors,
+  };
+}
+
+async function fetchGoogleNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
     return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: MAX_RSS_AGE_DAYS });
   }
@@ -1415,6 +1491,49 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
   const finalArticles = polishFeed(batches, { days: MAX_RSS_AGE_DAYS }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
+}
+
+async function fetchFreshNewsArticles({ category, country, region, city, language, q }) {
+  let googleArticles = [];
+  let publisherArticles = [];
+  let googleError = null;
+  let publisherError = null;
+
+  try {
+    googleArticles = await fetchGoogleNewsArticles({ category, country, region, city, language, q });
+  } catch (error) {
+    googleError = error;
+  }
+
+  if (!q && category !== 'local') {
+    try {
+      const publisherResult = await fetchApprovedPublisherArticles({ category, country, language });
+      publisherArticles = publisherResult.articles;
+      if (!publisherArticles.length && publisherResult.errors.length) {
+        publisherError = new Error(publisherResult.errors.join('; '));
+      }
+    } catch (error) {
+      publisherError = error;
+    }
+  }
+
+  const merged = polishFeed([...googleArticles, ...publisherArticles], {
+    days: MAX_RSS_AGE_DAYS,
+    perSourceLimit: 8,
+  }).slice(0, 60);
+
+  if (merged.length) {
+    return {
+      articles: merged,
+      sourceType: googleArticles.length && publisherArticles.length
+        ? 'google-and-publisher-rss'
+        : publisherArticles.length
+          ? 'publisher-rss'
+          : (!q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss'),
+    };
+  }
+
+  throw googleError || publisherError || new Error('No live RSS articles available');
 }
 
 export const handler = async (event) => {
@@ -1507,9 +1626,10 @@ export const handler = async (event) => {
       }
     }
 
-    const articles = await fetchFreshNewsArticles({ category, country, region, city, language, q });
+    const freshResult = await fetchFreshNewsArticles({ category, country, region, city, language, q });
+    const articles = freshResult.articles;
     const updatedAt = new Date().toISOString();
-    const sourceType = !q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss';
+    const sourceType = freshResult.sourceType || (!q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss');
     writeMemoryCache(key, { articles, sourceType, updatedAt });
     await writeSupabaseNewsCache({ category, country, q, articles });
 

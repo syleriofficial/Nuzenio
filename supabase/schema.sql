@@ -53,6 +53,7 @@ create table if not exists public.rss_sources (
   url text not null unique,
   language text default 'en',
   country text default 'IN',
+  priority integer default 0,
   enabled boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -231,6 +232,7 @@ create index if not exists analytics_article_idx on public.analytics_events(arti
 create index if not exists affiliate_category_idx on public.affiliate_links(category, enabled);
 create index if not exists news_cache_lookup_idx on public.news_cache(category, country, published_at desc);
 create index if not exists news_cache_updated_idx on public.news_cache(category, country, updated_at desc);
+create index if not exists rss_sources_priority_idx on public.rss_sources(category, country, enabled, priority desc);
 
 create or replace function public.touch_updated_at()
 returns trigger

@@ -5,6 +5,7 @@ Production-oriented Netlify + Supabase AI news platform.
 ## What is included
 
 - Live RSS news through Netlify Functions at `/api/news`
+- Aggregated headlines from Google News RSS plus approved publisher RSS feeds
 - Live News and Video sections with playable embedded videos from approved sources
 - Clean section pages for `/local`, `/live`, and `/video`
 - SEO topic pages for `/top-news`, `/world`, `/business`, `/technology`, `/ai`, `/sports`, `/entertainment`, `/health`, and `/science`
@@ -46,6 +47,7 @@ Functions directory: netlify/functions
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key-for-server-cache>
 YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 LIVE_NEWS_SOURCES=[]
@@ -55,7 +57,8 @@ VITE_AFFILIATE_LINKS=[]
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
-`LIVE_NEWS_SOURCES` is optional JSON for verified free live channels outside normal YouTube search. Only add official/publicly embeddable sources that the publisher allows. Supported providers are `youtube`, `twitch`, `official_embed`, and `hls`.
+`SUPABASE_SERVICE_ROLE_KEY` is used only inside Netlify Functions to read/write the server-side `news_cache` table. Do not expose it in client-side `VITE_` variables.
+`LIVE_NEWS_SOURCES` is optional JSON for verified free live channels and approved publisher RSS feeds. Only add official/publicly available sources that the publisher allows. Live video providers are `youtube`, `twitch`, `official_embed`, and `hls`. Publisher RSS entries use `type: "rss"` plus an HTTPS `rssUrl`.
 `VITE_AFFILIATE_LINKS` is optional JSON for approved partner links. Links must be real, HTTPS, labeled, and relevant. If Supabase is configured, enabled rows from `public.affiliate_links` are loaded first.
 
 Example `LIVE_NEWS_SOURCES` value:
@@ -63,16 +66,16 @@ Example `LIVE_NEWS_SOURCES` value:
 ```json
 [
   {
-    "id": "publisher-live",
-    "name": "Publisher News",
-    "title": "Publisher News Live",
-    "provider": "official_embed",
+    "id": "bbc-world",
+    "type": "rss",
+    "name": "BBC News",
+    "rssUrl": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "homepage": "https://www.bbc.com/news/world",
     "country": "GLOBAL",
     "language": "en",
-    "embedUrl": "https://publisher.example/embed/live",
-    "link": "https://publisher.example/live",
-    "active": true,
-    "priority": 100
+    "category": "world",
+    "priority": 100,
+    "enabled": true
   }
 ]
 ```
