@@ -70,6 +70,14 @@ FCM_SERVER_KEY=<optional-android-push-key-for-future-mobile-api>
 APNS_KEY_ID=<optional-ios-push-key-id-for-future-mobile-api>
 ```
 
+For local development, copy `.env.example` to `.env.local`, fill the Supabase values, then run:
+
+```bash
+npm run supabase:check
+```
+
+The checker verifies the public anon client can read `languages` and the service role can access `news_cache`.
+
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 `SUPABASE_SERVICE_ROLE_KEY` is used only inside Netlify Functions to read/write the server-side `news_cache` table. Do not expose it in client-side `VITE_` variables.
