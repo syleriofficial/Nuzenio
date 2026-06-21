@@ -581,7 +581,7 @@ function currentLanguageCode() {
 
 function localizedPath(path = '/', languageCode = 'en') {
   const clean = stripLanguagePrefix(path || '/');
-  if (languageCode === 'en') return clean || '/';
+  if (languageCode === 'x-default') return clean || '/';
   return clean === '/' ? `/${languageCode}` : `/${languageCode}${clean}`;
 }
 

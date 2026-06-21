@@ -84,7 +84,7 @@ function url(path = '', params = {}) {
 
 function localizedPath(path = '', language = 'en') {
   const clean = String(path || '').replace(/^\/+/, '');
-  if (language === 'en') return clean;
+  if (language === 'x-default') return clean;
   return clean ? `${language}/${clean}` : language;
 }
 

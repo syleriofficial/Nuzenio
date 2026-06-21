@@ -62,7 +62,7 @@ function articleSlug(article, fallback = '') {
 }
 
 function localizedPath(path, language = 'en') {
-  return language === 'en' ? path : `/${language}${path}`;
+  return language === 'x-default' ? path : `/${language}${path}`;
 }
 
 function articleUrl(slug, category, country, language = 'en') {
@@ -146,7 +146,7 @@ function htmlDocument({ article, articleId, category, country, language }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="${isFound ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' : 'noindex, follow'}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
-  <link rel="alternate" hreflang="x-default" href="${escapeHtml(articleUrl(slug, category, country, 'en'))}">
+  <link rel="alternate" hreflang="x-default" href="${escapeHtml(articleUrl(slug, category, country, 'x-default'))}">
   ${supportedLanguages.map((code) => `<link rel="alternate" hreflang="${code}" href="${escapeHtml(articleUrl(slug, category, country, code))}">`).join('\n  ')}
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <title>${escapeHtml(title)}</title>
