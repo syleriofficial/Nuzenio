@@ -1318,6 +1318,19 @@ function rankLocalArticles(articles, context) {
     .map(({ article }) => article);
 }
 
+function localFeedMetadata(articles, { country, region, city, queries = [] }) {
+  const scored = articles.map((article) => localRelevanceScore(article, { country, region, city }));
+  const strongMatches = scored.filter((score) => score >= 30).length;
+  const freshToday = articles.filter((article) => Date.now() - articleTime(article.pubDate) <= 24 * 60 * 60 * 1000).length;
+  return {
+    place: [cleanRegion(city), cleanRegion(region), countryLabel(normalizeCountry(country))].filter(Boolean).join(', '),
+    precision: cleanRegion(city) ? 'city' : cleanRegion(region) ? 'state' : 'country',
+    strongMatches,
+    freshToday,
+    queries: queries.slice(0, 4),
+  };
+}
+
 function categorySearchQueries({ category, country, language }) {
   const countryCode = normalizeCountry(country);
   const terms = CATEGORY_SEARCH_TERMS[category] || CATEGORY_SEARCH_TERMS.top;
@@ -1537,7 +1550,7 @@ function enrichTrustMetadata(article = {}) {
   };
 }
 
-function newsPayload({ category, country, region, city, language, q, articles, sourceType, updatedAt = new Date().toISOString(), stale = false }) {
+function newsPayload({ category, country, region, city, language, q, articles, sourceType, updatedAt = new Date().toISOString(), stale = false, localMeta = null }) {
   const safeArticles = copyrightSafeArticles(articles);
   return {
     ok: true,
@@ -1552,6 +1565,7 @@ function newsPayload({ category, country, region, city, language, q, articles, s
     sourceType,
     updatedAt,
     stale,
+    localMeta: category === 'local' ? (localMeta || localFeedMetadata(safeArticles, { country, region, city })) : null,
     articles: safeArticles,
   };
 }
@@ -1570,12 +1584,21 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
       continue;
     }
     const fresh = rankLocalArticles(polishFeed(batches, { days: 10, perSourceLimit: 10 }), { country, region, city });
-    if (fresh.length >= 18) return fresh.slice(0, 60);
+    if (fresh.length >= 18) {
+      const articles = fresh.slice(0, 60);
+      return {
+        articles,
+        localMeta: localFeedMetadata(articles, { country, region, city, queries }),
+      };
+    }
   }
 
   const finalArticles = rankLocalArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 10 }), { country, region, city }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
-  return finalArticles;
+  return {
+    articles: finalArticles,
+    localMeta: localFeedMetadata(finalArticles, { country, region, city, queries }),
+  };
 }
 
 async function fetchApprovedPublisherArticles({ category, country, language }) {
@@ -1615,7 +1638,8 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
   }
 
   if (category === 'local') {
-    return fetchFreshLocalArticles({ country, region, city, language });
+    const localResult = await fetchFreshLocalArticles({ country, region, city, language });
+    return localResult.articles;
   }
 
   const batches = [];
@@ -1653,6 +1677,15 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
   let publisherError = null;
 
   try {
+    if (!q && category === 'local') {
+      const localResult = await fetchFreshLocalArticles({ country, region, city, language });
+      googleArticles = localResult.articles;
+      return {
+        articles: googleArticles,
+        sourceType: 'fresh-local-rss',
+        localMeta: localResult.localMeta,
+      };
+    }
     googleArticles = await fetchGoogleNewsArticles({ category, country, region, city, language, q });
   } catch (error) {
     googleError = error;
@@ -1749,6 +1782,7 @@ export const handler = async (event) => {
             sourceType: memoryHit.sourceType || 'memory-cache',
             updatedAt: memoryHit.updatedAt,
             stale: memoryHit.stale,
+            localMeta: memoryHit.localMeta,
           })),
         };
       }
@@ -1783,7 +1817,7 @@ export const handler = async (event) => {
     const articles = freshResult.articles;
     const updatedAt = new Date().toISOString();
     const sourceType = freshResult.sourceType || (!q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss');
-    writeMemoryCache(key, { articles, sourceType, updatedAt });
+    writeMemoryCache(key, { articles, sourceType, updatedAt, localMeta: freshResult.localMeta });
     await writeSupabaseNewsCache({ category, country, q, articles });
 
     return {
@@ -1798,6 +1832,7 @@ export const handler = async (event) => {
         articles,
         sourceType,
         updatedAt,
+        localMeta: freshResult.localMeta,
       })),
     };
   } catch (error) {
@@ -1824,6 +1859,7 @@ export const handler = async (event) => {
           sourceType: 'stale-memory-cache',
           updatedAt: memoryFallback.updatedAt,
           stale: true,
+          localMeta: memoryFallback.localMeta,
         })),
       };
     }

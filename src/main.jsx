@@ -863,6 +863,7 @@ function App() {
   const [category, setCategory] = useState(initialCategory);
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
+  const [localMeta, setLocalMeta] = useState(null);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -1090,15 +1091,17 @@ function App() {
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
+      setLocalMeta(cat === 'local' ? data.localMeta : null);
       setLastUpdated(new Date());
       const place = cat === 'local' && data.city
         ? `${data.city}, ${data.region ? `${data.region}, ` : ''}${countryLabel(data.country)}`
         : cat === 'local' && data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      setStatus(feedStatusText({ cat, copy: uiCopy(newsLanguage), place, total: data.total }));
+      setStatus(feedStatusText({ cat, copy: uiCopy(newsLanguage), place, total: data.total, localMeta: data.localMeta }));
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
+      if (cat === 'local') setLocalMeta(null);
       setStatus(`Live API error: ${error.message}`);
     } finally {
       if (requestId === newsRequestId.current) setIsLoadingNews(false);
@@ -1774,6 +1777,7 @@ function App() {
           lastUpdated={lastUpdated}
           lead={lead}
           location={location}
+          localMeta={localMeta}
           user={user}
           setLocation={updateLocation}
           openArticle={openArticle}
@@ -2226,6 +2230,7 @@ function Home({
   lastUpdated,
   lead,
   location,
+  localMeta,
   openArticle,
   refreshNews,
   searchTerm,
@@ -2330,7 +2335,7 @@ function Home({
   return (
     <main id="main-content" className="main" tabIndex="-1">
       <section>
-        <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
+        <LocationBanner copy={copy} location={location} localMeta={localMeta} setLocation={setLocation} status={status} />
         <GlobalLanguagePanel language={language} location={location} articles={articles} />
 
         <div className="heroGrid">
@@ -4665,9 +4670,12 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
   );
 }
 
-function LocationBanner({ copy, location, setLocation, status }) {
+function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const [draft, setDraft] = useState(location);
   const presets = localPlacePresets[draft.country] || localPlacePresets.IN;
+  const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
+  const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
+  const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
 
   useEffect(() => {
     setDraft(location);
@@ -4732,9 +4740,9 @@ function LocationBanner({ copy, location, setLocation, status }) {
         </div>
         <p>{locationSourceLabel(location.source)} · {status}</p>
         <div className="locationSignals" aria-label="Local news precision">
-          <span>City-first feed</span>
-          <span>State backup</span>
-          <span>Fresh RSS scan</span>
+          <span>{precisionLabel}</span>
+          <span>{matchLabel}</span>
+          <span>{freshLabel}</span>
         </div>
       </div>
 
@@ -5933,10 +5941,14 @@ function sectionContent(category, copy, location) {
   };
 }
 
-function feedStatusText({ cat, copy, place, total }) {
+function feedStatusText({ cat, copy, place, total, localMeta }) {
   const categoryLabel = copy.categories?.[cat] || cat;
   if (cat === 'live') return `${total} live news streams for ${place}`;
   if (cat === 'video') return `${total} news videos for ${place}`;
+  if (cat === 'local' && localMeta) {
+    const fresh = Number.isFinite(localMeta.freshToday) ? `${localMeta.freshToday} fresh today` : 'fresh scan';
+    return `${total} local articles for ${place} · ${fresh}`;
+  }
   return `${total} ${categoryLabel.toLowerCase()} articles for ${place}`;
 }
 
