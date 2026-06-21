@@ -235,6 +235,28 @@ async function readRegionalEditions() {
   return { regionalEditions };
 }
 
+async function readInfrastructureStatus() {
+  const [jobs, incidents, searches] = await Promise.all([
+    supabaseRequest('background_jobs?select=job_type,status,priority,scheduled_at,updated_at&order=scheduled_at.asc&limit=25'),
+    supabaseRequest('system_incidents?select=severity,status,title,started_at,resolved_at&order=started_at.desc&limit=10'),
+    supabaseRequest('search_queries?select=query,language,country,result_count,trend_score,created_at&order=created_at.desc&limit=25'),
+  ]);
+  return {
+    infrastructure: {
+      regions: ['North America', 'Europe', 'Asia', 'Oceania'],
+      cacheLayers: ['Netlify edge', 'Supabase news_cache', 'future Redis hot cache'],
+      queues: jobs || [],
+      incidents: incidents || [],
+      searchTelemetry: searches || [],
+      targets: {
+        uptime: '99.9%',
+        cachedApiLatency: '<200ms p95',
+        lighthouse: '95+',
+      },
+    },
+  };
+}
+
 async function logUsage(event, endpoint, statusCode) {
   const key = event.headers['x-nuzenio-key'] || event.headers['X-Nuzenio-Key'] || '';
   if (!key) return;
@@ -290,9 +312,11 @@ export const handler = async (event) => {
                         ? await readLanguages(url)
                         : endpoint === 'regional-editions'
                           ? await readRegionalEditions(url)
+                          : endpoint === 'infrastructure'
+                            ? await readInfrastructureStatus(url)
                           : null;
 
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions'] });
+    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure'] });
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {

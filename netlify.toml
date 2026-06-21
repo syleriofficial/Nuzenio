@@ -124,9 +124,16 @@
     Cache-Control = "public, max-age=900"
 
 [[headers]]
+  for = "/api/health"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex"
+
+[[headers]]
   for = "/api/v1/*"
   [headers.values]
     Cache-Control = "public, max-age=120, stale-while-revalidate=300"
+    X-RateLimit-Policy = "api-key-quota-or-edge-default"
 
 [[redirects]]
   from = "/api/news"
@@ -136,6 +143,11 @@
 [[redirects]]
   from = "/api/location"
   to = "/.netlify/functions/location"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
   status = 200
 
 [[redirects]]

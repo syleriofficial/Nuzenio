@@ -27,6 +27,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Google Discover and SEO growth pages including news landing pages, evergreen hubs, E-E-A-T panels, and SEO monitoring
 - Android, iPhone, iPad, and PWA launch foundation with mobile API contract, offline sync tables, push-notification tables, store metadata, and app release checklist
 - Shared mobile APIs for news, search, recommendations, and user capability checks through `/api/news` and `/api/v1/*`
+- V18 global-scale reliability foundation with `/api/health`, CI workflow, background job tables, search telemetry, incident tracking, and infrastructure docs
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
@@ -149,6 +150,7 @@ CNAME www   <netlify-site-name>.netlify.app
 ```text
 https://nuzenio.com
 https://nuzenio.com/api/news
+https://nuzenio.com/api/health
 https://nuzenio.com/feed.xml
 https://nuzenio.com/news-sitemap.xml
 https://nuzenio.com/sitemap-languages.xml
@@ -200,6 +202,17 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Reliability and scale
+
+V18 infrastructure files:
+
+- `docs/infra/V18-global-scale-reliability.md`
+- `infra/reliability.json`
+- `.github/workflows/ci.yml`
+- `/api/health`
+
+The health endpoint checks API availability, Supabase `news_cache`, `languages`, and `api_usage_logs`. The schema also includes `background_jobs`, `system_incidents`, `search_queries`, and `infrastructure_regions` for queue tracking, monitoring, search telemetry, and multi-region planning.
 
 ## Mobile app readiness
 

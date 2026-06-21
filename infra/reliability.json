@@ -1,0 +1,41 @@
+{
+  "platform": "Nuzenio",
+  "target": {
+    "uptime": "99.9%",
+    "cachedApiP95LatencyMs": 200,
+    "lighthouseScore": 95,
+    "recoveryPointObjectiveMinutes": 15,
+    "recoveryTimeObjectiveMinutes": 60
+  },
+  "regions": [
+    { "name": "North America", "primary": true, "cdn": "Netlify Edge", "database": "Supabase primary" },
+    { "name": "Europe", "primary": false, "cdn": "Netlify Edge", "database": "read replica planned" },
+    { "name": "Asia", "primary": false, "cdn": "Netlify Edge", "database": "read replica planned" },
+    { "name": "Oceania", "primary": false, "cdn": "Netlify Edge", "database": "read replica planned" }
+  ],
+  "caches": {
+    "edge": "Netlify CDN cache headers",
+    "article": "Supabase news_cache + in-function memory cache",
+    "search": "Supabase full-text indexes and future Redis layer",
+    "redis": "Upstash Redis planned for hot API reads and rate counters"
+  },
+  "backgroundJobs": [
+    "rss_ingestion",
+    "entity_extraction",
+    "ai_summary_generation",
+    "sitemap_generation",
+    "trend_detection"
+  ],
+  "monitoring": {
+    "healthEndpoint": "/api/health",
+    "apiUsageTable": "api_usage_logs",
+    "jobTable": "background_jobs",
+    "incidentTable": "system_incidents"
+  },
+  "security": {
+    "waf": "Netlify / Cloudflare WAF planned",
+    "ddos": "CDN-level DDoS protection",
+    "rateLimiting": "API key quota plus future Redis counters",
+    "secrets": "Netlify environment variables and Supabase service role isolation"
+  }
+}
