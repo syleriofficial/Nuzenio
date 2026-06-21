@@ -4777,6 +4777,19 @@ button {
   font-weight: 950;
 }
 
+.localEmptyState > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.localEmptyState button:not(.primaryAction) {
+  border: 1px solid #bfdbfe;
+  background: #fff;
+  color: #1d4ed8;
+}
+
 .footer {
   display: flex;
   flex-wrap: wrap;

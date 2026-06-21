@@ -15,6 +15,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  MapPin,
   Megaphone,
   Newspaper,
   PlayCircle,
@@ -1098,7 +1099,15 @@ function App() {
         : cat === 'local' && data.region
           ? `${data.region}, ${countryLabel(data.country)}`
           : countryLabel(data.country);
-      setStatus(feedStatusText({ cat, copy: uiCopy(newsLanguage), place, total: data.total, localMeta: data.localMeta }));
+      setStatus(feedStatusText({
+        cat,
+        copy: uiCopy(newsLanguage),
+        place,
+        total: data.total,
+        localMeta: data.localMeta,
+        sourceType: data.sourceType,
+        stale: data.stale,
+      }));
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       if (cat === 'local') setLocalMeta(null);
@@ -2482,9 +2491,12 @@ function Home({
               {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
               {!isLoadingNews && articles.length === 0 && (
                 <EmptyFeedState
+                  category={category}
                   copy={copy}
+                  location={location}
                   refreshNews={refreshNews}
                   searchTerm={searchTerm}
+                  setLocation={setLocation}
                 />
               )}
             </div>
@@ -2506,7 +2518,23 @@ function Home({
   );
 }
 
-function EmptyFeedState({ copy, refreshNews, searchTerm }) {
+function EmptyFeedState({ category, copy, location, refreshNews, searchTerm, setLocation }) {
+  if (category === 'local' && !searchTerm) {
+    return (
+      <div className="empty searchEmptyState localEmptyState">
+        <b>No fresh local articles for {placeLabel(location)}</b>
+        <p>Use precise city/state details or browser location, then refresh the live RSS scan.</p>
+        <div>
+          <button className="primaryAction" onClick={() => detectAccurateLocation(setLocation)}>
+            <MapPin size={15} /> Use my location
+          </button>
+          <button onClick={refreshNews}>
+            <RefreshCw size={15} /> Refresh local news
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (!searchTerm) return <div className="empty">{copy.emptyFeed}</div>;
   return (
     <div className="empty searchEmptyState">
@@ -5941,13 +5969,14 @@ function sectionContent(category, copy, location) {
   };
 }
 
-function feedStatusText({ cat, copy, place, total, localMeta }) {
+function feedStatusText({ cat, copy, place, total, localMeta, sourceType, stale }) {
   const categoryLabel = copy.categories?.[cat] || cat;
   if (cat === 'live') return `${total} live news streams for ${place}`;
   if (cat === 'video') return `${total} news videos for ${place}`;
   if (cat === 'local' && localMeta) {
     const fresh = Number.isFinite(localMeta.freshToday) ? `${localMeta.freshToday} fresh today` : 'fresh scan';
-    return `${total} local articles for ${place} · ${fresh}`;
+    const cacheLabel = stale || /cache/.test(String(sourceType || '')) ? 'cache backup' : 'live RSS';
+    return `${total} local articles for ${place} · ${fresh} · ${cacheLabel}`;
   }
   return `${total} ${categoryLabel.toLowerCase()} articles for ${place}`;
 }
