@@ -1434,6 +1434,13 @@ function App() {
   function updateLocation(next) {
     setLocation(next);
     writeLocal('nuzenio_location', next);
+    if (screen === 'home' && !intelligenceRoute && category === 'local') {
+      const url = homeContextUrl({ category: 'local', location: next, language });
+      const activeSearch = (readUrlParam('q') || query).trim();
+      if (activeSearch) url.searchParams.set('q', activeSearch);
+      window.history.replaceState({}, '', url);
+      setIsLocalPage(true);
+    }
     trackEvent('set_location', {
       country: next.country,
       region: next.region || '',
