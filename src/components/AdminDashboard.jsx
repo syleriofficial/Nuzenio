@@ -93,6 +93,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
   const [overview, setOverview] = useState({});
+  const [profiles, setProfiles] = useState([]);
   const [sources, setSources] = useState([]);
   const [cacheRows, setCacheRows] = useState([]);
   const [analytics, setAnalytics] = useState([]);
@@ -210,6 +211,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
 
       const [
         sourceResult,
+        profileResult,
         cacheResult,
         analyticsResult,
         adResult,
@@ -271,6 +273,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         dashboardExportCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
+        supabase.from('profiles').select('id,email,full_name,role,created_at,updated_at').order('created_at', { ascending: false }).limit(100),
         supabase.from('news_cache').select('id,article_id,title,link,source,category,country,published_at,updated_at').order('published_at', { ascending: false }).limit(250),
         supabase.from('analytics_events').select('event_name,article_id,category,metadata,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('adsense_slots').select('*').order('updated_at', { ascending: false }),
@@ -333,6 +336,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
+      if (profileResult.error) throw profileResult.error;
       if (publisherResult.error) throw publisherResult.error;
       if (journalistResult.error) throw journalistResult.error;
       if (originalResult.error) throw originalResult.error;
@@ -347,6 +351,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       if (apiKeyResult.error) throw apiKeyResult.error;
       if (apiUsageResult.error) throw apiUsageResult.error;
       setSources(sourceResult.data || []);
+      setProfiles(profileResult.data || []);
       setCacheRows(cacheResult.data || []);
       setAnalytics(analyticsResult.data || []);
       setAdSlots(adResult.data || []);
@@ -652,6 +657,25 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       return;
     }
     await logAdmin('correction_report_update', 'ok', { table: 'correction_reports', id: report.id, message: nextStatus });
+    loadAdmin();
+  }
+
+  async function updateUserRole(targetProfile, role) {
+    if (targetProfile.id === user.id && role !== 'admin') {
+      setNotice('You cannot remove your own admin role from the dashboard.');
+      return;
+    }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', targetProfile.id);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('profile_role_update', 'error', { table: 'profiles', id: targetProfile.id, message: error.message });
+      return;
+    }
+    setNotice(`${targetProfile.email || targetProfile.id} role updated to ${role}.`);
+    await logAdmin('profile_role_update', 'ok', { table: 'profiles', id: targetProfile.id, message: role });
     loadAdmin();
   }
 
@@ -1085,6 +1109,28 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <MetricRow label="Newsletter subscribers" value={overview.newsletterCount || 0} />
           <MetricRow label="User preferences" value={overview.preferencesCount || 0} />
           <MetricRow label="Digest logs" value={overview.digestLogCount || 0} />
+          <h4>User roles</h4>
+          <AdminTable headers={['User', 'Role', 'Created', 'Actions']}>
+            {profiles.slice(0, 20).map((item) => (
+              <tr key={item.id}>
+                <td><b>{item.full_name || item.email || item.id}</b><small>{item.email || item.id}</small></td>
+                <td>{item.role}</td>
+                <td>{localDate(item.created_at)}</td>
+                <td className="adminActions">
+                  {['reader', 'editor', 'admin'].map((role) => (
+                    <button
+                      key={role}
+                      className={item.role === role ? 'primaryAction' : ''}
+                      disabled={item.role === role}
+                      onClick={() => updateUserRole(item, role)}
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </AdminTable>
           <h4>Latest subscribers</h4>
           {newsletters.slice(0, 10).map((item) => <MetricRow key={item.email} label={`${item.email} · ${item.frequency || 'daily'} · ${item.country || 'IN'}`} value={item.status} />)}
         </AdminPanel>
