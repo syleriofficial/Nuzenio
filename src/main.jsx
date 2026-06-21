@@ -6803,6 +6803,17 @@ function pageJsonLd(url, { context, description, image, title }) {
       ? 'Global News Home'
       : sectionContent(context.category, uiCopy(context.language.code), context.location).title));
   const place = pageSeoPlace(context.category, context.location);
+  const isLocalPage = context.category === 'local';
+  const localPlace = {
+    '@type': 'Place',
+    name: place,
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: countryLabel(context.location?.country || 'IN'),
+      addressRegion: context.location?.region || undefined,
+      addressLocality: context.location?.city || undefined,
+    },
+  };
   const websiteId = `${productionOrigin}/#website`;
   const organizationId = `${productionOrigin}/#organization`;
 
@@ -6840,11 +6851,14 @@ function pageJsonLd(url, { context, description, image, title }) {
         isPartOf: { '@id': websiteId },
         publisher: { '@id': organizationId },
         inLanguage: context.language.code,
-        about: sectionTitle,
-        spatialCoverage: {
-          '@type': 'Place',
-          name: place,
-        },
+        about: isLocalPage ? localPlace : sectionTitle,
+        spatialCoverage: localPlace,
+        contentLocation: isLocalPage ? localPlace : undefined,
+        audience: isLocalPage ? {
+          '@type': 'Audience',
+          audienceType: 'Local news readers',
+          geographicArea: localPlace,
+        } : undefined,
         mainEntity: itemListSchema(context.articles || [], context),
       },
       itemListSchema(context.articles || [], context),
