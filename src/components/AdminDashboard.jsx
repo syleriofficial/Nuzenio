@@ -102,6 +102,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [publishers, setPublishers] = useState([]);
   const [journalists, setJournalists] = useState([]);
   const [originalArticles, setOriginalArticles] = useState([]);
+  const [followSignals, setFollowSignals] = useState({ topics: [], entities: [], sources: [], authors: [] });
+  const [recommendationLogs, setRecommendationLogs] = useState([]);
+  const [aiBriefs, setAiBriefs] = useState([]);
   const [correctionReports, setCorrectionReports] = useState([]);
   const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
@@ -146,6 +149,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const sourceCoverage = useMemo(() => topEntries(groupCount(cacheRows, 'source'), 12), [cacheRows]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
+  const mostFollowedTopics = useMemo(() => topEntries(groupCount(followSignals.topics, 'topic'), 8), [followSignals]);
+  const mostFollowedSources = useMemo(() => topEntries(groupCount(followSignals.sources, 'source'), 8), [followSignals]);
+  const mostFollowedEntities = useMemo(() => topEntries(groupCount(followSignals.entities, 'entity'), 8), [followSignals]);
+  const recommendationCategories = useMemo(() => topEntries(groupCount(recommendationLogs, 'category'), 8), [recommendationLogs]);
 
   useEffect(() => {
     loadAdmin();
@@ -186,6 +193,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         publisherResult,
         journalistResult,
         originalResult,
+        followedTopicResult,
+        followedEntityResult,
+        followedSourceResult,
+        followedAuthorResult,
+        recommendationResult,
+        aiBriefResult,
         correctionResult,
         aiSettingsResult,
         newsletterResult,
@@ -197,6 +210,13 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         newsletterCount,
         preferencesCount,
         digestLogCount,
+        interestCount,
+        followedTopicCount,
+        followedEntityCount,
+        followedSourceCount,
+        followedAuthorCount,
+        recommendationCount,
+        aiBriefCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
         supabase.from('news_cache').select('id,article_id,title,link,source,category,country,published_at,updated_at').order('published_at', { ascending: false }).limit(250),
@@ -207,6 +227,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('publisher_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('journalist_profiles').select('*').order('updated_at', { ascending: false }),
         supabase.from('original_articles').select('*').order('updated_at', { ascending: false }).limit(120),
+        supabase.from('followed_topics').select('topic,created_at').order('created_at', { ascending: false }).limit(500),
+        supabase.from('followed_entities').select('entity,entity_type,created_at').order('created_at', { ascending: false }).limit(500),
+        supabase.from('followed_sources').select('source,source_slug,created_at').order('created_at', { ascending: false }).limit(500),
+        supabase.from('followed_authors').select('author_slug,created_at').order('created_at', { ascending: false }).limit(500),
+        supabase.from('recommendation_logs').select('article_id,title,source,category,score,reason,algorithm,created_at').order('created_at', { ascending: false }).limit(500),
+        supabase.from('ai_briefs').select('brief_type,country,categories,status,created_at,sent_at').order('created_at', { ascending: false }).limit(120),
         supabase.from('correction_reports').select('*').order('created_at', { ascending: false }).limit(80),
         supabase.from('ai_settings').select('*').eq('key', 'global').maybeSingle(),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
@@ -218,12 +244,25 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         countRows('newsletter_subscribers'),
         countRows('user_preferences'),
         countRows('email_digest_logs'),
+        countRows('user_interests'),
+        countRows('followed_topics'),
+        countRows('followed_entities'),
+        countRows('followed_sources'),
+        countRows('followed_authors'),
+        countRows('recommendation_logs'),
+        countRows('ai_briefs'),
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
       if (publisherResult.error) throw publisherResult.error;
       if (journalistResult.error) throw journalistResult.error;
       if (originalResult.error) throw originalResult.error;
+      if (followedTopicResult.error) throw followedTopicResult.error;
+      if (followedEntityResult.error) throw followedEntityResult.error;
+      if (followedSourceResult.error) throw followedSourceResult.error;
+      if (followedAuthorResult.error) throw followedAuthorResult.error;
+      if (recommendationResult.error) throw recommendationResult.error;
+      if (aiBriefResult.error) throw aiBriefResult.error;
       setSources(sourceResult.data || []);
       setCacheRows(cacheResult.data || []);
       setAnalytics(analyticsResult.data || []);
@@ -233,6 +272,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setPublishers(publisherResult.data || []);
       setJournalists(journalistResult.data || []);
       setOriginalArticles(originalResult.data || []);
+      setFollowSignals({
+        topics: followedTopicResult.data || [],
+        entities: followedEntityResult.data || [],
+        sources: followedSourceResult.data || [],
+        authors: followedAuthorResult.data || [],
+      });
+      setRecommendationLogs(recommendationResult.data || []);
+      setAiBriefs(aiBriefResult.data || []);
       setCorrectionReports(correctionResult.data || []);
       if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
@@ -245,6 +292,13 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         newsletterCount,
         preferencesCount,
         digestLogCount,
+        interestCount,
+        followedTopicCount,
+        followedEntityCount,
+        followedSourceCount,
+        followedAuthorCount,
+        recommendationCount,
+        aiBriefCount,
         correctionCount: correctionResult.data?.length || 0,
         publisherCount: publisherResult.data?.length || 0,
         journalistCount: journalistResult.data?.length || 0,
@@ -571,6 +625,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={BarChart3} label="Digest logs" value={overview.digestLogCount || 0} />
         <StatCard icon={Globe2} label="Publishers" value={overview.publisherCount || 0} />
         <StatCard icon={Edit3} label="Original CMS" value={`${overview.publishedOriginalCount || 0}/${overview.originalCount || 0}`} />
+        <StatCard icon={Activity} label="Follows" value={(overview.followedTopicCount || 0) + (overview.followedEntityCount || 0) + (overview.followedSourceCount || 0) + (overview.followedAuthorCount || 0)} />
+        <StatCard icon={BarChart3} label="AI briefs" value={overview.aiBriefCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
@@ -780,6 +836,34 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           {topPages.map(([key, count]) => <MetricRow key={key} label={key.replace('https://nuzenio.com', '')} value={count} />)}
           <h4>Search queries</h4>
           {searchQueries.slice(0, 6).map(([key, count]) => <MetricRow key={`seo-${key}`} label={key} value={count} />)}
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="AI Personalization Analytics">
+          <MetricRow label="User interests" value={overview.interestCount || 0} />
+          <MetricRow label="Followed topics" value={overview.followedTopicCount || 0} />
+          <MetricRow label="Followed entities" value={overview.followedEntityCount || 0} />
+          <MetricRow label="Followed sources" value={overview.followedSourceCount || 0} />
+          <MetricRow label="Followed authors" value={overview.followedAuthorCount || 0} />
+          <MetricRow label="Recommendation logs" value={overview.recommendationCount || 0} />
+          <h4>Most followed topics</h4>
+          {mostFollowedTopics.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Most followed sources</h4>
+          {mostFollowedSources.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Most followed entities</h4>
+          {mostFollowedEntities.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+        </AdminPanel>
+
+        <AdminPanel title="AI Briefs & Retention">
+          <MetricRow label="AI briefs" value={overview.aiBriefCount || 0} />
+          <MetricRow label="Ready briefs" value={aiBriefs.filter((brief) => brief.status === 'ready').length} />
+          <MetricRow label="Sent briefs" value={aiBriefs.filter((brief) => brief.status === 'sent').length} />
+          <MetricRow label="Engagement events" value={analytics.filter((event) => ['select_content', 'save_article', 'follow_item', 'search'].includes(event.event_name)).length} />
+          <h4>Recommendation categories</h4>
+          {recommendationCategories.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Recent briefs</h4>
+          {aiBriefs.slice(0, 8).map((brief) => <MetricRow key={`${brief.brief_type}-${brief.created_at}`} label={`${brief.brief_type} · ${brief.country}`} value={brief.status} />)}
         </AdminPanel>
       </section>
 

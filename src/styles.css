@@ -2399,6 +2399,224 @@ button {
   gap: 14px;
 }
 
+.personalizedHub {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.personalizedHero,
+.followPanel,
+.dailyBriefPanel,
+.personalizedSection,
+.recommendReason {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.personalizedHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 62%, #f8fafc 100%);
+  padding: 18px;
+}
+
+.personalizedHero h2,
+.dailyBriefPanel h3 {
+  margin: 8px 0;
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.personalizedHero p,
+.dailyBriefPanel p,
+.followPanel p,
+.recommendReason span {
+  color: #475569;
+  line-height: 1.5;
+}
+
+.personalizationScore {
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d4ed8;
+}
+
+.personalizationScore b {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.personalizationScore span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.followPanel,
+.dailyBriefPanel,
+.personalizedSection {
+  padding: 16px;
+}
+
+.followPanel {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.followChipGroup {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.followChipGroup b {
+  color: #172554;
+  font-size: 13px;
+}
+
+.followChipGroup div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.followChipGroup button {
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.followChipGroup button.active {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.dailyBriefPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  gap: 14px;
+}
+
+.briefColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.briefColumns div {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.briefColumns b {
+  color: #172554;
+}
+
+.briefColumns span,
+.briefColumns small {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.recommendedCardWrap {
+  display: grid;
+  gap: 8px;
+}
+
+.recommendReason {
+  padding: 11px;
+}
+
+.recommendReason b,
+.recommendReason span {
+  display: block;
+}
+
+.recommendReason b {
+  color: #172554;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.searchIntelligencePanel {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.searchIntelligencePanel h3 {
+  margin: 8px 0;
+  font-size: 24px;
+}
+
+.searchIntelligencePanel p {
+  color: #475569;
+}
+
+.searchSignalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.searchSignalGrid div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-content: flex-start;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.searchSignalGrid b {
+  flex-basis: 100%;
+  color: #172554;
+}
+
+.searchSignalGrid a,
+.searchSignalGrid span {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e40af;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .videoGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3848,12 +4066,17 @@ button {
   .intelligenceHero,
   .discoverReadinessPanel,
   .originalJournalismPanel,
+  .personalizedHero,
+  .dailyBriefPanel,
+  .followPanel,
   .trendSignalGrid,
   .internalLinkGraph {
     grid-template-columns: 1fr;
   }
 
   .discoverSignalGrid,
+  .briefColumns,
+  .searchSignalGrid,
   .publisherFactGrid,
   .sourceIntelligenceGrid,
   .originalTypeGrid,

@@ -589,6 +589,10 @@ function App() {
   const [location, setLocation] = useState(initialLocation);
   const [savedIds, setSavedIds] = useState(() => readLocal('nuzenio_saved_ids', [], 'newssetu_saved_ids'));
   const [history, setHistory] = useState(() => readLocal('nuzenio_history', [], 'newssetu_history'));
+  const [followedTopics, setFollowedTopics] = useState(() => readLocal('nuzenio_followed_topics', ['ai', 'world', 'business']));
+  const [followedEntities, setFollowedEntities] = useState(() => readLocal('nuzenio_followed_entities', []));
+  const [followedSources, setFollowedSources] = useState(() => readLocal('nuzenio_followed_sources', []));
+  const [followedAuthors, setFollowedAuthors] = useState(() => readLocal('nuzenio_followed_authors', []));
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   const [authNotice, setAuthNotice] = useState('');
@@ -698,7 +702,10 @@ function App() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user || null));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
-      if (session?.user) syncSavedFromSupabase(session.user.id);
+      if (session?.user) {
+        syncSavedFromSupabase(session.user.id);
+        syncPersonalizationFromSupabase(session.user.id);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -1082,6 +1089,88 @@ function App() {
     }
   }
 
+  async function syncPersonalizationFromSupabase(userId) {
+    if (!supabase || !userId) return;
+    const [topicResult, entityResult, sourceResult, authorResult] = await Promise.all([
+      supabase.from('followed_topics').select('topic').eq('user_id', userId),
+      supabase.from('followed_entities').select('entity').eq('user_id', userId),
+      supabase.from('followed_sources').select('source').eq('user_id', userId),
+      supabase.from('followed_authors').select('author_slug').eq('user_id', userId),
+    ]);
+    if (topicResult.data?.length) {
+      const values = topicResult.data.map((item) => item.topic).filter(Boolean);
+      setFollowedTopics(values);
+      writeLocal('nuzenio_followed_topics', values);
+    }
+    if (entityResult.data?.length) {
+      const values = entityResult.data.map((item) => item.entity).filter(Boolean);
+      setFollowedEntities(values);
+      writeLocal('nuzenio_followed_entities', values);
+    }
+    if (sourceResult.data?.length) {
+      const values = sourceResult.data.map((item) => item.source).filter(Boolean);
+      setFollowedSources(values);
+      writeLocal('nuzenio_followed_sources', values);
+    }
+    if (authorResult.data?.length) {
+      const values = authorResult.data.map((item) => item.author_slug).filter(Boolean);
+      setFollowedAuthors(values);
+      writeLocal('nuzenio_followed_authors', values);
+    }
+  }
+
+  async function toggleFollow(kind, value) {
+    const cleanValue = String(value || '').trim();
+    if (!cleanValue) return;
+    const config = {
+      topic: {
+        table: 'followed_topics',
+        column: 'topic',
+        localKey: 'nuzenio_followed_topics',
+        state: followedTopics,
+        setState: setFollowedTopics,
+      },
+      entity: {
+        table: 'followed_entities',
+        column: 'entity',
+        localKey: 'nuzenio_followed_entities',
+        state: followedEntities,
+        setState: setFollowedEntities,
+      },
+      source: {
+        table: 'followed_sources',
+        column: 'source',
+        localKey: 'nuzenio_followed_sources',
+        state: followedSources,
+        setState: setFollowedSources,
+      },
+      author: {
+        table: 'followed_authors',
+        column: 'author_slug',
+        localKey: 'nuzenio_followed_authors',
+        state: followedAuthors,
+        setState: setFollowedAuthors,
+      },
+    }[kind];
+    if (!config) return;
+    const exists = config.state.some((item) => item.toLowerCase() === cleanValue.toLowerCase());
+    const next = exists
+      ? config.state.filter((item) => item.toLowerCase() !== cleanValue.toLowerCase())
+      : [cleanValue, ...config.state].slice(0, 30);
+    config.setState(next);
+    writeLocal(config.localKey, next);
+    trackEvent(exists ? 'unfollow_item' : 'follow_item', { kind, value: cleanValue });
+    if (!supabase || !user) return;
+    if (exists) {
+      await supabase.from(config.table).delete().match({ user_id: user.id, [config.column]: cleanValue });
+      return;
+    }
+    await supabase.from(config.table).upsert({
+      user_id: user.id,
+      [config.column]: cleanValue,
+    }, { onConflict: `user_id,${config.column}` });
+  }
+
   async function toggleSave(article) {
     const exists = savedIds.includes(article.id);
     const next = exists ? savedIds.filter((id) => id !== article.id) : [article.id, ...savedIds];
@@ -1242,6 +1331,11 @@ function App() {
           category={category}
           copy={copy}
           feed={feed}
+          followedAuthors={followedAuthors}
+          followedEntities={followedEntities}
+          followedSources={followedSources}
+          followedTopics={followedTopics}
+          history={history}
           homeSectionFeeds={homeSectionFeeds}
           adSlots={adSlots}
           affiliateLinks={affiliateLinks}
@@ -1259,6 +1353,7 @@ function App() {
           savedIds={savedIds}
           sideStories={sideStories}
           status={status}
+          toggleFollow={toggleFollow}
           toggleSave={toggleSave}
           refreshNews={refreshCurrentNews}
           searchTerm={currentSearchTerm}
@@ -1519,6 +1614,11 @@ function Home({
   category,
   copy,
   feed,
+  followedAuthors,
+  followedEntities,
+  followedSources,
+  followedTopics,
+  history,
   homeSectionFeeds,
   isLoadingHomeSections,
   isLoadingNews,
@@ -1536,6 +1636,7 @@ function Home({
   sideStories,
   sponsoredBlocks,
   status,
+  toggleFollow,
   toggleSave,
   user,
 }) {
@@ -1690,6 +1791,23 @@ function Home({
           status={status}
           isLoading={isLoadingNews || isLoadingHomeSections}
         />
+        {isRootHome && (
+          <PersonalizedHomeFeed
+            articles={articles}
+            copy={copy}
+            followedAuthors={followedAuthors}
+            followedEntities={followedEntities}
+            followedSources={followedSources}
+            followedTopics={followedTopics}
+            history={history}
+            location={location}
+            openArticle={openArticle}
+            savedIds={savedIds}
+            toggleFollow={toggleFollow}
+            toggleSave={toggleSave}
+            user={user}
+          />
+        )}
 
         <QuickSectionGrid
           copy={copy}
@@ -1703,13 +1821,16 @@ function Home({
         <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="feed" />
 
         {searchTerm && (
-          <SearchResultPanel
-            articles={articles}
-            clearSearch={clearSearch}
-            isLoading={isLoadingNews}
-            location={location}
-            searchTerm={searchTerm}
-          />
+          <>
+            <SearchResultPanel
+              articles={articles}
+              clearSearch={clearSearch}
+              isLoading={isLoadingNews}
+              location={location}
+              searchTerm={searchTerm}
+            />
+            <SearchIntelligencePanel articles={articles} searchTerm={searchTerm} />
+          </>
         )}
 
         {isRootHome ? (
@@ -1807,6 +1928,272 @@ function SearchResultPanel({ articles, clearSearch, isLoading, location, searchT
       <button onClick={clearSearch}>
         <X size={15} /> Clear search
       </button>
+    </section>
+  );
+}
+
+function SearchIntelligencePanel({ articles = [], searchTerm }) {
+  const topics = extractTrendingTopics(articles).slice(0, 8);
+  const entities = extractEntities(articles).slice(0, 8);
+  const sources = sourceStats(articles).sort((a, b) => b.count - a.count).slice(0, 6);
+  return (
+    <section className="searchIntelligencePanel">
+      <div>
+        <span className="badge"><Search size={15} /> Search Intelligence</span>
+        <h3>Signals for "{searchTerm}"</h3>
+        <p>Topic search, entity search, semantic matches, and trending publisher signals from live RSS results.</p>
+      </div>
+      <div className="searchSignalGrid">
+        <div>
+          <b>Topics</b>
+          {topics.map((topic) => <a key={topic.label} href={`/entity/${slugifyTitle(topic.label)}`}>{topic.label}</a>)}
+        </div>
+        <div>
+          <b>Entities</b>
+          {entities.map((entity) => <a key={entity.label} href={entity.href}>{entity.label}</a>)}
+        </div>
+        <div>
+          <b>Sources</b>
+          {sources.map((source) => <span key={source.source}>{source.source} · {source.count}</span>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function buildRecommendationProfile({ followedEntities = [], followedSources = [], followedTopics = [], history = [], savedIds = [], location }) {
+  const historyTerms = history.flatMap((item) => String(`${item.title || ''} ${item.source || ''}`).toLowerCase().split(/\W+/)).filter((word) => word.length > 4).slice(0, 80);
+  return {
+    categories: new Set(['top', ...followedTopics.map((item) => item.toLowerCase())]),
+    country: location.country,
+    entities: followedEntities.map((item) => item.toLowerCase()),
+    historyTerms,
+    savedIds: new Set(savedIds),
+    sources: followedSources.map((item) => item.toLowerCase()),
+    topics: followedTopics.map((item) => item.toLowerCase()),
+  };
+}
+
+function scoreRecommendedArticle(article, profile) {
+  const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''} ${article.category || ''}`.toLowerCase();
+  let score = 0;
+  if (profile.savedIds.has(article.id)) score += 8;
+  if (article.country === profile.country) score += 6;
+  if (profile.categories.has((article.category || '').toLowerCase())) score += 5;
+  if (profile.sources.some((source) => text.includes(source))) score += 7;
+  if (profile.topics.some((topic) => text.includes(topic))) score += 6;
+  if (profile.entities.some((entity) => text.includes(entity))) score += 6;
+  score += profile.historyTerms.filter((term) => text.includes(term)).slice(0, 8).length;
+  score += Math.max(0, 6 - Math.floor((Date.now() - (new Date(article.pubDate).getTime() || 0)) / 3600000));
+  if (article.image) score += 1;
+  return score;
+}
+
+function recommendedArticles(articles, profile, limit = 8) {
+  return uniqueArticles(articles)
+    .map((article) => ({ article, score: scoreRecommendedArticle(article, profile) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => ({ ...item.article, recommendationScore: item.score }));
+}
+
+function PersonalizedHomeFeed({
+  articles,
+  copy,
+  followedAuthors,
+  followedEntities,
+  followedSources,
+  followedTopics,
+  history,
+  location,
+  openArticle,
+  savedIds,
+  toggleFollow,
+  toggleSave,
+  user,
+}) {
+  const profile = buildRecommendationProfile({ followedEntities, followedSources, followedTopics, history, savedIds, location });
+  const forYou = recommendedArticles(articles, profile, 6);
+  const trendingCountry = articles.filter((article) => article.country === location.country).slice(0, 6);
+  const continueReading = history
+    .map((item) => articles.find((article) => article.id === item.id || article.title === item.title))
+    .filter(Boolean)
+    .slice(0, 4);
+  const recommended = forYou.length ? forYou : articles.slice(0, 6);
+
+  useEffect(() => {
+    if (!supabase || !user || !forYou.length) return;
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const storageKey = `nuzenio_recommendation_log_${user.id}_${dayKey}`;
+    if (readLocal(storageKey, false)) return;
+    writeLocal(storageKey, true);
+    supabase.from('recommendation_logs').insert(forYou.slice(0, 6).map((article) => ({
+      user_id: user.id,
+      article_id: article.id,
+      title: article.title,
+      source: article.source,
+      category: article.category,
+      score: article.recommendationScore || 1,
+      reason: 'Matched followed topics, country, saved stories, reading history, or preferred sources.',
+      metadata: {
+        country: location.country,
+        followed_topics: followedTopics,
+        followed_sources: followedSources,
+      },
+    }))).then(() => {});
+  }, [forYou.map((article) => article.id).join('|'), user?.id, location.country]);
+
+  return (
+    <section className="personalizedHub" aria-label="Personalized Nuzenio news">
+      <div className="personalizedHero">
+        <div>
+          <span className="badge"><Sparkles size={15} /> AI Personalization</span>
+          <h2>{user ? 'For you, tuned by your reading signals.' : 'Personalized news starts here.'}</h2>
+          <p>Nuzenio scores stories using followed topics, sources, countries, saved articles, and reading history. Original publisher links stay separate and visible.</p>
+        </div>
+        <div className="personalizationScore">
+          <b>{forYou.length || recommended.length}</b>
+          <span>recommended</span>
+        </div>
+      </div>
+
+      <FollowIntelligencePanel
+        followedAuthors={followedAuthors}
+        followedEntities={followedEntities}
+        followedSources={followedSources}
+        followedTopics={followedTopics}
+        location={location}
+        toggleFollow={toggleFollow}
+      />
+
+      <DailyBriefPanel articles={articles} location={location} />
+
+      <PersonalizedSection
+        articles={recommended}
+        copy={copy}
+        openArticle={openArticle}
+        savedIds={savedIds}
+        title="For You"
+        toggleSave={toggleSave}
+      />
+      <PersonalizedSection
+        articles={trendingCountry}
+        copy={copy}
+        openArticle={openArticle}
+        savedIds={savedIds}
+        title={`Trending in ${countryLabel(location.country)}`}
+        toggleSave={toggleSave}
+      />
+      <PersonalizedSection
+        articles={continueReading}
+        copy={copy}
+        openArticle={openArticle}
+        savedIds={savedIds}
+        title="Continue reading"
+        toggleSave={toggleSave}
+      />
+    </section>
+  );
+}
+
+function FollowIntelligencePanel({ followedAuthors = [], followedEntities = [], followedSources = [], followedTopics = [], location, toggleFollow }) {
+  const topicSeeds = ['AI', 'Business', 'Technology', 'World', 'Markets', 'Science', 'Health', 'Sports'];
+  const companySeeds = ['OpenAI', 'Google', 'Microsoft', 'Nvidia', 'Apple'];
+  const sourceSeeds = ['Reuters', 'Associated Press', 'BBC News', 'The Hindu', 'NDTV'];
+  const authorSeeds = authorDirectory.slice(0, 4);
+  return (
+    <div className="followPanel">
+      <div>
+        <h3>Track what matters</h3>
+        <p>Follow topics, companies, countries, sources, and Nuzenio editorial desks.</p>
+      </div>
+      <FollowChipGroup title="Topics" items={topicSeeds} followed={followedTopics} kind="topic" toggleFollow={toggleFollow} />
+      <FollowChipGroup title="Companies" items={companySeeds} followed={followedEntities} kind="entity" toggleFollow={toggleFollow} />
+      <FollowChipGroup title="Countries" items={[countryLabel(location.country), 'United States', 'United Kingdom', 'India']} followed={followedEntities} kind="entity" toggleFollow={toggleFollow} />
+      <FollowChipGroup title="Sources" items={sourceSeeds} followed={followedSources} kind="source" toggleFollow={toggleFollow} />
+      <FollowChipGroup title="Journalists" items={authorSeeds.map((author) => author.slug)} labels={Object.fromEntries(authorSeeds.map((author) => [author.slug, author.name]))} followed={followedAuthors} kind="author" toggleFollow={toggleFollow} />
+    </div>
+  );
+}
+
+function FollowChipGroup({ followed = [], items = [], kind, labels = {}, title, toggleFollow }) {
+  return (
+    <div className="followChipGroup">
+      <b>{title}</b>
+      <div>
+        {items.map((item) => {
+          const active = followed.some((value) => value.toLowerCase() === String(item).toLowerCase());
+          return (
+            <button key={`${kind}-${item}`} className={active ? 'active' : ''} onClick={() => toggleFollow(kind, item)} type="button">
+              {active ? 'Following ' : 'Follow '}{labels[item] || item}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DailyBriefPanel({ articles = [], location }) {
+  const topStories = articles.slice(0, 10);
+  const morning = topStories.slice(0, 4);
+  const evening = topStories.slice(4, 8);
+  return (
+    <div className="dailyBriefPanel">
+      <div>
+        <span className="badge"><Mail size={15} /> AI Daily Brief</span>
+        <h3>Morning, evening, weekly, and Top 10 briefs</h3>
+        <p>Generated from live publisher-sourced headlines for {countryLabel(location.country)}. Nuzenio uses RSS metadata only and keeps source attribution visible.</p>
+      </div>
+      <div className="briefColumns">
+        <BriefList title="Morning Brief" items={morning} />
+        <BriefList title="Evening Brief" items={evening} />
+        <BriefList title="Top 10 stories" items={topStories} />
+      </div>
+    </div>
+  );
+}
+
+function BriefList({ items = [], title }) {
+  return (
+    <div>
+      <b>{title}</b>
+      {items.slice(0, 4).map((article, index) => (
+        <span key={`${title}-${article.id}`}>{index + 1}. {displayTitle(article)}</span>
+      ))}
+      {!items.length && <small>Waiting for live stories.</small>}
+    </div>
+  );
+}
+
+function PersonalizedSection({ articles = [], copy, openArticle, savedIds, title, toggleSave }) {
+  if (!articles.length) return null;
+  return (
+    <section className="personalizedSection">
+      <div className="homeTopicHead">
+        <div>
+          <h3>{title}</h3>
+          <p>Recommended with country, category, source, follow, saved, and reading-history signals.</p>
+        </div>
+      </div>
+      <div className="homeSectionGrid">
+        {articles.slice(0, 6).map((article) => (
+          <div className="recommendedCardWrap" key={`${title}-${article.id}`}>
+            <ArticleCard
+              article={article}
+              copy={copy}
+              openArticle={openArticle}
+              savedIds={savedIds}
+              toggleSave={toggleSave}
+            />
+            <div className="recommendReason">
+              <b>Why this story matters</b>
+              <span>{buildWhyItMatters(article)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
