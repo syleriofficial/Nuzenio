@@ -110,6 +110,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [apiKeys, setApiKeys] = useState([]);
   const [apiUsageLogs, setApiUsageLogs] = useState([]);
   const [correctionReports, setCorrectionReports] = useState([]);
+  const [trends, setTrends] = useState([]);
+  const [trendSnapshots, setTrendSnapshots] = useState([]);
+  const [sentimentScores, setSentimentScores] = useState([]);
+  const [entityMetrics, setEntityMetrics] = useState([]);
+  const [publisherMetrics, setPublisherMetrics] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [savedReports, setSavedReports] = useState([]);
+  const [sharedDashboards, setSharedDashboards] = useState([]);
+  const [dashboardExports, setDashboardExports] = useState([]);
   const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -160,6 +169,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const entitiesByType = useMemo(() => topEntries(groupCount(graphEntities, 'entity_type'), 8), [graphEntities]);
   const clustersByTopic = useMemo(() => topEntries(groupCount(storyClusters, 'topic'), 8), [storyClusters]);
   const apiUsageByEndpoint = useMemo(() => topEntries(groupCount(apiUsageLogs, 'endpoint'), 8), [apiUsageLogs]);
+  const trendsByStatus = useMemo(() => topEntries(groupCount(trends, 'status'), 8), [trends]);
+  const sentimentByLabel = useMemo(() => topEntries(groupCount(sentimentScores, 'sentiment_label'), 8), [sentimentScores]);
+  const alertsByType = useMemo(() => topEntries(groupCount(alerts, 'alert_type'), 8), [alerts]);
 
   useEffect(() => {
     loadAdmin();
@@ -168,8 +180,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   async function countRows(table, configure = (query) => query) {
     if (!supabase) return 0;
     const query = configure(supabase.from(table).select('*', { count: 'exact', head: true }));
-    const { count } = await query;
+    const { count } = await query.catch(() => ({ count: 0 }));
     return count || 0;
+  }
+
+  async function safeQuery(query, fallback = []) {
+    const result = await query.catch((error) => ({ data: fallback, error }));
+    if (result.error) return { data: fallback, error: null };
+    return result;
   }
 
   async function loadAdmin() {
@@ -214,6 +232,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         aiSettingsResult,
         newsletterResult,
         logResult,
+        trendResult,
+        trendSnapshotResult,
+        sentimentResult,
+        entityMetricResult,
+        publisherMetricResult,
+        alertResult,
+        savedReportResult,
+        sharedDashboardResult,
+        dashboardExportResult,
         articleCount,
         userCount,
         savedCount,
@@ -234,6 +261,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         storyTimelineCount,
         apiKeyCount,
         apiUsageCount,
+        trendCount,
+        sentimentCount,
+        entityMetricCount,
+        publisherMetricCount,
+        alertCount,
+        savedReportCount,
+        sharedDashboardCount,
+        dashboardExportCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
         supabase.from('news_cache').select('id,article_id,title,link,source,category,country,published_at,updated_at').order('published_at', { ascending: false }).limit(250),
@@ -258,6 +293,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('ai_settings').select('*').eq('key', 'global').maybeSingle(),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
         supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
+        safeQuery(supabase.from('trends').select('trend_id,topic,category,country,momentum_score,status,volume,source_count,last_seen_at').order('momentum_score', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('trend_snapshots').select('trend_id,volume,momentum_score,snapshot_at').order('snapshot_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('sentiment_scores').select('article_id,entity_slug,sentiment_label,sentiment_score,confidence,created_at').order('created_at', { ascending: false }).limit(120)),
+        safeQuery(supabase.from('entity_metrics').select('entity_slug,entity_name,entity_type,country,mention_count,momentum_score,sentiment_score,measured_at').order('momentum_score', { ascending: false }).limit(120)),
+        safeQuery(supabase.from('publisher_metrics').select('publisher_slug,publisher_name,country,story_count,average_freshness_minutes,source_diversity_score,measured_at').order('story_count', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('alerts').select('id,alert_type,query,enabled,frequency,created_at,last_triggered_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('saved_reports').select('id,title,report_type,shared,created_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('shared_dashboards').select('id,name,organization_name,access_level,created_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('dashboard_exports').select('id,export_type,status,file_url,created_at').order('created_at', { ascending: false }).limit(80)),
         countRows('news_cache'),
         countRows('profiles'),
         countRows('saved_articles'),
@@ -278,6 +322,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         countRows('story_timelines'),
         countRows('api_keys'),
         countRows('api_usage_logs'),
+        countRows('trends'),
+        countRows('sentiment_scores'),
+        countRows('entity_metrics'),
+        countRows('publisher_metrics'),
+        countRows('alerts'),
+        countRows('saved_reports'),
+        countRows('shared_dashboards'),
+        countRows('dashboard_exports'),
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
@@ -316,6 +368,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setApiKeys(apiKeyResult.data || []);
       setApiUsageLogs(apiUsageResult.data || []);
       setCorrectionReports(correctionResult.data || []);
+      setTrends(trendResult.data || []);
+      setTrendSnapshots(trendSnapshotResult.data || []);
+      setSentimentScores(sentimentResult.data || []);
+      setEntityMetrics(entityMetricResult.data || []);
+      setPublisherMetrics(publisherMetricResult.data || []);
+      setAlerts(alertResult.data || []);
+      setSavedReports(savedReportResult.data || []);
+      setSharedDashboards(sharedDashboardResult.data || []);
+      setDashboardExports(dashboardExportResult.data || []);
       if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
       setLogs(logResult.data || []);
@@ -340,6 +401,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         storyTimelineCount,
         apiKeyCount,
         apiUsageCount,
+        trendCount,
+        sentimentCount,
+        entityMetricCount,
+        publisherMetricCount,
+        alertCount,
+        savedReportCount,
+        sharedDashboardCount,
+        dashboardExportCount,
         correctionCount: correctionResult.data?.length || 0,
         publisherCount: publisherResult.data?.length || 0,
         journalistCount: journalistResult.data?.length || 0,
@@ -670,7 +739,81 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={BarChart3} label="AI briefs" value={overview.aiBriefCount || 0} />
         <StatCard icon={Database} label="Graph entities" value={overview.entityCount || 0} />
         <StatCard icon={Activity} label="API calls" value={overview.apiUsageCount || 0} />
+        <StatCard icon={Activity} label="Trends" value={overview.trendCount || 0} />
+        <StatCard icon={BarChart3} label="Sentiment" value={overview.sentimentCount || 0} />
+        <StatCard icon={Megaphone} label="Alerts" value={overview.alertCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="News Intelligence Command Center">
+          <MetricRow label="Active trends" value={overview.trendCount || 0} />
+          <MetricRow label="Trend snapshots" value={trendSnapshots.length} />
+          <MetricRow label="Entity metric rows" value={overview.entityMetricCount || 0} />
+          <MetricRow label="Publisher metric rows" value={overview.publisherMetricCount || 0} />
+          <h4>Trends by status</h4>
+          {trendsByStatus.length ? trendsByStatus.map(([key, count]) => <MetricRow key={key} label={key} value={count} />) : <MetricRow label="No trend rows yet" value="Run ingestion" />}
+          <h4>Top trend records</h4>
+          <AdminTable headers={['Topic', 'Country', 'Momentum', 'Status']}>
+            {trends.slice(0, 10).map((trend) => (
+              <tr key={trend.trend_id}>
+                <td><b>{trend.topic}</b><small>{trend.category} · {trend.volume || 0} volume · {trend.source_count || 0} sources</small></td>
+                <td>{trend.country || 'GLOBAL'}</td>
+                <td>{Number(trend.momentum_score || 0).toFixed(2)}</td>
+                <td>{trend.status || 'emerging'}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+
+        <AdminPanel title="Sentiment & Entity Intelligence">
+          <MetricRow label="Sentiment rows" value={overview.sentimentCount || 0} />
+          <MetricRow label="Tracked entity metrics" value={overview.entityMetricCount || 0} />
+          <h4>Sentiment mix</h4>
+          {sentimentByLabel.length ? sentimentByLabel.map(([key, count]) => <MetricRow key={key} label={key} value={count} />) : <MetricRow label="No sentiment rows yet" value="Heuristic ready" />}
+          <h4>Entity momentum</h4>
+          <AdminTable headers={['Entity', 'Type', 'Mentions', 'Momentum']}>
+            {entityMetrics.slice(0, 10).map((entity) => (
+              <tr key={`${entity.entity_slug}-${entity.measured_at}`}>
+                <td><b>{entity.entity_name}</b><small>{entity.country || 'GLOBAL'} · sentiment {Number(entity.sentiment_score || 0).toFixed(2)}</small></td>
+                <td>{entity.entity_type}</td>
+                <td>{entity.mention_count || 0}</td>
+                <td>{Number(entity.momentum_score || 0).toFixed(2)}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="Publisher Intelligence Metrics">
+          <MetricRow label="Publisher metric rows" value={overview.publisherMetricCount || 0} />
+          <MetricRow label="Measured publishers" value={new Set(publisherMetrics.map((item) => item.publisher_slug)).size} />
+          <AdminTable headers={['Publisher', 'Country', 'Stories', 'Diversity']}>
+            {publisherMetrics.slice(0, 12).map((publisher) => (
+              <tr key={`${publisher.publisher_slug}-${publisher.measured_at}`}>
+                <td><b>{publisher.publisher_name}</b><small>{publisher.average_freshness_minutes ?? '-'}m avg freshness</small></td>
+                <td>{publisher.country || 'GLOBAL'}</td>
+                <td>{publisher.story_count || 0}</td>
+                <td>{Number(publisher.source_diversity_score || 0).toFixed(2)}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+
+        <AdminPanel title="Custom Alerts & Enterprise Reports">
+          <MetricRow label="Alerts" value={overview.alertCount || 0} />
+          <MetricRow label="Saved reports" value={overview.savedReportCount || 0} />
+          <MetricRow label="Shared dashboards" value={overview.sharedDashboardCount || 0} />
+          <MetricRow label="Exports" value={overview.dashboardExportCount || 0} />
+          <h4>Alerts by type</h4>
+          {alertsByType.length ? alertsByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />) : <MetricRow label="No alerts yet" value="Ready" />}
+          <h4>Recent exports</h4>
+          {dashboardExports.slice(0, 6).map((item) => <MetricRow key={item.id} label={`${item.export_type} · ${localDate(item.created_at)}`} value={item.status} />)}
+          <h4>Shared dashboards</h4>
+          {sharedDashboards.slice(0, 6).map((item) => <MetricRow key={item.id} label={item.name} value={item.access_level} />)}
+          {savedReports.slice(0, 4).map((item) => <MetricRow key={item.id} label={item.title} value={item.report_type} />)}
+        </AdminPanel>
       </section>
 
       <section className="adminGrid twoColumn">
