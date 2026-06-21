@@ -790,6 +790,7 @@ function App() {
   const [authNotice, setAuthNotice] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [isSendingLoginEmail, setIsSendingLoginEmail] = useState(false);
+  const [authProviders, setAuthProviders] = useState({ email: true, google: null });
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
   const [isRootHome, setIsRootHome] = useState(() => !isAdminPath() && isRootHomePath());
@@ -902,6 +903,7 @@ function App() {
 
   useEffect(() => {
     if (!supabase) return undefined;
+    loadAuthProviders();
     supabase.auth.getUser().then(({ data }) => setUser(data.user || null));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -912,6 +914,23 @@ function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  async function loadAuthProviders() {
+    try {
+      const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/settings`, {
+        headers: { apikey: supabaseAnonKey },
+      });
+      const data = await response.json();
+      if (data?.external) {
+        setAuthProviders({
+          email: data.external.email !== false,
+          google: data.external.google === true,
+        });
+      }
+    } catch (error) {
+      setAuthProviders((current) => ({ ...current, google: null }));
+    }
+  }
 
   useEffect(() => {
     if (screen === 'login') {
@@ -1294,6 +1313,10 @@ function App() {
       setAuthNotice('Add VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable Google login.');
       return;
     }
+    if (authProviders.google === false) {
+      setAuthNotice('Google login is not enabled in Supabase yet. Enable Authentication > Providers > Google, then add the Google Client ID and Client Secret.');
+      return;
+    }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/login` },
@@ -1593,6 +1616,7 @@ function App() {
       {screen === 'login' && (
         <LoginPage
           authNotice={authNotice}
+          authProviders={authProviders}
           history={history}
           isSendingLoginEmail={isSendingLoginEmail}
           loginEmail={loginEmail}
@@ -1690,6 +1714,7 @@ function App() {
 
 function LoginPage({
   authNotice,
+  authProviders,
   history,
   isSendingLoginEmail,
   loginEmail,
@@ -1742,15 +1767,18 @@ function LoginPage({
                       autoComplete="email"
                       disabled={!supabaseEnabled || isSendingLoginEmail}
                     />
-                    <button className="primaryAction" type="submit" disabled={!supabaseEnabled || isSendingLoginEmail}>
+                    <button className="primaryAction" type="submit" disabled={!supabaseEnabled || !authProviders.email || isSendingLoginEmail}>
                       {isSendingLoginEmail ? 'Sending...' : 'Send link'}
                     </button>
                   </div>
                 </form>
                 <div className="loginDivider"><span>or</span></div>
-                <button className="googleLoginButton" type="button" onClick={loginWithGoogle} disabled={!supabaseEnabled}>
+                <button className="googleLoginButton" type="button" onClick={loginWithGoogle} disabled={!supabaseEnabled || authProviders.google === false}>
                   <LogIn size={18} /> Continue with Google
                 </button>
+                {authProviders.google === false && (
+                  <small className="providerWarning">Google provider is disabled in Supabase. Enable it with your Google OAuth client.</small>
+                )}
               </>
             )}
           </div>

@@ -950,6 +950,17 @@ button {
   width: fit-content;
 }
 
+.providerWarning {
+  display: block;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 850;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
 .loginActions .primaryAction {
   border-color: var(--blue);
   background: var(--blue);
