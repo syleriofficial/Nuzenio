@@ -863,10 +863,10 @@ button {
 }
 
 .loginActions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
   margin-top: 20px;
+  max-width: 620px;
 }
 
 .loginActions button {
@@ -882,6 +882,72 @@ button {
   cursor: pointer;
   font-weight: 950;
   padding: 0 16px;
+}
+
+.emailLoginForm {
+  display: grid;
+  gap: 8px;
+}
+
+.emailLoginForm label {
+  color: #172554;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.emailLoginForm > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+
+.emailLoginForm svg {
+  color: var(--blue);
+}
+
+.emailLoginForm input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.emailLoginForm input::placeholder {
+  color: #94a3b8;
+}
+
+.emailLoginForm button {
+  min-height: 38px;
+}
+
+.loginDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.loginDivider::before,
+.loginDivider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #e2e8f0;
+}
+
+.googleLoginButton {
+  width: fit-content;
 }
 
 .loginActions .primaryAction {
@@ -1027,6 +1093,15 @@ button {
 
   .loginActions,
   .loginActions button {
+    width: 100%;
+  }
+
+  .emailLoginForm > div {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .emailLoginForm button {
+    grid-column: 1 / -1;
     width: 100%;
   }
 }

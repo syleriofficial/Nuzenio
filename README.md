@@ -51,7 +51,7 @@ Functions directory: netlify/functions
 ## Supabase setup
 
 1. Create a Supabase project.
-2. In Authentication > Providers, enable Google.
+2. In Authentication > Providers, enable Google and Email OTP / magic links.
 3. Add the deployed site URLs to Authentication > URL Configuration.
 4. Run `supabase/schema.sql` in the Supabase SQL editor.
 5. Add these Netlify environment variables:

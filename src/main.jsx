@@ -788,6 +788,8 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   const [authNotice, setAuthNotice] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [isSendingLoginEmail, setIsSendingLoginEmail] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
   const [isRootHome, setIsRootHome] = useState(() => !isAdminPath() && isRootHomePath());
@@ -1298,6 +1300,33 @@ function App() {
     });
   }
 
+  async function loginWithEmail(event) {
+    event?.preventDefault();
+    const email = loginEmail.trim().toLowerCase();
+    if (!supabase) {
+      setAuthNotice('Supabase login is not configured yet.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAuthNotice('Enter a valid email address.');
+      return;
+    }
+    setIsSendingLoginEmail(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+        shouldCreateUser: true,
+      },
+    });
+    setIsSendingLoginEmail(false);
+    if (error) {
+      setAuthNotice(error.message || 'Could not send login email. Try again.');
+      return;
+    }
+    setAuthNotice(`Login link sent to ${email}. Open the email to finish sign in.`);
+  }
+
   async function logout() {
     if (supabase) await supabase.auth.signOut();
     setUser(null);
@@ -1565,10 +1594,14 @@ function App() {
         <LoginPage
           authNotice={authNotice}
           history={history}
+          isSendingLoginEmail={isSendingLoginEmail}
+          loginEmail={loginEmail}
+          loginWithEmail={loginWithEmail}
           loginWithGoogle={loginWithGoogle}
           logout={logout}
           navigateHome={navigateHome}
           savedIds={savedIds}
+          setLoginEmail={setLoginEmail}
           supabaseEnabled={Boolean(supabase)}
           user={user}
         />
@@ -1658,10 +1691,14 @@ function App() {
 function LoginPage({
   authNotice,
   history,
+  isSendingLoginEmail,
+  loginEmail,
+  loginWithEmail,
   loginWithGoogle,
   logout,
   navigateHome,
   savedIds,
+  setLoginEmail,
   supabaseEnabled,
   user,
 }) {
@@ -1681,7 +1718,7 @@ function LoginPage({
           <span className="badge"><ShieldCheck size={15} /> Secure Nuzenio account</span>
           <h2>{user ? `Welcome, ${displayName}` : 'Login to personalize Nuzenio'}</h2>
           <p>
-            Use Google login to sync saved stories, reading history, topic follows, source follows,
+            Use Google or email login to sync saved stories, reading history, topic follows, source follows,
             newsletters, and future notification preferences.
           </p>
           <div className="loginActions">
@@ -1691,9 +1728,30 @@ function LoginPage({
                 <button type="button" onClick={logout}>Sign out</button>
               </>
             ) : (
-              <button className="primaryAction" type="button" onClick={loginWithGoogle} disabled={!supabaseEnabled}>
-                <LogIn size={18} /> Continue with Google
-              </button>
+              <>
+                <form className="emailLoginForm" onSubmit={loginWithEmail}>
+                  <label htmlFor="login-email">Email login</label>
+                  <div>
+                    <Mail size={18} />
+                    <input
+                      id="login-email"
+                      type="email"
+                      value={loginEmail}
+                      onChange={(event) => setLoginEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      disabled={!supabaseEnabled || isSendingLoginEmail}
+                    />
+                    <button className="primaryAction" type="submit" disabled={!supabaseEnabled || isSendingLoginEmail}>
+                      {isSendingLoginEmail ? 'Sending...' : 'Send link'}
+                    </button>
+                  </div>
+                </form>
+                <div className="loginDivider"><span>or</span></div>
+                <button className="googleLoginButton" type="button" onClick={loginWithGoogle} disabled={!supabaseEnabled}>
+                  <LogIn size={18} /> Continue with Google
+                </button>
+              </>
             )}
           </div>
           {!supabaseEnabled && (
@@ -1724,7 +1782,7 @@ function LoginPage({
             <div className="accountPlaceholder">
               <LogIn size={34} />
               <b>One login, one Nuzenio profile</b>
-              <span>Google Auth creates your profile row in Supabase and keeps reader data private with RLS.</span>
+              <span>Email OTP or Google Auth creates your profile row in Supabase and keeps reader data private with RLS.</span>
             </div>
           )}
         </div>
