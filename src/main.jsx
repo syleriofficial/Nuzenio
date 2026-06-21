@@ -1472,6 +1472,7 @@ function App() {
   function updateLocation(next) {
     setLocation(next);
     writeLocal('nuzenio_location', next);
+    rememberLocalLocation(next);
     if (screen === 'home' && !intelligenceRoute && category === 'local') {
       const url = homeContextUrl({ category: 'local', location: next, language });
       const activeSearch = (readUrlParam('q') || query).trim();
@@ -4904,8 +4905,10 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
 function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const [draft, setDraft] = useState(location);
   const presets = localPlacePresets[draft.country] || localPlacePresets.DEFAULT;
+  const recentPlaces = readRecentLocalLocations(draft.country).map((item) => [item.region, item.city]);
+  const allSuggestionPlaces = uniquePlacePairs([...recentPlaces, ...presets]);
   const citySearch = `${draft.city || ''} ${draft.region || ''}`.trim().toLowerCase();
-  const suggestedPlaces = presets
+  const suggestedPlaces = allSuggestionPlaces
     .filter(([region, city]) => !citySearch || `${city} ${region}`.toLowerCase().includes(citySearch))
     .slice(0, 6);
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
@@ -5041,7 +5044,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
         </div>
 
         <div className="citySuggestionRow" aria-label="Suggested manual locations">
-          <span>Suggestions</span>
+          <span>Recent / popular</span>
           {suggestedPlaces.map(([region, city]) => (
             <button key={`suggest-${region}-${city}`} type="button" onClick={() => applyPreset(region, city)}>
               {city}, {region}
@@ -5050,7 +5053,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
         </div>
 
         <div className="locationChips" aria-label="Popular local news locations">
-          {presets.map(([region, city]) => (
+          {allSuggestionPlaces.slice(0, 8).map(([region, city]) => (
             <button
               key={`${region}-${city}`}
               type="button"
@@ -6443,6 +6446,48 @@ function formatLocation(data) {
     label: placeLabel({ country, region, city }),
     source: data.source || 'ip',
   };
+}
+
+function compactLocationEntry(location = {}) {
+  const country = normalizeCountry(location.country || 'IN');
+  const region = String(location.region || '').trim();
+  const city = String(location.city || '').trim();
+  if (!city) return null;
+  return {
+    country,
+    region,
+    city,
+    label: placeLabel({ country, region, city }),
+  };
+}
+
+function placeKey({ country, region, city }) {
+  return `${normalizeCountry(country)}|${String(region || '').toLowerCase()}|${String(city || '').toLowerCase()}`;
+}
+
+function uniquePlacePairs(pairs = []) {
+  const seen = new Set();
+  return pairs.filter(([region, city]) => {
+    const key = `${String(region || '').toLowerCase()}|${String(city || '').toLowerCase()}`;
+    if (!city || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function readRecentLocalLocations(country) {
+  const countryCode = normalizeCountry(country || 'IN');
+  return readLocal('nuzenio_recent_locations', [])
+    .filter((item) => item?.country === countryCode && item.city)
+    .slice(0, 6);
+}
+
+function rememberLocalLocation(location) {
+  const entry = compactLocationEntry(location);
+  if (!entry) return;
+  const existing = readLocal('nuzenio_recent_locations', []);
+  const next = [entry, ...existing.filter((item) => placeKey(item) !== placeKey(entry))].slice(0, 20);
+  writeLocal('nuzenio_recent_locations', next);
 }
 
 function placeLabel({ country, region = '', city = '' }) {
