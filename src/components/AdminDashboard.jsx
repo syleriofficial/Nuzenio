@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowLeft, BarChart3, BriefcaseBusiness, Database, Edit3, Eye, Globe2, Megaphone, RefreshCw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, BriefcaseBusiness, Database, Edit3, Eye, Globe2, LogIn, Megaphone, RefreshCw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react';
 
 const emptySource = {
   name: '',
@@ -778,8 +778,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   if (!user) {
     return (
       <AdminShell onBack={onBack}>
-        <AdminGate title="Admin login required" message="Sign in with Google or email, then make your profile role admin in Supabase.">
-          <button className="primaryAction" onClick={onLogin}>Login</button>
+        <AdminGate title="Admin Google login" message="Use the same Nuzenio Google account. After login, admin users return directly to this dashboard.">
+          <button className="primaryAction" onClick={onLogin}><LogIn size={16} /> Continue with Google</button>
         </AdminGate>
       </AdminShell>
     );

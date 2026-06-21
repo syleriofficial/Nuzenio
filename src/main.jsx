@@ -1408,7 +1408,7 @@ function App() {
     trackPageView(productionUrl(url), title);
   }
 
-  async function loginWithGoogle() {
+  async function loginWithGoogle(redirectPath = '/login') {
     if (!supabase) {
       setAuthNotice('Add VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable Google login.');
       return;
@@ -1420,7 +1420,7 @@ function App() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: new URL('/login', window.location.origin).toString(),
+        redirectTo: new URL(redirectPath, window.location.origin).toString(),
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -1679,7 +1679,7 @@ function App() {
             supabase={supabase}
             user={user}
             onBack={navigateHome}
-            onLogin={loginWithGoogle}
+            onLogin={() => loginWithGoogle('/admin')}
             onLogout={logout}
           />
         </Suspense>
