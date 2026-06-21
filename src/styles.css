@@ -1496,6 +1496,36 @@ button {
   align-self: end;
 }
 
+.citySuggestionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.citySuggestionRow span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.citySuggestionRow button {
+  min-height: 34px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d4ed8;
+  padding: 7px 11px;
+  font-weight: 900;
+}
+
+.citySuggestionRow button:hover,
+.citySuggestionRow button:focus-visible {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
 .locationChips {
   display: flex;
   flex-wrap: wrap;

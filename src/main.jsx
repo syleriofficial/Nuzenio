@@ -455,6 +455,7 @@ const localPlacePresets = {
     ['Bahia', 'Salvador'],
   ],
   IN: [
+    ['Bihar', 'Motihari'],
     ['Bihar', 'Raxaul'],
     ['Bihar', 'Patna'],
     ['Delhi', 'New Delhi'],
@@ -4854,6 +4855,10 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
 function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const [draft, setDraft] = useState(location);
   const presets = localPlacePresets[draft.country] || localPlacePresets.DEFAULT;
+  const citySearch = `${draft.city || ''} ${draft.region || ''}`.trim().toLowerCase();
+  const suggestedPlaces = presets
+    .filter(([region, city]) => !citySearch || `${city} ${region}`.toLowerCase().includes(citySearch))
+    .slice(0, 6);
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
@@ -4984,6 +4989,15 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
           </label>
           <button type="button" className="primaryAction" onClick={applyDraft}>Apply local news</button>
           <button type="button" onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
+        </div>
+
+        <div className="citySuggestionRow" aria-label="Suggested manual locations">
+          <span>Suggestions</span>
+          {suggestedPlaces.map(([region, city]) => (
+            <button key={`suggest-${region}-${city}`} type="button" onClick={() => applyPreset(region, city)}>
+              {city}, {region}
+            </button>
+          ))}
         </div>
 
         <div className="locationChips" aria-label="Popular local news locations">
