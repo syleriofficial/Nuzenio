@@ -912,7 +912,10 @@ function initialLocation() {
     };
   }
   const urlCountry = readUrlParam('country');
-  if (!urlCountry) return readLocal('nuzenio_location', detectLocaleCountry(), 'newssetu_location');
+  if (!urlCountry) {
+    const saved = readLocal('nuzenio_location', null, 'newssetu_location');
+    return saved?.country ? formatLocation(saved) : detectLocaleCountry();
+  }
   const country = normalizeCountry(urlCountry);
   const region = readUrlParam('region') || '';
   const city = readUrlParam('city') || '';
@@ -4917,6 +4920,11 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
           </span>
         </div>
         <p>{locationSourceLabel(location.source)} · {status}</p>
+        {['ip', 'ip backup'].includes(location.source) && (
+          <small className="locationNotice">
+            Network location is approximate. Use browser GPS or type your exact city for local news.
+          </small>
+        )}
         <div className="locationSignals" aria-label="Local news precision">
           <span>{precisionLabel}</span>
           <span>{matchLabel}</span>
@@ -6342,8 +6350,9 @@ async function detectApproximateLocation(setLocation) {
 
 function formatLocation(data) {
   const country = normalizeCountry(data.country);
+  const approximateNetwork = ['ip', 'ip backup'].includes(data.source);
   const region = data.region || '';
-  const city = data.city || '';
+  const city = approximateNetwork ? '' : data.city || '';
   return {
     country,
     region,
@@ -6360,8 +6369,8 @@ function placeLabel({ country, region = '', city = '' }) {
 function locationSourceLabel(source) {
   if (source === 'gps') return 'Detected from browser GPS';
   if (source === 'gps backup') return 'Detected from backup GPS lookup';
-  if (source === 'ip') return 'Detected from network location';
-  if (source === 'ip backup') return 'Detected from backup network location';
+  if (source === 'ip') return 'Approximate network region';
+  if (source === 'ip backup') return 'Approximate backup network region';
   if (source === 'preset') return 'Selected from popular locations';
   if (source === 'manual') return 'Set manually';
   if (source === 'fallback') return 'Using default location';
