@@ -26,7 +26,7 @@ const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Cache-Control': 'public, max-age=900',
+  'Cache-Control': 'no-store, max-age=0',
   'Content-Type': 'application/json; charset=utf-8',
   'X-Content-Type-Options': 'nosniff',
   'X-Robots-Tag': 'noindex, nofollow',
@@ -100,6 +100,52 @@ function validCoordinate(value, min, max) {
   return Number.isFinite(number) && number >= min && number <= max;
 }
 
+function locationPayload({ country, city = '', region = '', source, accuracy = 'city', confidence = 0.6 }) {
+  const countryCode = normalizeCountry(country);
+  return {
+    ok: true,
+    country: countryCode,
+    countryName: countryLabel(countryCode),
+    city: city || '',
+    region: region || '',
+    source,
+    accuracy,
+    confidence,
+  };
+}
+
+async function ipApiLocation(ip) {
+  const ipUrl = ip
+    ? `https://ipapi.co/${encodeURIComponent(ip)}/json/`
+    : 'https://ipapi.co/json/';
+  const geo = await fetchJson(ipUrl);
+  if (geo.error) throw new Error(geo.reason || 'IP location unavailable');
+  return locationPayload({
+    country: geo.country_code,
+    city: geo.city,
+    region: geo.region,
+    source: 'ip',
+    accuracy: geo.city ? 'city' : 'region',
+    confidence: geo.city ? 0.72 : 0.58,
+  });
+}
+
+async function ipWhoLocation(ip) {
+  const ipUrl = ip
+    ? `https://ipwho.is/${encodeURIComponent(ip)}`
+    : 'https://ipwho.is/';
+  const geo = await fetchJson(ipUrl);
+  if (geo.success === false) throw new Error(geo.message || 'IP backup location unavailable');
+  return locationPayload({
+    country: geo.country_code,
+    city: geo.city,
+    region: geo.region,
+    source: 'ip backup',
+    accuracy: geo.city ? 'city' : 'region',
+    confidence: geo.city ? 0.68 : 0.55,
+  });
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
@@ -123,38 +169,44 @@ export const handler = async (event) => {
       const geo = await fetchJson(
         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`,
       );
-      const country = normalizeCountry(geo.countryCode);
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          ok: true,
-          country,
-          countryName: countryLabel(country),
+        body: JSON.stringify(locationPayload({
+          country: geo.countryCode,
           city: geo.city || geo.locality || '',
           region: geo.principalSubdivision || '',
           source: 'gps',
-        }),
+          accuracy: geo.city || geo.locality ? 'precise' : 'region',
+          confidence: 0.95,
+        })),
       };
     }
 
     const ip = clientIp(event);
-    const ipUrl = ip
-      ? `https://ipapi.co/${encodeURIComponent(ip)}/json/`
-      : 'https://ipapi.co/json/';
-    const geo = await fetchJson(ipUrl);
-    const country = normalizeCountry(geo.country_code);
+    const errors = [];
+    for (const provider of [ipApiLocation, ipWhoLocation]) {
+      try {
+        const payload = await provider(ip);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(payload),
+        };
+      } catch (error) {
+        errors.push(error.message);
+      }
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        ok: true,
-        country,
-        countryName: countryLabel(country),
-        city: geo.city || '',
-        region: geo.region || '',
-        source: 'ip',
+        ok: false,
+        country: 'IN',
+        countryName: countryLabel('IN'),
+        source: 'fallback',
+        error: errors.join('; ') || 'Location unavailable',
       }),
     };
   } catch (error) {

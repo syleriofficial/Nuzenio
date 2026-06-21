@@ -1012,7 +1012,7 @@ function App() {
 
   useEffect(() => {
     if (!['manual', 'link'].includes(location.source)) {
-      detectAccurateLocation(updateLocation);
+      detectApproximateLocation(updateLocation);
     }
   }, []);
 
@@ -6285,8 +6285,52 @@ function detectLocaleCountry() {
 }
 
 async function detectAccurateLocation(setLocation) {
+  async function useIpFallback() {
+    try {
+      const res = await fetch(`/api/location?fresh=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.ok) {
+        setLocation(formatLocation(data));
+        return true;
+      }
+    } catch {
+      // Locale fallback remains active when the location API is unavailable.
+    }
+    return false;
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const res = await fetch(
+            `/api/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}&fresh=${Date.now()}`,
+            { cache: 'no-store' },
+          );
+          const data = await res.json();
+          if (data.ok) {
+            setLocation(formatLocation(data));
+            return;
+          }
+        } catch {
+          // Use IP fallback below when reverse geocoding fails.
+        }
+        useIpFallback();
+      },
+      () => {
+        useIpFallback();
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+    );
+    return;
+  }
+
+  useIpFallback();
+}
+
+async function detectApproximateLocation(setLocation) {
   try {
-    const res = await fetch('/api/location');
+    const res = await fetch(`/api/location?fresh=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
     if (data.ok) {
       setLocation(formatLocation(data));
@@ -6294,25 +6338,6 @@ async function detectAccurateLocation(setLocation) {
   } catch {
     // Locale fallback remains active when the location API is unavailable.
   }
-
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      try {
-        const res = await fetch(
-          `/api/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}`,
-        );
-        const data = await res.json();
-        if (data.ok) {
-          setLocation(formatLocation(data));
-        }
-      } catch {
-        // Keep the IP-based or locale-based country.
-      }
-    },
-    () => {},
-    { enableHighAccuracy: false, maximumAge: 1000 * 60 * 60 * 12, timeout: 4500 },
-  );
 }
 
 function formatLocation(data) {
@@ -6335,6 +6360,7 @@ function placeLabel({ country, region = '', city = '' }) {
 function locationSourceLabel(source) {
   if (source === 'gps') return 'Detected from browser GPS';
   if (source === 'ip') return 'Detected from network location';
+  if (source === 'ip backup') return 'Detected from backup network location';
   if (source === 'preset') return 'Selected from popular locations';
   if (source === 'manual') return 'Set manually';
   if (source === 'fallback') return 'Using default location';
