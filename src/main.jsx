@@ -6732,6 +6732,7 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'publisher') return `${intelligenceRoute.label} Publisher Profile, Source Credibility & Latest News | Nuzenio`;
   if (intelligenceRoute?.type === 'author') return `${intelligenceRoute.label} Author Profile & Editorial Work | Nuzenio`;
   if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
+  if (category === 'local') return `Local News in ${pageSeoPlace(category, location)} | Nuzenio`;
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
   const place = pageSeoPlace(category, location);
@@ -6779,6 +6780,10 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'author') {
     return `${intelligenceRoute.label} author profile on Nuzenio with editorial role, expertise, publisher association, original journalism workflow, corrections, and E-E-A-T transparency.`;
+  }
+  if (category === 'local') {
+    const place = pageSeoPlace(category, location);
+    return `Live local news for ${place} on Nuzenio, tuned by manual location or browser GPS with RSS headlines, source attribution, freshness signals, and AI-powered context.`;
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
