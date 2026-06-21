@@ -752,6 +752,10 @@ function normalizedPathname() {
   return stripLanguagePrefix(path);
 }
 
+function isLocalPath(path = window.location.pathname) {
+  return stripLanguagePrefix(path.replace(/\/+$/, '') || '/') === categoryRoutes.local;
+}
+
 function stripLanguagePrefix(path = '/') {
   const cleanPath = path.replace(/\/+$/, '') || '/';
   const [, maybeLang, rest = ''] = cleanPath.match(/^\/([a-z]{2})(\/.*)?$/i) || [];
@@ -991,7 +995,7 @@ function App() {
   const [isSendingLoginEmail, setIsSendingLoginEmail] = useState(false);
   const [authProviders, setAuthProviders] = useState({ email: true, google: null });
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
+  const [isLocalPage, setIsLocalPage] = useState(() => isLocalPath());
   const [isRootHome, setIsRootHome] = useState(() => !isAdminPath() && isRootHomePath());
   const [intelligenceRoute, setIntelligenceRoute] = useState(() => readIntelligenceRoute());
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
@@ -1056,7 +1060,7 @@ function App() {
     }
     const url = contextUrl({ category, location, language });
     window.history.replaceState({}, '', url);
-    setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
+    setIsLocalPage(category === 'local' && isLocalPath(url.pathname));
   }, [category, isRootHome, location.country, location.region, location.city, language.code, intelligenceRoute?.type, intelligenceRoute?.slug]);
 
   useEffect(() => {
@@ -1091,7 +1095,7 @@ function App() {
       const nextIntelligenceRoute = readIntelligenceRoute();
       setIntelligenceRoute(nextIntelligenceRoute);
       setIsRootHome(isRootHomePath());
-      setIsLocalPage(window.location.pathname === categoryRoutes.local);
+      setIsLocalPage(isLocalPath());
       setCategory(initialCategory());
       const articleKey = readArticleIdFromUrl();
       if (!articleKey) {
@@ -1460,7 +1464,7 @@ function App() {
     const url = homeContextUrl({ category: nextCategory, location, language });
     url.searchParams.delete('q');
     window.history.pushState({}, '', url);
-    setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
+    setIsLocalPage(nextCategory === 'local' && isLocalPath(url.pathname));
     trackEvent('select_content', {
       content_type: 'category',
       item_id: nextCategory,
@@ -4924,7 +4928,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
     setLocation(next);
   }
 
-  if (window.location.pathname !== categoryRoutes.local) return null;
+  if (!isLocalPath()) return null;
 
   return (
     <div className="locationBanner">
