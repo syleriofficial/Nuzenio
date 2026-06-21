@@ -6304,7 +6304,7 @@ async function detectAccurateLocation(setLocation) {
       async (position) => {
         try {
           const res = await fetch(
-            `/api/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}&fresh=${Date.now()}`,
+            `/api/location?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}&accuracy=${encodeURIComponent(Math.round(position.coords.accuracy || 0))}&fresh=${Date.now()}`,
             { cache: 'no-store' },
           );
           const data = await res.json();
@@ -6359,6 +6359,7 @@ function placeLabel({ country, region = '', city = '' }) {
 
 function locationSourceLabel(source) {
   if (source === 'gps') return 'Detected from browser GPS';
+  if (source === 'gps backup') return 'Detected from backup GPS lookup';
   if (source === 'ip') return 'Detected from network location';
   if (source === 'ip backup') return 'Detected from backup network location';
   if (source === 'preset') return 'Selected from popular locations';

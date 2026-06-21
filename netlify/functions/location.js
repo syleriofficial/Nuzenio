@@ -32,9 +32,9 @@ const headers = {
   'X-Robots-Tag': 'noindex, nofollow',
 };
 
-function fetchJson(url, redirects = 0) {
+function fetchJson(url, redirects = 0, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, { timeout: 7000, headers: { 'User-Agent': 'Nuzenio/1.0' } }, (response) => {
+    const request = https.get(url, { timeout: 8000, headers: { 'User-Agent': 'Nuzenio/1.0 (https://nuzenio.com)', ...extraHeaders } }, (response) => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
         response.resume();
         if (redirects > 2) {
@@ -100,7 +100,7 @@ function validCoordinate(value, min, max) {
   return Number.isFinite(number) && number >= min && number <= max;
 }
 
-function locationPayload({ country, city = '', region = '', source, accuracy = 'city', confidence = 0.6 }) {
+function locationPayload({ country, city = '', region = '', source, accuracy = 'city', confidence = 0.6, coordinateAccuracy = null }) {
   const countryCode = normalizeCountry(country);
   return {
     ok: true,
@@ -111,7 +111,53 @@ function locationPayload({ country, city = '', region = '', source, accuracy = '
     source,
     accuracy,
     confidence,
+    coordinateAccuracy,
   };
+}
+
+function firstValue(...values) {
+  return values.map((value) => String(value || '').trim()).find(Boolean) || '';
+}
+
+async function openStreetMapReverseLocation(lat, lon) {
+  const geo = await fetchJson(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=12&addressdetails=1&accept-language=en`,
+    0,
+    { Referer: 'https://nuzenio.com' },
+  );
+  const address = geo.address || {};
+  const city = firstValue(
+    address.city,
+    address.town,
+    address.village,
+    address.municipality,
+    address.suburb,
+    address.city_district,
+    address.county,
+  );
+  const region = firstValue(address.state, address.region, address.province, address.county);
+  return locationPayload({
+    country: address.country_code || geo.country_code,
+    city,
+    region,
+    source: 'gps',
+    accuracy: city ? 'precise' : 'region',
+    confidence: city ? 0.96 : 0.88,
+  });
+}
+
+async function bigDataCloudReverseLocation(lat, lon) {
+  const geo = await fetchJson(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`,
+  );
+  return locationPayload({
+    country: geo.countryCode,
+    city: firstValue(geo.city, geo.locality, geo.localityInfo?.administrative?.[2]?.name),
+    region: firstValue(geo.principalSubdivision, geo.localityInfo?.administrative?.[1]?.name),
+    source: 'gps backup',
+    accuracy: geo.city || geo.locality ? 'precise' : 'region',
+    confidence: geo.city || geo.locality ? 0.92 : 0.82,
+  });
 }
 
 async function ipApiLocation(ip) {
@@ -166,21 +212,27 @@ export const handler = async (event) => {
     const lon = event.queryStringParameters?.lon;
 
     if (validCoordinate(lat, -90, 90) && validCoordinate(lon, -180, 180)) {
-      const geo = await fetchJson(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`,
-      );
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(locationPayload({
-          country: geo.countryCode,
-          city: geo.city || geo.locality || '',
-          region: geo.principalSubdivision || '',
-          source: 'gps',
-          accuracy: geo.city || geo.locality ? 'precise' : 'region',
-          confidence: 0.95,
-        })),
-      };
+      const coordinateAccuracy = Number(event.queryStringParameters?.accuracy || 0) || null;
+      const errors = [];
+      for (const provider of [openStreetMapReverseLocation, bigDataCloudReverseLocation]) {
+        try {
+          const payload = {
+            ...(await provider(lat, lon)),
+            coordinateAccuracy,
+          };
+          if (payload.country && (payload.city || payload.region)) {
+            return {
+              statusCode: 200,
+              headers,
+              body: JSON.stringify(payload),
+            };
+          }
+          errors.push(`${payload.source}: incomplete location`);
+        } catch (error) {
+          errors.push(error.message);
+        }
+      }
+      throw new Error(errors.join('; ') || 'GPS reverse location unavailable');
     }
 
     const ip = clientIp(event);
