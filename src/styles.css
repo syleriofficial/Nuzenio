@@ -14,6 +14,270 @@
   --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
 }
 
+.commandCenter {
+  margin: 22px 0;
+  padding: 22px;
+  border: 1px solid #cfe1ff;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.commandHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.commandHead h3 {
+  margin: 12px 0 8px;
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.commandHead p,
+.dashboardPanel p {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.exportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exportActions button {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-weight: 950;
+  padding: 10px 13px;
+}
+
+.commandKpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.commandKpis > div,
+.dashboardPanel {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.commandKpis > div {
+  padding: 15px;
+}
+
+.commandKpis span,
+.panelTitle span,
+.lifecycleTimeline span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.commandKpis b {
+  display: block;
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 30px;
+}
+
+.commandKpis small,
+.lifecycleTimeline small,
+.publisherMetricRows span {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboardPanel {
+  min-width: 0;
+  padding: 16px;
+}
+
+.dashboardPanel.wide {
+  grid-column: 1 / -1;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panelTitle h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.trendRows,
+.publisherMetricRows,
+.categoryBars {
+  display: grid;
+  gap: 11px;
+}
+
+.trendRow,
+.sentimentRow,
+.categoryBars > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(120px, 2fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.trendRow b,
+.publisherMetricRows b,
+.categoryBars span,
+.sentimentRow > span {
+  color: #172554;
+  font-weight: 950;
+}
+
+.trendRow span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.barTrack {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.barTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+}
+
+.sentimentRow.positive .barTrack span {
+  background: #16a34a;
+}
+
+.sentimentRow.neutral .barTrack span {
+  background: #2563eb;
+}
+
+.sentimentRow.negative .barTrack span {
+  background: #dc2626;
+}
+
+.heatGrid,
+.entityCloud,
+.alertChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heatGrid span,
+.entityCloud a,
+.alertChips span {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: color-mix(in srgb, #2563eb calc(var(--heat, 0.2) * 35%), #ffffff);
+  color: #172554;
+  font-weight: 950;
+  padding: 9px 10px;
+  text-decoration: none;
+}
+
+.heatGrid b {
+  margin-left: 8px;
+  color: #dc2626;
+}
+
+.publisherMetricRows > div {
+  display: grid;
+  gap: 3px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.publisherMetricRows > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.lifecycleTimeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lifecycleTimeline > div {
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.lifecycleTimeline b {
+  display: block;
+  margin: 5px 0;
+  color: #0f172a;
+  font-size: 24px;
+}
+
+.panelEmpty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  padding: 12px;
+}
+
+@media (max-width: 900px) {
+  .commandHead,
+  .panelTitle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .commandKpis,
+  .dashboardGrid,
+  .lifecycleTimeline {
+    grid-template-columns: 1fr;
+  }
+
+  .trendRow,
+  .sentimentRow,
+  .categoryBars > div {
+    grid-template-columns: 1fr;
+  }
+
+  .exportActions,
+  .exportActions button {
+    width: 100%;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

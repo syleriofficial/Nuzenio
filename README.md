@@ -274,6 +274,17 @@ Keep `prefer_related_applications` disabled in `public/site.webmanifest` until r
 - Discover readiness panels show large-image candidates, publisher counts, editor information, publication/update timestamps, and E-E-A-T signals.
 - Admin SEO monitoring shows sitemap status, top pages, search queries, and CTR-ready fields for future Search Console integration.
 
+## News intelligence dashboard
+
+V19 adds `/intelligence-dashboard` as a Bloomberg/Google Trends style command center:
+
+- Real-time volume, breaking tracker, topic momentum, country heat map, sentiment, publisher intelligence, entity tracking, story lifecycle, and alert readiness.
+- Client-side JSON/CSV exports and print-to-PDF report flow from the live feed.
+- `/api/v1/intelligence` exposes trend, snapshot, sentiment, entity, publisher, alert, and latest-article data for enterprise dashboards.
+- Supabase tables added: `trends`, `trend_snapshots`, `sentiment_scores`, `entity_metrics`, `publisher_metrics`, `alerts`, `saved_reports`, `shared_dashboards`, and `dashboard_exports`.
+
+Run `supabase/schema.sql` in Supabase SQL Editor after deploy so V19 dashboard tables and RLS policies exist in production.
+
 ## Deploy
 
 Push to GitHub, then deploy from Netlify with the settings above. For CLI deploy:

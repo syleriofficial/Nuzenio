@@ -27392,6 +27392,336 @@
     <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/mobile-app" />
   </url>
   <url>
+    <loc>https://nuzenio.com/en/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/hi/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/es/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/fr/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/de/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/pt/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/ar/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/ja/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/ko/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/zh/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/bn/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/ta/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/te/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/mr/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
+    <loc>https://nuzenio.com/ur/intelligence-dashboard</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.82</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nuzenio.com/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://nuzenio.com/en/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://nuzenio.com/hi/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://nuzenio.com/es/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://nuzenio.com/fr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://nuzenio.com/de/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://nuzenio.com/pt/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://nuzenio.com/ar/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nuzenio.com/ja/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://nuzenio.com/ko/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://nuzenio.com/zh/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://nuzenio.com/bn/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://nuzenio.com/ta/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="te" href="https://nuzenio.com/te/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="mr" href="https://nuzenio.com/mr/intelligence-dashboard" />
+    <xhtml:link rel="alternate" hreflang="ur" href="https://nuzenio.com/ur/intelligence-dashboard" />
+  </url>
+  <url>
     <loc>https://nuzenio.com/en/hub/ai</loc>
     <lastmod>2026-06-21</lastmod>
     <changefreq>hourly</changefreq>

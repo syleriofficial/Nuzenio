@@ -307,6 +307,13 @@ const dataPlatformPages = [
     query: 'mobile news app android ios iphone ipad breaking alerts offline reading',
     intent: 'Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, and app-store readiness.',
   },
+  {
+    slug: 'intelligence-dashboard',
+    label: 'News Intelligence Dashboard',
+    category: 'top',
+    query: 'global news command center trends sentiment entities publishers alerts',
+    intent: 'Bloomberg and Google Trends style command center for trends, entities, sentiment, publishers, alerts, exports, and enterprise dashboards.',
+  },
 ];
 
 const countryNames = {
@@ -601,7 +608,13 @@ function readIntelligenceRoute(path = normalizedPathname()) {
   }
   const dataPage = dataPlatformPages.find((item) => item.slug === cleanPath);
   if (dataPage) {
-    const type = dataPage.slug === 'archive' ? 'archive' : dataPage.slug === 'mobile-app' ? 'mobile' : 'data';
+    const type = dataPage.slug === 'archive'
+      ? 'archive'
+      : dataPage.slug === 'mobile-app'
+        ? 'mobile'
+        : dataPage.slug === 'intelligence-dashboard'
+          ? 'dashboard'
+          : 'data';
     return { type, ...dataPage };
   }
   const hubAlias = evergreenHubs.find((item) => item.aliases?.includes(cleanPath));
@@ -671,7 +684,7 @@ function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
   if (['topic', 'hub', 'landing'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
-  if (['data', 'archive', 'mobile'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
+  if (['data', 'archive', 'mobile', 'dashboard'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
   if (intelligenceRoute?.type === 'entity') return 'top';
   if (['publisher', 'author'].includes(intelligenceRoute?.type)) return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
@@ -2798,6 +2811,7 @@ function IntelligencePage({
   const isDataPlatform = route.type === 'data';
   const isArchive = route.type === 'archive';
   const isMobileApp = route.type === 'mobile';
+  const isDashboard = route.type === 'dashboard';
   const title = isCountry
     ? `${route.label} News Intelligence`
     : isPublisher
@@ -2810,6 +2824,8 @@ function IntelligencePage({
             ? 'Nuzenio News Archive'
             : isMobileApp
               ? 'Nuzenio Mobile Apps'
+              : isDashboard
+                ? 'News Intelligence Dashboard'
         : isTopic || isHub
       ? `${route.label} Topic Intelligence`
       : isLanding
@@ -2827,6 +2843,8 @@ function IntelligencePage({
             ? 'Historical story archive with topic, entity, publisher, country, timeline, and date-range discovery.'
             : isMobileApp
               ? 'Android, iPhone, iPad, and PWA app foundation with shared accounts, offline reading, push alerts, and mobile analytics.'
+              : isDashboard
+                ? 'A command center for real-time news volume, trend momentum, entities, story lifecycle, sentiment, publisher diversity, custom alerts, and enterprise exports.'
         : isTopic || isHub
       ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
       : isLanding
@@ -2892,7 +2910,8 @@ function IntelligencePage({
         {isDataPlatform && <DataPlatformPanel articles={articles} />}
         {isArchive && <NewsArchivePanel articles={articles} route={route} />}
         {isMobileApp && <MobileAppPlatformPanel articles={articles} />}
-        {(isDataPlatform || isArchive) && <KnowledgeGraphPanel articles={articles} />}
+        {isDashboard && <NewsIntelligenceDashboardPanel articles={articles} />}
+        {(isDataPlatform || isArchive || isDashboard) && <KnowledgeGraphPanel articles={articles} />}
         {isPublisher && <PublisherProfilePanel publisher={route} articles={articles} />}
         {isAuthor && <AuthorProfilePanel author={route} />}
         <SourceIntelligencePanel articles={articles} route={route} />
@@ -2981,6 +3000,15 @@ function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
       { key: 'mobile-feed', title: 'Personalized mobile feed', intro: 'For You, country trends, recommendations, saves, history, and follows from the shared Nuzenio account.', articles: articles.slice(0, 6) },
       { key: 'mobile-alerts', title: 'Breaking alert candidates', intro: 'Stories suitable for followed-topic alerts, major world events, and daily brief notifications.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
       { key: 'mobile-offline', title: 'Offline reading candidates', intro: 'Latest cached stories ready for low-data and offline reading flows.', articles: articles.filter((article) => article.summary).slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'dashboard') {
+    const trends = detectTrendSignals(articles);
+    return [
+      { key: 'command-breaking', title: 'Breaking news tracker', intro: 'Live and developing stories ordered by freshness and signal strength.', articles: trends.breaking.slice(0, 6) },
+      { key: 'fastest-growing', title: 'Fastest growing stories', intro: 'Multi-source stories, updates, and clusters showing active momentum.', articles: trends.growing.slice(0, 6) },
+      { key: 'fresh-spikes', title: 'Emerging topic spikes', intro: 'Fresh stories from the last six hours for rapid monitoring.', articles: trends.spikes.slice(0, 6) },
     ].filter((section) => section.articles.length);
   }
 
@@ -3322,6 +3350,257 @@ function MobileAppPlatformPanel({ articles = [] }) {
       </div>
     </section>
   );
+}
+
+function NewsIntelligenceDashboardPanel({ articles = [] }) {
+  const trends = detectTrendSignals(articles);
+  const topics = extractTrendingTopics(articles).slice(0, 8);
+  const entities = extractEntities(articles).slice(0, 10);
+  const publishers = sourceStats(articles)
+    .sort((a, b) => b.count - a.count || (b.newestTime || 0) - (a.newestTime || 0))
+    .slice(0, 8);
+  const countries = rankedCounts(articles, (article) => countryLabel(article.country || article.countryCode || 'GLOBAL')).slice(0, 10);
+  const categoryRows = rankedCounts(articles, (article) => article.category || 'top').slice(0, 8);
+  const sentiment = sentimentBreakdown(articles);
+  const lifecycle = storyLifecycleRows(articles);
+  const sourceDiversity = articles.length
+    ? Math.min(100, Math.round((new Set(articles.map((article) => article.source).filter(Boolean)).size / articles.length) * 300))
+    : 0;
+  const liveWindow = articles.filter((article) => {
+    const time = new Date(article.pubDate).getTime();
+    return Number.isFinite(time) && Date.now() - time < 60 * 60 * 1000;
+  }).length;
+
+  return (
+    <section className="commandCenter">
+      <div className="commandHead">
+        <div>
+          <span className="badge"><Database size={15} /> News Intelligence Dashboard</span>
+          <h3>Global News Command Center</h3>
+          <p>Live RSS volume, topic momentum, entity movement, source diversity, sentiment, alerts, and enterprise exports.</p>
+        </div>
+        <div className="exportActions" aria-label="Dashboard export controls">
+          <button type="button" onClick={() => exportDashboardData('json', articles)}>JSON</button>
+          <button type="button" onClick={() => exportDashboardData('csv', articles)}>CSV</button>
+          <button type="button" onClick={() => exportDashboardData('pdf', articles)}>PDF</button>
+        </div>
+      </div>
+
+      <div className="commandKpis">
+        <div><span>Real-time volume</span><b>{articles.length}</b><small>{liveWindow} stories in the last hour</small></div>
+        <div><span>Breaking tracker</span><b>{trends.breaking.length}</b><small>Live/developing signals</small></div>
+        <div><span>Topic momentum</span><b>{topics.length}</b><small>Emerging topics detected</small></div>
+        <div><span>Source diversity</span><b>{sourceDiversity}%</b><small>{publishers.length} active publishers</small></div>
+      </div>
+
+      <div className="dashboardGrid">
+        <article className="dashboardPanel wide">
+          <div className="panelTitle">
+            <h4>Trend Intelligence</h4>
+            <span>Momentum score</span>
+          </div>
+          <div className="trendRows">
+            {topics.map((topic, index) => (
+              <div className="trendRow" key={topic.label}>
+                <div>
+                  <b>{topic.label}</b>
+                  <span>{index < 3 ? 'Fastest growing' : 'Emerging topic'}</span>
+                </div>
+                <div className="barTrack"><span style={{ width: `${Math.min(100, 35 + topic.count * 12)}%` }} /></div>
+                <strong>{Math.min(99, topic.count * 14)}</strong>
+              </div>
+            ))}
+            {!topics.length && <p className="panelEmpty">Trend data appears after live stories load.</p>}
+          </div>
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Country Heat Map</h4>
+            <span>Volume</span>
+          </div>
+          <div className="heatGrid">
+            {countries.map((item) => (
+              <span key={item.label} style={{ '--heat': `${Math.min(1, item.count / Math.max(1, countries[0]?.count || 1))}` }}>
+                {item.label}<b>{item.count}</b>
+              </span>
+            ))}
+          </div>
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Sentiment Analysis</h4>
+            <span>Heuristic</span>
+          </div>
+          {sentiment.map((item) => (
+            <div className={`sentimentRow ${item.key}`} key={item.key}>
+              <span>{item.label}</span>
+              <div className="barTrack"><span style={{ width: `${item.percent}%` }} /></div>
+              <b>{item.percent}%</b>
+            </div>
+          ))}
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Entity Intelligence</h4>
+            <span>People, companies, countries</span>
+          </div>
+          <div className="entityCloud">
+            {entities.map((entity) => <a href={entity.href} key={entity.label}>{entity.label}</a>)}
+            {!entities.length && <p className="panelEmpty">Entity signals will appear from headlines and summaries.</p>}
+          </div>
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Publisher Intelligence</h4>
+            <span>Coverage comparison</span>
+          </div>
+          <div className="publisherMetricRows">
+            {publishers.map((publisher) => (
+              <div key={publisher.source}>
+                <b>{publisher.source}</b>
+                <span>{publisher.count} stories · {publisher.freshnessMinutes === null ? 'freshness pending' : `${publisher.freshnessMinutes}m freshness`} · {publisher.categoryCount} categories</span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="dashboardPanel wide">
+          <div className="panelTitle">
+            <h4>Story Lifecycle Tracking</h4>
+            <span>Creation → peak → decline</span>
+          </div>
+          <div className="lifecycleTimeline">
+            {lifecycle.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <b>{item.count}</b>
+                <small>{item.help}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Custom Alerts</h4>
+            <span>Admin-ready</span>
+          </div>
+          <div className="alertChips">
+            {['Keyword alerts', 'Entity alerts', 'Country alerts', 'Topic alerts'].map((item) => <span key={item}>{item}</span>)}
+          </div>
+          <p>Alert rules are stored in Supabase and can power email, push, or enterprise report notifications.</p>
+        </article>
+
+        <article className="dashboardPanel">
+          <div className="panelTitle">
+            <h4>Category Volume</h4>
+            <span>Live feed mix</span>
+          </div>
+          <div className="categoryBars">
+            {categoryRows.map((item) => (
+              <div key={item.label}>
+                <span>{titleCase(item.label)}</span>
+                <div className="barTrack"><span style={{ width: `${Math.min(100, (item.count / Math.max(1, categoryRows[0]?.count || 1)) * 100)}%` }} /></div>
+                <b>{item.count}</b>
+              </div>
+            ))}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function rankedCounts(items = [], getLabel = () => '') {
+  const counts = new Map();
+  items.forEach((item) => {
+    const label = getLabel(item);
+    if (!label) return;
+    counts.set(label, (counts.get(label) || 0) + 1);
+  });
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function sentimentBreakdown(articles = []) {
+  const counts = { positive: 0, neutral: 0, negative: 0 };
+  articles.forEach((article) => {
+    counts[classifySentiment(article)] += 1;
+  });
+  const total = Math.max(1, articles.length);
+  return [
+    { key: 'positive', label: 'Positive', percent: Math.round((counts.positive / total) * 100) },
+    { key: 'neutral', label: 'Neutral', percent: Math.round((counts.neutral / total) * 100) },
+    { key: 'negative', label: 'Negative', percent: Math.round((counts.negative / total) * 100) },
+  ];
+}
+
+function classifySentiment(article = {}) {
+  const text = `${article.title || ''} ${article.summary || ''}`.toLowerCase();
+  const positiveWords = ['gain', 'growth', 'win', 'boost', 'record', 'approve', 'breakthrough', 'recover', 'rise'];
+  const negativeWords = ['war', 'crisis', 'dead', 'death', 'fall', 'loss', 'attack', 'risk', 'crash', 'warning'];
+  const score = positiveWords.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0)
+    - negativeWords.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0);
+  if (score > 0) return 'positive';
+  if (score < 0) return 'negative';
+  return 'neutral';
+}
+
+function storyLifecycleRows(articles = []) {
+  const now = Date.now();
+  const buckets = [
+    { label: 'Creation', count: 0, help: 'Published in the last hour' },
+    { label: 'Source expansion', count: 0, help: 'Multiple reports or clustered coverage' },
+    { label: 'Peak interest', count: 0, help: 'Breaking/live/update language' },
+    { label: 'Decline phase', count: 0, help: 'Older than 12 hours' },
+  ];
+  articles.forEach((article) => {
+    const time = new Date(article.pubDate).getTime();
+    const age = Number.isFinite(time) ? now - time : Infinity;
+    if (age < 60 * 60 * 1000) buckets[0].count += 1;
+    if ((article.clusterSize || 1) > 1 || (article.alsoReportedBy || []).length) buckets[1].count += 1;
+    if (/breaking|live|developing|updates?/i.test(`${article.title || ''} ${article.summary || ''}`)) buckets[2].count += 1;
+    if (age > 12 * 60 * 60 * 1000) buckets[3].count += 1;
+  });
+  return buckets;
+}
+
+function titleCase(value = '') {
+  return String(value).replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function exportDashboardData(type, articles = []) {
+  if (type === 'pdf') {
+    window.print();
+    return;
+  }
+  const rows = articles.map((article) => ({
+    title: article.title,
+    source: article.source,
+    category: article.category,
+    country: article.country || article.countryCode,
+    publishedAt: article.pubDate,
+    sentiment: classifySentiment(article),
+    link: article.link,
+  }));
+  const payload = type === 'csv'
+    ? [
+        'title,source,category,country,publishedAt,sentiment,link',
+        ...rows.map((row) => Object.values(row).map((value) => `"${String(value || '').replace(/"/g, '""')}"`).join(',')),
+      ].join('\n')
+    : JSON.stringify({ generatedAt: new Date().toISOString(), rows }, null, 2);
+  const blob = new Blob([payload], { type: type === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `nuzenio-intelligence-${new Date().toISOString().slice(0, 10)}.${type}`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function sourceMatchesPublisher(source = '', publisherName = '') {
@@ -5402,7 +5681,7 @@ function intelligenceRouteUrl(route, language = languageByCode(currentLanguageCo
   else if (route.type === 'topic') path = `/topic/${route.slug}`;
   else if (route.type === 'hub') path = `/hub/${route.slug}`;
   else if (route.type === 'landing') path = `/${route.slug}`;
-  else if (route.type === 'data' || route.type === 'archive' || route.type === 'mobile') path = `/${route.slug}`;
+  else if (route.type === 'data' || route.type === 'archive' || route.type === 'mobile' || route.type === 'dashboard') path = `/${route.slug}`;
   else if (route.type === 'entity') path = `/entity/${route.slug}`;
   else if (route.type === 'publisher') path = `/publisher/${route.slug}`;
   else if (route.type === 'author') path = `/author/${route.slug}`;
@@ -5449,6 +5728,7 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'data') return 'News Data Platform, Public API & Knowledge Graph | Nuzenio';
   if (intelligenceRoute?.type === 'archive') return 'News Archive, Timeline Search & Historical Stories | Nuzenio';
   if (intelligenceRoute?.type === 'mobile') return 'Android & iOS News Apps, Offline Reading & Alerts | Nuzenio';
+  if (intelligenceRoute?.type === 'dashboard') return 'News Intelligence Dashboard, Trends, Sentiment & Alerts | Nuzenio';
   if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'publisher') return `${intelligenceRoute.label} Publisher Profile, Source Credibility & Latest News | Nuzenio`;
   if (intelligenceRoute?.type === 'author') return `${intelligenceRoute.label} Author Profile & Editorial Work | Nuzenio`;
@@ -5488,6 +5768,9 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'mobile') {
     return 'Nuzenio mobile app foundation for Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, saved articles, follows, and mobile analytics.';
+  }
+  if (intelligenceRoute?.type === 'dashboard') {
+    return 'Nuzenio news intelligence dashboard tracks real-time volume, breaking stories, topic momentum, entity metrics, sentiment, publisher diversity, alerts, exports, and enterprise reports.';
   }
   if (intelligenceRoute?.type === 'entity') {
     return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;

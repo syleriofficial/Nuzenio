@@ -62,6 +62,14 @@ async function supabaseRequest(path, options = {}) {
   return response.json();
 }
 
+async function optionalSupabaseRequest(path, fallback = []) {
+  try {
+    return (await supabaseRequest(path)) || fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
 function json(statusCode, payload, extraHeaders = {}) {
   return {
     statusCode,
@@ -257,6 +265,42 @@ async function readInfrastructureStatus() {
   };
 }
 
+async function readIntelligenceDashboard(url) {
+  const limit = limitParam(url, 30, 100);
+  const [trends, snapshots, sentiments, entityMetrics, publisherMetrics, alertRows, articles] = await Promise.all([
+    optionalSupabaseRequest('trends?select=trend_id,topic,category,country,momentum_score,status,first_seen_at,last_seen_at&order=momentum_score.desc&limit=25'),
+    optionalSupabaseRequest('trend_snapshots?select=trend_id,volume,momentum_score,snapshot_at&order=snapshot_at.desc&limit=100'),
+    optionalSupabaseRequest('sentiment_scores?select=article_id,entity_slug,sentiment_label,sentiment_score,confidence,created_at&order=created_at.desc&limit=100'),
+    optionalSupabaseRequest('entity_metrics?select=entity_slug,entity_name,entity_type,country,mention_count,momentum_score,sentiment_score,measured_at&order=momentum_score.desc&limit=50'),
+    optionalSupabaseRequest('publisher_metrics?select=publisher_slug,publisher_name,country,story_count,average_freshness_minutes,source_diversity_score,measured_at&order=story_count.desc&limit=50'),
+    optionalSupabaseRequest('alerts?select=alert_type,enabled&limit=100'),
+    optionalSupabaseRequest(`news_cache?select=${articleSelect()}&order=published_at.desc&limit=${limit}`),
+  ]);
+  const alertSummary = (alertRows || []).reduce((acc, alert) => {
+    const type = alert.alert_type || 'keyword';
+    acc[type] = (acc[type] || 0) + (alert.enabled === false ? 0 : 1);
+    return acc;
+  }, {});
+  return {
+    intelligence: {
+      commandCenter: {
+        articleVolume: articles?.length || 0,
+        trendCount: trends?.length || 0,
+        sentimentSignals: sentiments?.length || 0,
+        activeAlerts: Object.values(alertSummary).reduce((sum, count) => sum + count, 0),
+      },
+      trends: trends || [],
+      trendSnapshots: snapshots || [],
+      sentimentScores: sentiments || [],
+      entityMetrics: entityMetrics || [],
+      publisherMetrics: publisherMetrics || [],
+      alerts: alertSummary,
+      latestArticles: (articles || []).map(rowToArticle),
+      exports: ['json', 'csv', 'pdf-report'],
+    },
+  };
+}
+
 async function logUsage(event, endpoint, statusCode) {
   const key = event.headers['x-nuzenio-key'] || event.headers['X-Nuzenio-Key'] || '';
   if (!key) return;
@@ -314,9 +358,11 @@ export const handler = async (event) => {
                           ? await readRegionalEditions(url)
                           : endpoint === 'infrastructure'
                             ? await readInfrastructureStatus(url)
+                            : endpoint === 'intelligence'
+                              ? await readIntelligenceDashboard(url)
                           : null;
 
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure'] });
+    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure', 'intelligence'] });
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {
