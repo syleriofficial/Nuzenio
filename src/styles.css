@@ -1374,6 +1374,29 @@ button {
   line-height: 1.4;
 }
 
+.locationModeBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.locationModeBadge.isExact {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.locationModeBadge.isApproximate {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
 .locationSignals {
   display: flex;
   flex-wrap: wrap;

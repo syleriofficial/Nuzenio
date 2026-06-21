@@ -4914,6 +4914,8 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
+  const isApproximate = ['ip', 'ip backup'].includes(location.source);
+  const hasExactCity = Boolean(location.city);
 
   useEffect(() => {
     setDraft(location);
@@ -4989,7 +4991,11 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
           </span>
         </div>
         <p>{locationSourceLabel(location.source)} · {status}</p>
-        {['ip', 'ip backup'].includes(location.source) && (
+        <div className={`locationModeBadge ${hasExactCity ? 'isExact' : 'isApproximate'}`}>
+          <MapPin size={14} />
+          <span>{hasExactCity ? 'Exact local mode' : 'Region mode'}</span>
+        </div>
+        {isApproximate && (
           <small className="locationNotice">
             Network location is approximate. Use browser GPS or type your exact city for local news.
           </small>
