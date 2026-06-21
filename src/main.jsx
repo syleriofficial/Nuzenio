@@ -428,6 +428,32 @@ const countryOptions = [
 ].map((code) => ({ code, label: countryLabel(code) })).sort((a, b) => a.label.localeCompare(b.label));
 
 const localPlacePresets = {
+  DEFAULT: [
+    ['New York', 'New York'],
+    ['England', 'London'],
+    ['Delhi', 'New Delhi'],
+    ['Ontario', 'Toronto'],
+    ['New South Wales', 'Sydney'],
+    ['Dubai', 'Dubai'],
+  ],
+  AE: [
+    ['Dubai', 'Dubai'],
+    ['Abu Dhabi', 'Abu Dhabi'],
+    ['Sharjah', 'Sharjah'],
+    ['Ajman', 'Ajman'],
+  ],
+  BD: [
+    ['Dhaka', 'Dhaka'],
+    ['Chattogram', 'Chattogram'],
+    ['Sylhet', 'Sylhet'],
+    ['Rajshahi', 'Rajshahi'],
+  ],
+  BR: [
+    ['Sao Paulo', 'Sao Paulo'],
+    ['Rio de Janeiro', 'Rio de Janeiro'],
+    ['Distrito Federal', 'Brasilia'],
+    ['Bahia', 'Salvador'],
+  ],
   IN: [
     ['Bihar', 'Raxaul'],
     ['Bihar', 'Patna'],
@@ -436,30 +462,105 @@ const localPlacePresets = {
     ['Karnataka', 'Bengaluru'],
     ['West Bengal', 'Kolkata'],
   ],
+  DE: [
+    ['Berlin', 'Berlin'],
+    ['Bavaria', 'Munich'],
+    ['Hesse', 'Frankfurt'],
+    ['North Rhine-Westphalia', 'Cologne'],
+  ],
+  ES: [
+    ['Community of Madrid', 'Madrid'],
+    ['Catalonia', 'Barcelona'],
+    ['Andalusia', 'Seville'],
+    ['Valencian Community', 'Valencia'],
+  ],
+  FR: [
+    ['Ile-de-France', 'Paris'],
+    ["Provence-Alpes-Cote d'Azur", 'Marseille'],
+    ['Auvergne-Rhone-Alpes', 'Lyon'],
+    ['Occitanie', 'Toulouse'],
+  ],
   US: [
     ['New York', 'New York'],
     ['California', 'Los Angeles'],
     ['Illinois', 'Chicago'],
     ['Texas', 'Houston'],
     ['Florida', 'Miami'],
+    ['California', 'San Francisco'],
   ],
   GB: [
     ['England', 'London'],
     ['Scotland', 'Edinburgh'],
     ['Wales', 'Cardiff'],
     ['Northern Ireland', 'Belfast'],
+    ['England', 'Manchester'],
   ],
   CA: [
     ['Ontario', 'Toronto'],
     ['British Columbia', 'Vancouver'],
     ['Quebec', 'Montreal'],
     ['Alberta', 'Calgary'],
+    ['Ontario', 'Ottawa'],
   ],
   AU: [
     ['New South Wales', 'Sydney'],
     ['Victoria', 'Melbourne'],
     ['Queensland', 'Brisbane'],
     ['Western Australia', 'Perth'],
+  ],
+  IT: [
+    ['Lazio', 'Rome'],
+    ['Lombardy', 'Milan'],
+    ['Campania', 'Naples'],
+    ['Piedmont', 'Turin'],
+  ],
+  JP: [
+    ['Tokyo', 'Tokyo'],
+    ['Osaka', 'Osaka'],
+    ['Kanagawa', 'Yokohama'],
+    ['Aichi', 'Nagoya'],
+  ],
+  KR: [
+    ['Seoul', 'Seoul'],
+    ['Busan', 'Busan'],
+    ['Incheon', 'Incheon'],
+    ['Daegu', 'Daegu'],
+  ],
+  MX: [
+    ['Mexico City', 'Mexico City'],
+    ['Jalisco', 'Guadalajara'],
+    ['Nuevo Leon', 'Monterrey'],
+    ['Puebla', 'Puebla'],
+  ],
+  NL: [
+    ['North Holland', 'Amsterdam'],
+    ['South Holland', 'Rotterdam'],
+    ['South Holland', 'The Hague'],
+    ['Utrecht', 'Utrecht'],
+  ],
+  PK: [
+    ['Sindh', 'Karachi'],
+    ['Punjab', 'Lahore'],
+    ['Islamabad Capital Territory', 'Islamabad'],
+    ['Khyber Pakhtunkhwa', 'Peshawar'],
+  ],
+  RU: [
+    ['Moscow', 'Moscow'],
+    ['Saint Petersburg', 'Saint Petersburg'],
+    ['Novosibirsk Oblast', 'Novosibirsk'],
+    ['Sverdlovsk Oblast', 'Yekaterinburg'],
+  ],
+  SG: [
+    ['Central Region', 'Singapore'],
+    ['East Region', 'Tampines'],
+    ['North Region', 'Woodlands'],
+    ['West Region', 'Jurong West'],
+  ],
+  ZA: [
+    ['Gauteng', 'Johannesburg'],
+    ['Western Cape', 'Cape Town'],
+    ['Gauteng', 'Pretoria'],
+    ['KwaZulu-Natal', 'Durban'],
   ],
 };
 
@@ -4749,7 +4850,7 @@ function VideoCard({ article, copy, openArticle, savedIds, toggleSave }) {
 
 function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const [draft, setDraft] = useState(location);
-  const presets = localPlacePresets[draft.country] || localPlacePresets.IN;
+  const presets = localPlacePresets[draft.country] || localPlacePresets.DEFAULT;
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
@@ -4859,8 +4960,9 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
 
         <div className="locationChips" aria-label="Popular local news locations">
           {presets.map(([region, city]) => (
-            <button key={`${region}-${city}`} onClick={() => applyPreset(region, city)}>
-              {city}
+            <button key={`${region}-${city}`} title={`${city}, ${region}`} onClick={() => applyPreset(region, city)}>
+              <b>{city}</b>
+              <span>{region}</span>
             </button>
           ))}
         </div>

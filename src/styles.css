@@ -1469,12 +1469,29 @@ button {
 }
 
 .locationChips button {
+  display: grid;
+  gap: 2px;
   border: 1px solid #bfdbfe;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #fff;
   color: #1e40af;
-  padding: 8px 12px;
+  padding: 8px 10px;
+  text-align: start;
   font-weight: 900;
+}
+
+.locationChips button b,
+.locationChips button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locationChips button span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .affiliateDisclosure {
