@@ -753,7 +753,8 @@ function normalizedPathname() {
 }
 
 function isLocalPath(path = window.location.pathname) {
-  return stripLanguagePrefix(path.replace(/\/+$/, '') || '/') === categoryRoutes.local;
+  const clean = stripLanguagePrefix(path.replace(/\/+$/, '') || '/');
+  return clean === categoryRoutes.local || clean.startsWith(`${categoryRoutes.local}/`);
 }
 
 function stripLanguagePrefix(path = '/') {
@@ -886,6 +887,30 @@ function articleSlug(article) {
   return article?.slug || slugifyTitle(article?.title || article?.id || 'news-story');
 }
 
+function localLocationPath(location = {}) {
+  const country = normalizeCountry(location.country || 'IN').toLowerCase();
+  const region = slugifyTitle(location.region || '');
+  const city = slugifyTitle(location.city || '');
+  if (region && city) return `/local/${country}/${region}/${city}`;
+  if (region) return `/local/${country}/${region}`;
+  return '/local';
+}
+
+function readLocalRouteLocation(path = normalizedPathname()) {
+  const [, countrySegment, regionSegment = '', citySegment = ''] = path.match(/^\/local\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?$/i) || [];
+  if (!countrySegment) return null;
+  const country = normalizeCountry(countrySegment);
+  const region = regionSegment ? titleFromSlug(decodeURIComponent(regionSegment)) : '';
+  const city = citySegment ? titleFromSlug(decodeURIComponent(citySegment)) : '';
+  return {
+    country,
+    region,
+    city,
+    label: placeLabel({ country, region, city }),
+    source: 'link',
+  };
+}
+
 function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
@@ -894,6 +919,7 @@ function initialCategory() {
   if (intelligenceRoute?.type === 'entity') return 'top';
   if (['publisher', 'author'].includes(intelligenceRoute?.type)) return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
+  if (isLocalPath(path)) return 'local';
   const routeCategory = Object.entries(categoryRoutes)
     .find(([, routePath]) => path === routePath)?.[0];
   if (routeCategory) return routeCategory;
@@ -916,6 +942,8 @@ function initialLocation() {
       source: 'link',
     };
   }
+  const localRouteLocation = readLocalRouteLocation();
+  if (localRouteLocation) return localRouteLocation;
   const urlCountry = readUrlParam('country');
   if (!urlCountry) {
     const saved = readLocal('nuzenio_location', null, 'newssetu_location');
@@ -945,6 +973,14 @@ function contextUrl({ category, location, language = languageByCode(currentLangu
   else url.searchParams.delete('region');
   if (category === 'local' && location.city) url.searchParams.set('city', location.city);
   else url.searchParams.delete('city');
+  if (category === 'local' && !currentArticle) {
+    url.pathname = localizedPath(localLocationPath(location), language.code);
+    if (location.region || location.city) {
+      url.searchParams.delete('country');
+      url.searchParams.delete('region');
+      url.searchParams.delete('city');
+    }
+  }
   if (currentArticle) {
     url.pathname = localizedPath(`/article/${encodeURIComponent(currentArticle)}`, language.code);
     url.searchParams.set('category', category);
@@ -955,7 +991,10 @@ function contextUrl({ category, location, language = languageByCode(currentLangu
 
 function homeContextUrl({ category, location, language }) {
   const url = contextUrl({ category, location, language });
-  url.pathname = localizedPath(categoryRoutes[category] || '/', language?.code || currentLanguageCode());
+  url.pathname = localizedPath(
+    category === 'local' ? localLocationPath(location) : categoryRoutes[category] || '/',
+    language?.code || currentLanguageCode(),
+  );
   url.searchParams.delete('article');
   return url;
 }

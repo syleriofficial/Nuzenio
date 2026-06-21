@@ -47,6 +47,7 @@ const authorPages = ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
+  { country: 'IN', region: 'Bihar', city: 'Motihari' },
   { country: 'IN', region: 'Bihar', city: 'Raxaul' },
   { country: 'IN', region: 'Delhi', city: 'New Delhi' },
   { country: 'IN', region: 'Maharashtra', city: 'Mumbai' },
@@ -104,6 +105,21 @@ function localizedPath(path = '', language = 'en') {
   return clean ? `${language}/${clean}` : language;
 }
 
+function slugify(value = '') {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'local';
+}
+
+function localPlacePath(place) {
+  return `local/${place.country.toLowerCase()}/${slugify(place.region)}/${slugify(place.city)}`;
+}
+
 function entry(loc, changefreq = 'hourly', priority = '0.70') {
   return `  <url><loc>${escapeXml(loc)}</loc><lastmod>${lastmod}</lastmod><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`;
 }
@@ -133,6 +149,8 @@ for (const [category, priority] of categories) {
 
 for (const place of localPlaces) {
   entries.push(entry(url('local', place), 'hourly', '0.82'));
+  entries.push(entry(url(localPlacePath(place)), 'hourly', '0.84'));
+  pushLocalized(localPlacePath(place), 'hourly', '0.84');
 }
 
 for (const country of intelligenceCountries) {
