@@ -2094,6 +2094,62 @@ button {
   margin: 16px 0;
 }
 
+.discoverReadinessPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
+  gap: 14px;
+  margin: 16px 0;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #fff 62%);
+  padding: 16px;
+}
+
+.discoverReadinessPanel h3 {
+  margin: 10px 0 8px;
+  font-size: 24px;
+}
+
+.discoverReadinessPanel p {
+  color: #475569;
+  line-height: 1.55;
+}
+
+.discoverSignalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.discoverSignalGrid div,
+.editorInfoBox {
+  border: 1px solid #dcfce7;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px;
+}
+
+.discoverSignalGrid b {
+  display: block;
+  color: #166534;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.discoverSignalGrid span,
+.editorInfoBox span,
+.editorInfoBox small {
+  display: block;
+  margin-top: 5px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.editorInfoBox {
+  grid-column: 1 / -1;
+}
+
 .trendSignalCard,
 .linkCluster {
   border: 1px solid var(--line);
@@ -3612,8 +3668,13 @@ button {
   }
 
   .intelligenceHero,
+  .discoverReadinessPanel,
   .trendSignalGrid,
   .internalLinkGraph {
+    grid-template-columns: 1fr;
+  }
+
+  .discoverSignalGrid {
     grid-template-columns: 1fr;
   }
 

@@ -108,6 +108,26 @@ const topicIntelligence = [
   { slug: 'startups', label: 'Startups', category: 'business', query: 'startups venture capital funding technology founders' },
 ];
 
+const seoLandingPages = [
+  { slug: 'latest-news', label: 'Latest News', category: 'top', query: '', intent: 'Fresh live headlines and top stories from verified publishers.' },
+  { slug: 'breaking-news', label: 'Breaking News', category: 'top', query: 'breaking news live developing updates', intent: 'Fast-moving breaking news clusters and live developing stories.' },
+  { slug: 'world-news', label: 'World News', category: 'world', query: '', intent: 'International headlines, diplomacy, conflicts, policy, and global affairs.' },
+  { slug: 'technology-news', label: 'Technology News', category: 'tech', query: '', intent: 'Technology, AI, gadgets, startups, platforms, chips, and product news.' },
+  { slug: 'business-news', label: 'Business News', category: 'business', query: '', intent: 'Business, economy, markets, companies, jobs, money, and policy news.' },
+  { slug: 'sports-news', label: 'Sports News', category: 'sports', query: '', intent: 'Sports headlines, match updates, leagues, teams, and athlete news.' },
+  { slug: 'ai-news', label: 'AI News', category: 'ai', query: '', intent: 'Artificial intelligence companies, models, chips, research, tools, and policy.' },
+  { slug: 'science-news', label: 'Science News', category: 'science', query: '', intent: 'Science, space, discoveries, research, climate, and innovation updates.' },
+  { slug: 'health-news', label: 'Health News', category: 'health', query: '', intent: 'Health, medicine, public health, wellness, research, and hospital updates.' },
+];
+
+const evergreenHubs = [
+  { slug: 'ai', aliases: ['ai-hub'], label: 'AI Hub', category: 'ai', query: 'artificial intelligence AI OpenAI Google Anthropic Nvidia chips models policy startups', intent: 'Evergreen AI intelligence hub for models, chips, tools, policy, companies, and research.' },
+  { slug: 'space', aliases: ['space-hub'], label: 'Space Hub', category: 'science', query: 'space NASA rocket satellite moon mars astronomy launch mission', intent: 'Evergreen space intelligence hub for launches, satellites, missions, NASA, moon, Mars, and astronomy.' },
+  { slug: 'climate', aliases: ['climate-hub'], label: 'Climate Hub', category: 'science', query: 'climate change weather emissions energy transition heat floods policy', intent: 'Evergreen climate intelligence hub for climate science, policy, weather, emissions, and energy transition.' },
+  { slug: 'economy', aliases: ['economy-hub'], label: 'Economy Hub', category: 'business', query: 'economy inflation jobs GDP central bank interest rates trade recession growth', intent: 'Evergreen economy intelligence hub for inflation, jobs, GDP, central banks, trade, and growth.' },
+  { slug: 'startup', aliases: ['startup-hub', 'startups-hub'], label: 'Startup Hub', category: 'business', query: 'startups startup venture capital funding founders IPO technology companies', intent: 'Evergreen startup intelligence hub for funding, founders, venture capital, IPOs, and startup markets.' },
+];
+
 const entitySeeds = [
   'OpenAI',
   'Google',
@@ -272,6 +292,20 @@ function isAdminPath() {
 }
 
 function readIntelligenceRoute(path = normalizedPathname()) {
+  const cleanPath = path.replace(/^\//, '');
+  const landing = seoLandingPages.find((item) => item.slug === cleanPath);
+  if (landing) {
+    return { type: 'landing', ...landing };
+  }
+  const hubAlias = evergreenHubs.find((item) => item.aliases?.includes(cleanPath));
+  if (hubAlias) {
+    return { type: 'hub', ...hubAlias };
+  }
+  const hubMatch = path.match(/^\/hub\/([^/]+)$/);
+  if (hubMatch) {
+    const hub = evergreenHubs.find((item) => item.slug === hubMatch[1].toLowerCase());
+    return hub ? { type: 'hub', ...hub } : null;
+  }
   const countryMatch = path.match(/^\/country\/([^/]+)$/);
   if (countryMatch) {
     const country = intelligenceCountries.find((item) => item.slug === countryMatch[1].toLowerCase());
@@ -319,7 +353,7 @@ function articleSlug(article) {
 function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
-  if (intelligenceRoute?.type === 'topic') return intelligenceRoute.category || 'top';
+  if (['topic', 'hub', 'landing'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
   if (intelligenceRoute?.type === 'entity') return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
   const routeCategory = Object.entries(categoryRoutes)
@@ -678,6 +712,10 @@ function App() {
     }
     const topicCategory = route.category || 'top';
     if (category !== topicCategory) setCategory(topicCategory);
+    if (route.type === 'landing' && !route.query) {
+      await loadNews(topicCategory, location.country, '', '', 'en');
+      return;
+    }
     await loadIntelligenceSearch(route.query || route.label, topicCategory);
   }
 
@@ -1960,15 +1998,21 @@ function IntelligencePage({
 }) {
   const isCountry = route.type === 'country';
   const isTopic = route.type === 'topic';
+  const isLanding = route.type === 'landing';
+  const isHub = route.type === 'hub';
   const title = isCountry
     ? `${route.label} News Intelligence`
-    : isTopic
+    : isTopic || isHub
       ? `${route.label} Topic Intelligence`
+      : isLanding
+        ? route.label
       : `${route.label} Entity Intelligence`;
   const intro = isCountry
     ? `Top headlines, business, technology, sports, health, politics, and trend signals for ${route.label}.`
-    : isTopic
+    : isTopic || isHub
       ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
+      : isLanding
+        ? `${route.intent} Built for fast mobile reading, source transparency, Google Discover readiness, and internal discovery.`
       : `Live news intelligence for ${route.label}, including related topics, countries, organizations, and stories.`;
   const sections = buildIntelligenceSections(route, articles, homeSectionFeeds);
   const trends = detectTrendSignals(articles);
@@ -2015,6 +2059,7 @@ function IntelligencePage({
         </div>
 
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
+        <DiscoverReadinessPanel articles={articles} route={route} />
 
         {sections.map((section) => (
           <section className="intelligenceSection" key={section.key}>
@@ -2066,6 +2111,27 @@ function IntelligencePage({
 }
 
 function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
+  if (route.type === 'landing') {
+    const trending = detectTrendSignals(articles);
+    return [
+      { key: 'lead', title: `${route.label} today`, intro: route.intent || 'Live publisher-sourced headlines updated throughout the day.', articles: articles.slice(0, 6), href: route.category ? categoryRoutes[route.category] : '/top-news' },
+      { key: 'breaking', title: 'Breaking and developing', intro: 'Fresh stories with live, breaking, developing, or update signals.', articles: trending.breaking.slice(0, 6) },
+      { key: 'clusters', title: 'Multi-source clusters', intro: 'Stories also reported by more than one source.', articles: trending.growing.slice(0, 6) },
+      { key: 'fresh', title: 'Fresh updates', intro: 'Recently published stories with strong timestamp signals.', articles: trending.spikes.slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'hub') {
+    const queryTerms = route.query.split(/\s+/);
+    const matched = filterByKeywords(articles, queryTerms);
+    return [
+      { key: 'overview', title: `${route.label} live brief`, intro: route.intent, articles: articles.slice(0, 6) },
+      { key: 'companies', title: 'Companies and organizations', intro: 'Entities and organizations shaping this topic.', articles: filterByKeywords(articles, ['company', 'startup', 'organization', 'funding', 'policy', 'research']).slice(0, 6) },
+      { key: 'context', title: 'Background context', intro: 'Evergreen reading around the topic, refreshed from live RSS.', articles: matched.slice(0, 6) },
+      { key: 'discover', title: 'Discover-ready reads', intro: 'Large-image, source-attributed stories with clear timestamps.', articles: articles.filter((article) => article.image).slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
   if (route.type === 'country') {
     return [
       { key: 'top', title: 'Top headlines', intro: 'The most important stories right now.', articles: articles.slice(0, 6), href: `/country/${route.slug}` },
@@ -2180,6 +2246,44 @@ function TrendSignalPanel({ trends, openArticle }) {
           {!card.articles.length && <small>No signal yet.</small>}
         </div>
       ))}
+    </section>
+  );
+}
+
+function DiscoverReadinessPanel({ articles = [], route }) {
+  const lead = articles.find((article) => article.image) || articles[0];
+  const imageReady = articles.filter((article) => article.image).length;
+  const latestTime = articles.reduce((latest, article) => Math.max(latest, new Date(article.pubDate).getTime() || 0), 0);
+  return (
+    <section className="discoverReadinessPanel">
+      <div>
+        <span className="badge">
+          <ShieldCheck size={15} /> Discover & E-E-A-T
+        </span>
+        <h3>{route.label} editorial signals</h3>
+        <p>Nuzenio keeps source links, publisher names, published timestamps, update timestamps, correction routes, AI labels, and commercial separation visible on every intelligence page.</p>
+      </div>
+      <div className="discoverSignalGrid">
+        <div>
+          <b>{imageReady}</b>
+          <span>large-image candidates</span>
+        </div>
+        <div>
+          <b>{new Set(articles.map((article) => article.source).filter(Boolean)).size}</b>
+          <span>publisher sources</span>
+        </div>
+        <div>
+          <b>{latestTime ? formatFreshAge(new Date(latestTime).toISOString()) : 'Live'}</b>
+          <span>latest update</span>
+        </div>
+      </div>
+      {lead && (
+        <div className="editorInfoBox">
+          <b>Editorial layer</b>
+          <span>Nuzenio News Desk · Source-attributed RSS intelligence</span>
+          <small>Lead source: {lead.source || 'Publisher'} · Published {formatFreshAge(lead.pubDate)} · Updated {latestTime ? formatDate(new Date(latestTime).toISOString()) : 'live'}</small>
+        </div>
+      )}
     </section>
   );
 }
@@ -4088,6 +4192,8 @@ function intelligenceRouteUrl(route) {
   const url = new URL('/', window.location.href);
   if (route.type === 'country') url.pathname = `/country/${route.slug}`;
   else if (route.type === 'topic') url.pathname = `/topic/${route.slug}`;
+  else if (route.type === 'hub') url.pathname = `/hub/${route.slug}`;
+  else if (route.type === 'landing') url.pathname = `/${route.slug}`;
   else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
   url.search = '';
   return url;
@@ -4118,6 +4224,8 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (searchTerm) return `Search results for "${searchTerm}" | Nuzenio`;
   if (intelligenceRoute?.type === 'country') return `${intelligenceRoute.label} News Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'topic') return `${intelligenceRoute.label} Topic Intelligence | Nuzenio`;
+  if (intelligenceRoute?.type === 'hub') return `${intelligenceRoute.label} | Nuzenio`;
+  if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
   if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
   const copy = uiCopy(language.code);
@@ -4140,6 +4248,12 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'topic') {
     return `Track ${intelligenceRoute.label} news intelligence on Nuzenio with live RSS headlines, trend detection, related entities, countries, source clusters, and AI-powered context.`;
+  }
+  if (intelligenceRoute?.type === 'hub') {
+    return `${intelligenceRoute.label} on Nuzenio: evergreen topic intelligence, live RSS updates, related entities, internal links, source clusters, timestamps, and E-E-A-T signals.`;
+  }
+  if (intelligenceRoute?.type === 'landing') {
+    return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent} Includes source attribution, update timestamps, related stories, and Discover-ready mobile reading.`;
   }
   if (intelligenceRoute?.type === 'entity') {
     return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;
@@ -4246,6 +4360,11 @@ function articleJsonLd(article, url, { context, description, image, title }) {
         author: {
           '@type': 'Organization',
           name: article.source || 'RSS publisher',
+        },
+        editor: {
+          '@type': 'Organization',
+          name: 'Nuzenio News Desk',
+          url: productionOrigin,
         },
         articleSection: article.category || context.category || 'top',
         inLanguage: context.language.code,

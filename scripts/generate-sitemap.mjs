@@ -20,7 +20,10 @@ const categories = [
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
 const intelligenceCountries = ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'];
 const intelligenceTopics = ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'];
-const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states'];
+const seoLandingPages = ['latest-news', 'breaking-news', 'world-news', 'technology-news', 'business-news', 'sports-news', 'ai-news', 'science-news', 'health-news'];
+const evergreenHubs = ['ai', 'space', 'climate', 'economy', 'startup'];
+const hubAliases = ['ai-hub', 'space-hub', 'climate-hub', 'economy-hub', 'startup-hub'];
+const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states', 'anthropic', 'samsung', 'spacex', 'bitcoin', 'world-bank', 'imf', 'netflix', 'premier-league', 'ipl', 'isro', 'climate-change'];
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
@@ -104,6 +107,18 @@ for (const topic of intelligenceTopics) {
 
 for (const entity of intelligenceEntities) {
   entries.push(entry(url(`entity/${entity}`), 'hourly', '0.72'));
+}
+
+for (const page of seoLandingPages) {
+  entries.push(entry(url(page), 'hourly', '0.90'));
+}
+
+for (const hub of evergreenHubs) {
+  entries.push(entry(url(`hub/${hub}`), 'hourly', '0.84'));
+}
+
+for (const alias of hubAliases) {
+  entries.push(entry(url(alias), 'hourly', '0.78'));
 }
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

@@ -111,6 +111,18 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       acc[event.article_id] = (acc[event.article_id] || 0) + 1;
       return acc;
     }, {})), [analytics]);
+  const topPages = useMemo(() => topEntries(analytics
+    .filter((event) => event.event_name === 'page_view')
+    .reduce((acc, event) => {
+      const page = event.metadata?.page_location || 'unknown page';
+      acc[page] = (acc[page] || 0) + 1;
+      return acc;
+    }, {}), 10), [analytics]);
+  const seoCtr = useMemo(() => {
+    const impressions = analytics.reduce((sum, event) => sum + Number(event.metadata?.impressions || 0), 0);
+    const clicks = analytics.reduce((sum, event) => sum + Number(event.metadata?.clicks || 0), 0);
+    return impressions ? `${((clicks / impressions) * 100).toFixed(2)}%` : 'Connect GSC';
+  }, [analytics]);
 
   useEffect(() => {
     loadAdmin();
@@ -579,6 +591,19 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           {mostViewedStories.map(([key, count]) => <MetricRow key={key} label={key.slice(0, 28)} value={count} />)}
         </AdminPanel>
 
+        <AdminPanel title="SEO Monitoring">
+          <MetricRow label="Indexed pages" value="Check Search Console" />
+          <MetricRow label="Sitemap status" value="306 static URLs + live news sitemap" />
+          <MetricRow label="CTR tracking" value={seoCtr} />
+          <MetricRow label="News sitemap" value="/news-sitemap.xml" />
+          <h4>Top pages</h4>
+          {topPages.map(([key, count]) => <MetricRow key={key} label={key.replace('https://nuzenio.com', '')} value={count} />)}
+          <h4>Search queries</h4>
+          {searchQueries.slice(0, 6).map(([key, count]) => <MetricRow key={`seo-${key}`} label={key} value={count} />)}
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
         <AdminPanel title="User Management">
           <MetricRow label="Total users" value={overview.userCount || 0} />
           <MetricRow label="Saved articles" value={overview.savedCount || 0} />

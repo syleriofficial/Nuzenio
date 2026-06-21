@@ -20,6 +20,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - AI explain layer with 3-line summaries, key points, simple-English mode, timelines, background, and source comparison
 - Trust layer with source credibility labels, story clustering, fact-check status, source transparency, and correction reporting
 - Global intelligence pages for countries, topics, and entities with trend signals and internal linking
+- Google Discover and SEO growth pages including news landing pages, evergreen hubs, E-E-A-T panels, and SEO monitoring
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
@@ -193,6 +194,13 @@ npm run build
 - Topic routes such as `/topic/ai`, `/topic/economy`, `/topic/markets`, `/topic/climate`, `/topic/energy`, `/topic/space`, and `/topic/startups` provide topic intelligence.
 - Entity routes such as `/entity/nvidia` or `/entity/openai` track people, companies, countries, and organizations through live RSS search.
 - Intelligence pages include trend signals, breaking clusters, related countries, related topics, related entities, and sitemap entries.
+
+## Discover and SEO growth
+
+- SEO landing pages include `/latest-news`, `/breaking-news`, `/world-news`, `/technology-news`, `/business-news`, `/sports-news`, `/ai-news`, `/science-news`, and `/health-news`.
+- Evergreen hubs include `/hub/ai`, `/hub/space`, `/hub/climate`, `/hub/economy`, `/hub/startup`, plus short aliases such as `/ai-hub`.
+- Discover readiness panels show large-image candidates, publisher counts, editor information, publication/update timestamps, and E-E-A-T signals.
+- Admin SEO monitoring shows sitemap status, top pages, search queries, and CTR-ready fields for future Search Console integration.
 
 ## Deploy
 
