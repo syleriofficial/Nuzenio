@@ -24,6 +24,8 @@ const seoLandingPages = ['latest-news', 'breaking-news', 'world-news', 'technolo
 const evergreenHubs = ['ai', 'space', 'climate', 'economy', 'startup'];
 const hubAliases = ['ai-hub', 'space-hub', 'climate-hub', 'economy-hub', 'startup-hub'];
 const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states', 'anthropic', 'samsung', 'spacex', 'bitcoin', 'world-bank', 'imf', 'netflix', 'premier-league', 'ipl', 'isro', 'climate-change'];
+const publisherPages = ['nuzenio', 'reuters', 'associated-press', 'bbc-news', 'the-guardian', 'al-jazeera', 'the-hindu', 'ndtv', 'nikkei-asia', 'cbc-news', 'abc-news-au'];
+const authorPages = ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact-check-desk', 'nuzenio-research-desk'];
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
@@ -49,8 +51,10 @@ const staticPages = [
   ['about.html', 'monthly', '0.50'],
   ['sources.html', 'monthly', '0.50'],
   ['editorial-policy.html', 'monthly', '0.50'],
+  ['fact-checking-policy.html', 'monthly', '0.50'],
   ['ai-policy.html', 'monthly', '0.50'],
   ['corrections.html', 'monthly', '0.50'],
+  ['corrections-policy.html', 'monthly', '0.50'],
   ['contact.html', 'monthly', '0.50'],
   ['advertise.html', 'monthly', '0.45'],
   ['feed.xml', 'hourly', '0.50'],
@@ -107,6 +111,14 @@ for (const topic of intelligenceTopics) {
 
 for (const entity of intelligenceEntities) {
   entries.push(entry(url(`entity/${entity}`), 'hourly', '0.72'));
+}
+
+for (const publisher of publisherPages) {
+  entries.push(entry(url(`publisher/${publisher}`), 'hourly', '0.76'));
+}
+
+for (const author of authorPages) {
+  entries.push(entry(url(`author/${author}`), 'weekly', '0.68'));
 }
 
 for (const page of seoLandingPages) {

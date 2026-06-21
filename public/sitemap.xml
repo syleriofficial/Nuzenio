@@ -4,8 +4,10 @@
   <url><loc>https://nuzenio.com/about.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/sources.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/editorial-policy.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
+  <url><loc>https://nuzenio.com/fact-checking-policy.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/ai-policy.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/corrections.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
+  <url><loc>https://nuzenio.com/corrections-policy.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/contact.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.50</priority></url>
   <url><loc>https://nuzenio.com/advertise.html</loc><lastmod>2026-06-21</lastmod><changefreq>monthly</changefreq><priority>0.45</priority></url>
   <url><loc>https://nuzenio.com/feed.xml</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.50</priority></url>
@@ -287,6 +289,21 @@
   <url><loc>https://nuzenio.com/entity/ipl</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.72</priority></url>
   <url><loc>https://nuzenio.com/entity/isro</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.72</priority></url>
   <url><loc>https://nuzenio.com/entity/climate-change</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.72</priority></url>
+  <url><loc>https://nuzenio.com/publisher/nuzenio</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/reuters</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/associated-press</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/bbc-news</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/the-guardian</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/al-jazeera</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/the-hindu</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/ndtv</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/nikkei-asia</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/cbc-news</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/publisher/abc-news-au</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.76</priority></url>
+  <url><loc>https://nuzenio.com/author/nuzenio-news-desk</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.68</priority></url>
+  <url><loc>https://nuzenio.com/author/nuzenio-analysis-team</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.68</priority></url>
+  <url><loc>https://nuzenio.com/author/nuzenio-fact-check-desk</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.68</priority></url>
+  <url><loc>https://nuzenio.com/author/nuzenio-research-desk</loc><lastmod>2026-06-21</lastmod><changefreq>weekly</changefreq><priority>0.68</priority></url>
   <url><loc>https://nuzenio.com/latest-news</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.90</priority></url>
   <url><loc>https://nuzenio.com/breaking-news</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.90</priority></url>
   <url><loc>https://nuzenio.com/world-news</loc><lastmod>2026-06-21</lastmod><changefreq>hourly</changefreq><priority>0.90</priority></url>

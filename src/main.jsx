@@ -128,6 +128,144 @@ const evergreenHubs = [
   { slug: 'startup', aliases: ['startup-hub', 'startups-hub'], label: 'Startup Hub', category: 'business', query: 'startups startup venture capital funding founders IPO technology companies', intent: 'Evergreen startup intelligence hub for funding, founders, venture capital, IPOs, and startup markets.' },
 ];
 
+const publisherDirectory = [
+  {
+    slug: 'reuters',
+    name: 'Reuters',
+    country: 'GLOBAL',
+    homepage: 'https://www.reuters.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=reuters.com&sz=256',
+    categories: ['World', 'Business', 'Markets'],
+    credibility: ['Verified publisher', 'Global wire service', 'Multi-region coverage'],
+    profile: 'Reuters is tracked on Nuzenio as a global publisher source for breaking, business, markets, and international news signals.',
+  },
+  {
+    slug: 'associated-press',
+    name: 'Associated Press',
+    country: 'US',
+    homepage: 'https://apnews.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=apnews.com&sz=256',
+    categories: ['World', 'Politics', 'Sports'],
+    credibility: ['Verified publisher', 'Wire service', 'Original reporting'],
+    profile: 'Associated Press coverage is used for source comparison, fast reporting signals, and broad public-interest news discovery.',
+  },
+  {
+    slug: 'bbc-news',
+    name: 'BBC News',
+    country: 'GB',
+    homepage: 'https://www.bbc.com/news',
+    logo: 'https://www.google.com/s2/favicons?domain=bbc.com&sz=256',
+    categories: ['World', 'UK', 'Science'],
+    credibility: ['Verified publisher', 'Public service broadcaster', 'International desk'],
+    profile: 'BBC News is tracked for international, public-service, science, business, and culture coverage across regions.',
+  },
+  {
+    slug: 'the-guardian',
+    name: 'The Guardian',
+    country: 'GB',
+    homepage: 'https://www.theguardian.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=theguardian.com&sz=256',
+    categories: ['World', 'Climate', 'Culture'],
+    credibility: ['Verified publisher', 'Editorial transparency', 'Global coverage'],
+    profile: 'The Guardian is tracked for global reporting, climate, culture, politics, and long-running developing stories.',
+  },
+  {
+    slug: 'al-jazeera',
+    name: 'Al Jazeera',
+    country: 'GLOBAL',
+    homepage: 'https://www.aljazeera.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=aljazeera.com&sz=256',
+    categories: ['World', 'Middle East', 'Live'],
+    credibility: ['Verified publisher', 'International coverage', 'Developing stories'],
+    profile: 'Al Jazeera is tracked for international coverage, live updates, and developing stories across major regions.',
+  },
+  {
+    slug: 'the-hindu',
+    name: 'The Hindu',
+    country: 'IN',
+    homepage: 'https://www.thehindu.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=thehindu.com&sz=256',
+    categories: ['India', 'Business', 'Science'],
+    credibility: ['Verified publisher', 'India source', 'Editorial archive'],
+    profile: 'The Hindu is tracked for India-focused public-interest reporting, policy, business, science, and regional coverage.',
+  },
+  {
+    slug: 'ndtv',
+    name: 'NDTV',
+    country: 'IN',
+    homepage: 'https://www.ndtv.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=ndtv.com&sz=256',
+    categories: ['India', 'Live', 'Video'],
+    credibility: ['Verified publisher', 'India source', 'Video coverage'],
+    profile: 'NDTV is tracked for India headlines, live news, video signals, local interest, and national developing stories.',
+  },
+  {
+    slug: 'nikkei-asia',
+    name: 'Nikkei Asia',
+    country: 'JP',
+    homepage: 'https://asia.nikkei.com/',
+    logo: 'https://www.google.com/s2/favicons?domain=asia.nikkei.com&sz=256',
+    categories: ['Asia', 'Business', 'Technology'],
+    credibility: ['Verified publisher', 'Asia business focus', 'Markets coverage'],
+    profile: 'Nikkei Asia is tracked for Asia business, markets, geopolitics, technology, and company intelligence.',
+  },
+  {
+    slug: 'cbc-news',
+    name: 'CBC News',
+    country: 'CA',
+    homepage: 'https://www.cbc.ca/news',
+    logo: 'https://www.google.com/s2/favicons?domain=cbc.ca&sz=256',
+    categories: ['Canada', 'World', 'Local'],
+    credibility: ['Verified publisher', 'Public broadcaster', 'Local coverage'],
+    profile: 'CBC News is tracked for Canadian public-interest reporting, local coverage, national affairs, and world headlines.',
+  },
+  {
+    slug: 'abc-news-au',
+    name: 'ABC News Australia',
+    country: 'AU',
+    homepage: 'https://www.abc.net.au/news',
+    logo: 'https://www.google.com/s2/favicons?domain=abc.net.au&sz=256',
+    categories: ['Australia', 'World', 'Science'],
+    credibility: ['Verified publisher', 'Public broadcaster', 'Regional coverage'],
+    profile: 'ABC News Australia is tracked for Australian public-interest reporting, regional coverage, science, and world news.',
+  },
+];
+
+const authorDirectory = [
+  {
+    slug: 'nuzenio-news-desk',
+    name: 'Nuzenio News Desk',
+    role: 'Editorial desk',
+    publisher: 'Nuzenio',
+    expertise: ['Live RSS curation', 'Source attribution', 'Breaking news routing'],
+    bio: 'The Nuzenio News Desk maintains publisher attribution, story routing, live feed quality, corrections, and reader-first news presentation.',
+  },
+  {
+    slug: 'nuzenio-analysis-team',
+    name: 'Nuzenio Analysis Team',
+    role: 'Analysis desk',
+    publisher: 'Nuzenio',
+    expertise: ['Explainers', 'Context', 'Timeline analysis'],
+    bio: 'The Nuzenio Analysis Team prepares original analysis and explainers when editorial approval and source evidence are available.',
+  },
+  {
+    slug: 'nuzenio-fact-check-desk',
+    name: 'Nuzenio Fact-Check Desk',
+    role: 'Fact-check desk',
+    publisher: 'Nuzenio',
+    expertise: ['Claims', 'Corrections', 'Verification status'],
+    bio: 'The Nuzenio Fact-Check Desk owns correction review, claim context, source comparison, and fact-check labeling workflows.',
+  },
+  {
+    slug: 'nuzenio-research-desk',
+    name: 'Nuzenio Research Desk',
+    role: 'Research desk',
+    publisher: 'Nuzenio',
+    expertise: ['Research reports', 'Topic hubs', 'Source intelligence'],
+    bio: 'The Nuzenio Research Desk supports premium reports, research hubs, source intelligence, and partner publisher programs.',
+  },
+];
+
 const entitySeeds = [
   'OpenAI',
   'Google',
@@ -321,6 +459,16 @@ function readIntelligenceRoute(path = normalizedPathname()) {
     const slug = entityMatch[1].toLowerCase();
     return { type: 'entity', slug, label: titleFromSlug(slug), query: titleFromSlug(slug) };
   }
+  const publisherMatch = path.match(/^\/publisher\/([^/]+)$/);
+  if (publisherMatch) {
+    const publisher = publisherDirectory.find((item) => item.slug === publisherMatch[1].toLowerCase());
+    return publisher ? { type: 'publisher', label: publisher.name, query: publisher.name, ...publisher } : null;
+  }
+  const authorMatch = path.match(/^\/author\/([^/]+)$/);
+  if (authorMatch) {
+    const author = authorDirectory.find((item) => item.slug === authorMatch[1].toLowerCase());
+    return author ? { type: 'author', label: author.name, query: author.name, ...author } : null;
+  }
   return null;
 }
 
@@ -355,6 +503,7 @@ function initialCategory() {
   const intelligenceRoute = readIntelligenceRoute(path);
   if (['topic', 'hub', 'landing'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
   if (intelligenceRoute?.type === 'entity') return 'top';
+  if (['publisher', 'author'].includes(intelligenceRoute?.type)) return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
   const routeCategory = Object.entries(categoryRoutes)
     .find(([, routePath]) => path === routePath)?.[0];
@@ -714,6 +863,10 @@ function App() {
     if (category !== topicCategory) setCategory(topicCategory);
     if (route.type === 'landing' && !route.query) {
       await loadNews(topicCategory, location.country, '', '', 'en');
+      return;
+    }
+    if (route.type === 'author') {
+      await loadNews('top', location.country, '', '', 'en');
       return;
     }
     await loadIntelligenceSearch(route.query || route.label, topicCategory);
@@ -2000,16 +2153,26 @@ function IntelligencePage({
   const isTopic = route.type === 'topic';
   const isLanding = route.type === 'landing';
   const isHub = route.type === 'hub';
+  const isPublisher = route.type === 'publisher';
+  const isAuthor = route.type === 'author';
   const title = isCountry
     ? `${route.label} News Intelligence`
-    : isTopic || isHub
+    : isPublisher
+      ? `${route.label} Publisher Profile`
+      : isAuthor
+        ? `${route.label} Author Profile`
+        : isTopic || isHub
       ? `${route.label} Topic Intelligence`
       : isLanding
         ? route.label
       : `${route.label} Entity Intelligence`;
   const intro = isCountry
     ? `Top headlines, business, technology, sports, health, politics, and trend signals for ${route.label}.`
-    : isTopic || isHub
+    : isPublisher
+      ? `${route.label} source profile, credibility signals, active coverage, latest RSS stories, and attribution transparency on Nuzenio.`
+      : isAuthor
+        ? `${route.label} editorial profile, desk responsibilities, published-work foundation, and Nuzenio E-E-A-T transparency.`
+        : isTopic || isHub
       ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
       : isLanding
         ? `${route.intent} Built for fast mobile reading, source transparency, Google Discover readiness, and internal discovery.`
@@ -2057,9 +2220,26 @@ function IntelligencePage({
             </a>
           ))}
         </div>
+        <div className="intelligenceLinkBar topicLinks">
+          {publisherDirectory.slice(0, 6).map((publisher) => (
+            <a key={publisher.slug} className={route.type === 'publisher' && route.slug === publisher.slug ? 'active' : ''} href={`/publisher/${publisher.slug}`}>
+              {publisher.name}
+            </a>
+          ))}
+          {authorDirectory.slice(0, 2).map((author) => (
+            <a key={author.slug} className={route.type === 'author' && route.slug === author.slug ? 'active' : ''} href={`/author/${author.slug}`}>
+              {author.name}
+            </a>
+          ))}
+        </div>
 
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
+        {isPublisher && <PublisherProfilePanel publisher={route} articles={articles} />}
+        {isAuthor && <AuthorProfilePanel author={route} />}
+        <SourceIntelligencePanel articles={articles} route={route} />
         <DiscoverReadinessPanel articles={articles} route={route} />
+        {(isPublisher || isAuthor) && <OriginalJournalismPanel />}
+        {(isPublisher || isAuthor) && <EditorialTransparencyPanel route={route} articles={articles} />}
 
         {sections.map((section) => (
           <section className="intelligenceSection" key={section.key}>
@@ -2140,6 +2320,23 @@ function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
       { key: 'tech', title: 'Technology', intro: 'Technology, AI, startups, chips, apps, and platforms.', articles: (homeSectionFeeds.aiTech || filterByKeywords(articles, ['technology', 'ai', 'startup', 'chip', 'software'])).slice(0, 6), href: '/technology' },
       { key: 'sports', title: 'Sports', intro: 'Sports highlights and match updates.', articles: (homeSectionFeeds.sports || filterByKeywords(articles, ['sports', 'match', 'league', 'cricket', 'football'])).slice(0, 6), href: '/sports' },
       { key: 'health', title: 'Health', intro: 'Health, medicine, hospitals, and wellness.', articles: (homeSectionFeeds.health || filterByKeywords(articles, ['health', 'medical', 'hospital', 'doctor', 'disease'])).slice(0, 6), href: '/health' },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'publisher') {
+    const publisherArticles = articles.filter((article) => sourceMatchesPublisher(article.source, route.name));
+    const sourceSet = publisherArticles.length ? publisherArticles : articles;
+    return [
+      { key: 'publisher-latest', title: `Latest from ${route.name}`, intro: 'Fresh source-attributed stories currently visible in live RSS results.', articles: sourceSet.slice(0, 8) },
+      { key: 'publisher-breaking', title: 'Developing coverage', intro: 'Stories with live, breaking, developing, or update signals from this source context.', articles: detectTrendSignals(sourceSet).breaking.slice(0, 6) },
+      { key: 'publisher-images', title: 'Discover-ready stories', intro: 'Stories with large-image candidates and clear timestamps for mobile readers.', articles: sourceSet.filter((article) => article.image).slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'author') {
+    return [
+      { key: 'author-context', title: 'Editorial desk context', intro: 'Live stories this Nuzenio desk can curate, explain, fact-check, or analyze after editorial approval.', articles: articles.slice(0, 6) },
+      { key: 'author-developing', title: 'Stories needing context', intro: 'Developing stories that may need timelines, source comparison, or simple explainers.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
     ].filter((section) => section.articles.length);
   }
 
@@ -2284,6 +2481,166 @@ function DiscoverReadinessPanel({ articles = [], route }) {
           <small>Lead source: {lead.source || 'Publisher'} · Published {formatFreshAge(lead.pubDate)} · Updated {latestTime ? formatDate(new Date(latestTime).toISOString()) : 'live'}</small>
         </div>
       )}
+    </section>
+  );
+}
+
+function sourceMatchesPublisher(source = '', publisherName = '') {
+  const cleanSource = String(source).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const cleanPublisher = String(publisherName).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return Boolean(cleanSource && cleanPublisher && (cleanSource.includes(cleanPublisher) || cleanPublisher.includes(cleanSource)));
+}
+
+function sourceStats(articles = []) {
+  const stats = new Map();
+  const now = Date.now();
+  articles.forEach((article) => {
+    const source = article.source || 'Unknown publisher';
+    const current = stats.get(source) || {
+      source,
+      count: 0,
+      newestTime: 0,
+      categories: new Set(),
+      imageCount: 0,
+    };
+    const time = new Date(article.pubDate).getTime();
+    current.count += 1;
+    current.newestTime = Math.max(current.newestTime, Number.isFinite(time) ? time : 0);
+    if (article.category) current.categories.add(article.category);
+    if (article.image) current.imageCount += 1;
+    current.freshnessMinutes = current.newestTime ? Math.max(0, Math.round((now - current.newestTime) / 60000)) : null;
+    stats.set(source, current);
+  });
+  return [...stats.values()].map((item) => ({
+    ...item,
+    categoryCount: item.categories.size,
+    categories: [...item.categories],
+  }));
+}
+
+function PublisherProfilePanel({ publisher, articles = [] }) {
+  const matched = articles.filter((article) => sourceMatchesPublisher(article.source, publisher.name));
+  const latest = matched[0] || articles[0];
+  return (
+    <section className="publisherProfilePanel">
+      <div className="publisherIdentity">
+        <img src={publisher.logo} alt={`${publisher.name} logo`} loading="lazy" />
+        <div>
+          <span className="badge"><ShieldCheck size={15} /> Publisher profile</span>
+          <h3>{publisher.name}</h3>
+          <p>{publisher.profile}</p>
+          <a href={publisher.homepage} target="_blank" rel="noreferrer">Publisher website <ExternalLink size={14} /></a>
+        </div>
+      </div>
+      <div className="publisherFactGrid">
+        <div><span>Country</span><b>{publisher.country === 'GLOBAL' ? 'Global' : countryLabel(publisher.country)}</b></div>
+        <div><span>Tracked categories</span><b>{publisher.categories.join(', ')}</b></div>
+        <div><span>Current RSS matches</span><b>{matched.length || articles.length}</b></div>
+        <div><span>Latest visible story</span><b>{latest ? formatFreshAge(latest.pubDate) : 'No live match yet'}</b></div>
+      </div>
+      <div className="credibilityList">
+        {publisher.credibility.map((item) => <span key={item}>{item}</span>)}
+      </div>
+    </section>
+  );
+}
+
+function AuthorProfilePanel({ author }) {
+  return (
+    <section className="authorProfilePanel">
+      <div className="authorAvatar">{author.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('')}</div>
+      <div>
+        <span className="badge"><Newspaper size={15} /> Journalist directory</span>
+        <h3>{author.name}</h3>
+        <p>{author.bio}</p>
+        <div className="authorMeta">
+          <span>{author.role}</span>
+          <span>{author.publisher}</span>
+          {author.expertise.map((item) => <span key={item}>{item}</span>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SourceIntelligencePanel({ articles = [], route }) {
+  const stats = sourceStats(articles);
+  const mostActive = [...stats].sort((a, b) => b.count - a.count).slice(0, 5);
+  const fastest = [...stats].filter((item) => item.newestTime).sort((a, b) => b.newestTime - a.newestTime).slice(0, 5);
+  const coverage = [...stats].sort((a, b) => b.categoryCount - a.categoryCount || b.count - a.count).slice(0, 5);
+  return (
+    <section className="sourceIntelligencePanel">
+      <div className="homeTopicHead">
+        <div>
+          <h3>Source intelligence</h3>
+          <p>Most active publishers, fastest reporting sources, and coverage breadth for {route.label}.</p>
+        </div>
+      </div>
+      <div className="sourceIntelligenceGrid">
+        <SourceMetricList title="Most active publishers" items={mostActive} format={(item) => `${item.count} stories`} />
+        <SourceMetricList title="Fastest reporting sources" items={fastest} format={(item) => item.freshnessMinutes === null ? 'Live' : `${item.freshnessMinutes}m ago`} />
+        <SourceMetricList title="Coverage comparison" items={coverage} format={(item) => `${item.categoryCount || 1} categories`} />
+      </div>
+    </section>
+  );
+}
+
+function SourceMetricList({ title, items = [], format }) {
+  return (
+    <div className="sourceMetricCard">
+      <h4>{title}</h4>
+      {items.map((item) => (
+        <div className="sourceMetricRow" key={`${title}-${item.source}`}>
+          <span>{item.source}</span>
+          <b>{format(item)}</b>
+        </div>
+      ))}
+      {!items.length && <small>No source signal yet.</small>}
+    </div>
+  );
+}
+
+function OriginalJournalismPanel() {
+  const contentTypes = [
+    ['Analysis', 'Evidence-led context and source comparison.'],
+    ['Explainers', 'Simple background for complex stories.'],
+    ['Fact-checks', 'Claim, source, context, and verification status.'],
+    ['Opinion', 'Clearly labeled opinion with separation from news.'],
+    ['Research reports', 'Premium topic research and partner reports.'],
+  ];
+  return (
+    <section className="originalJournalismPanel">
+      <div>
+        <span className="badge"><Sparkles size={15} /> Original journalism foundation</span>
+        <h3>Nuzenio editorial CMS is ready for approved original work</h3>
+        <p>Original articles can move from draft to review, scheduled publishing, approval, revisions, and correction history without copying publisher articles.</p>
+      </div>
+      <div className="originalTypeGrid">
+        {contentTypes.map(([title, text]) => (
+          <div key={title}>
+            <b>{title}</b>
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function EditorialTransparencyPanel({ route, articles = [] }) {
+  const latest = articles[0];
+  return (
+    <section className="editorialTransparencyPanel">
+      <div>
+        <h3>E-E-A-T transparency</h3>
+        <p>Nuzenio keeps original publisher attribution separate from AI context, editorial notes, corrections, and commercial placements.</p>
+      </div>
+      <div className="transparencyGrid">
+        <div><span>Page owner</span><b>{route.type === 'author' ? route.name : 'Nuzenio News Desk'}</b></div>
+        <div><span>Source attribution</span><b>{latest?.source || route.label}</b></div>
+        <div><span>Update history</span><b>{latest ? formatDate(latest.pubDate) : 'Awaiting live source'}</b></div>
+        <div><span>Correction route</span><b><a href="/corrections.html">Corrections policy</a></b></div>
+      </div>
     </section>
   );
 }
@@ -3770,8 +4127,10 @@ function Footer({ copy, onPrivacySettings }) {
       <a href="/about.html">About</a>
       <a href="/sources.html">Sources</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
+      <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
       <a href="/ai-policy.html">AI Policy</a>
       <a href="/corrections.html">Corrections</a>
+      <a href="/corrections-policy.html">Corrections Policy</a>
       <a href="/contact.html">Contact</a>
       <a href="/advertise.html">Advertise</a>
       <a href="/feed.xml">RSS</a>
@@ -4195,6 +4554,8 @@ function intelligenceRouteUrl(route) {
   else if (route.type === 'hub') url.pathname = `/hub/${route.slug}`;
   else if (route.type === 'landing') url.pathname = `/${route.slug}`;
   else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
+  else if (route.type === 'publisher') url.pathname = `/publisher/${route.slug}`;
+  else if (route.type === 'author') url.pathname = `/author/${route.slug}`;
   url.search = '';
   return url;
 }
@@ -4227,6 +4588,8 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'hub') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
+  if (intelligenceRoute?.type === 'publisher') return `${intelligenceRoute.label} Publisher Profile, Source Credibility & Latest News | Nuzenio`;
+  if (intelligenceRoute?.type === 'author') return `${intelligenceRoute.label} Author Profile & Editorial Work | Nuzenio`;
   if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -4257,6 +4620,12 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'entity') {
     return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;
+  }
+  if (intelligenceRoute?.type === 'publisher') {
+    return `${intelligenceRoute.label} publisher profile on Nuzenio with credibility labels, source coverage, latest RSS stories, attribution transparency, and related source intelligence.`;
+  }
+  if (intelligenceRoute?.type === 'author') {
+    return `${intelligenceRoute.label} author profile on Nuzenio with editorial role, expertise, publisher association, original journalism workflow, corrections, and E-E-A-T transparency.`;
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -4390,6 +4759,8 @@ function siteNavigationSchema() {
     ['Science News', '/science'],
     ['Live News', '/live'],
     ['Video News', '/video'],
+    ['Publisher Network', '/publisher/reuters'],
+    ['Author Directory', '/author/nuzenio-news-desk'],
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,

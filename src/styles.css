@@ -2150,6 +2150,184 @@ button {
   grid-column: 1 / -1;
 }
 
+.publisherProfilePanel,
+.authorProfilePanel,
+.sourceIntelligencePanel,
+.originalJournalismPanel,
+.editorialTransparencyPanel {
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.publisherProfilePanel,
+.originalJournalismPanel,
+.editorialTransparencyPanel {
+  border-color: #bfdbfe;
+}
+
+.publisherIdentity {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.publisherIdentity img {
+  width: 74px;
+  height: 74px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+  object-fit: contain;
+}
+
+.publisherIdentity h3,
+.authorProfilePanel h3,
+.originalJournalismPanel h3,
+.editorialTransparencyPanel h3 {
+  margin: 8px 0;
+  font-size: 24px;
+  line-height: 1.16;
+}
+
+.publisherIdentity p,
+.authorProfilePanel p,
+.originalJournalismPanel p,
+.editorialTransparencyPanel p {
+  color: #475569;
+  line-height: 1.55;
+}
+
+.publisherIdentity a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.publisherFactGrid,
+.sourceIntelligenceGrid,
+.originalTypeGrid,
+.transparencyGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.publisherFactGrid div,
+.sourceMetricCard,
+.originalTypeGrid div,
+.transparencyGrid div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.publisherFactGrid span,
+.originalTypeGrid span,
+.transparencyGrid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.publisherFactGrid b,
+.originalTypeGrid b,
+.transparencyGrid b {
+  display: block;
+  margin-top: 5px;
+  color: #172554;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.credibilityList,
+.authorMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.credibilityList span,
+.authorMeta span {
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #166534;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.authorProfilePanel {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.authorAvatar {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  border: 1px solid #bfdbfe;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 950;
+  font-size: 24px;
+}
+
+.sourceMetricCard h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.sourceMetricRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.sourceMetricRow b {
+  color: #1e40af;
+  white-space: nowrap;
+}
+
+.originalJournalismPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
+}
+
+.originalTypeGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.transparencyGrid a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
 .trendSignalCard,
 .linkCluster {
   border: 1px solid var(--line);
@@ -3669,12 +3847,17 @@ button {
 
   .intelligenceHero,
   .discoverReadinessPanel,
+  .originalJournalismPanel,
   .trendSignalGrid,
   .internalLinkGraph {
     grid-template-columns: 1fr;
   }
 
-  .discoverSignalGrid {
+  .discoverSignalGrid,
+  .publisherFactGrid,
+  .sourceIntelligenceGrid,
+  .originalTypeGrid,
+  .transparencyGrid {
     grid-template-columns: 1fr;
   }
 
@@ -3693,6 +3876,17 @@ button {
 }
 
 @media (max-width: 820px) {
+  .publisherIdentity,
+  .authorProfilePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .publisherIdentity img,
+  .authorAvatar {
+    width: 64px;
+    height: 64px;
+  }
+
   .topbar {
     min-height: 66px;
     padding: 0 4vw;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowLeft, BarChart3, Database, Eye, Globe2, Megaphone, RefreshCw, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, Database, Edit3, Eye, Globe2, Megaphone, RefreshCw, ShieldCheck, Trash2, Users } from 'lucide-react';
 
 const emptySource = {
   name: '',
@@ -43,7 +43,23 @@ const emptySponsored = {
   end_at: '',
 };
 
+const emptyOriginalArticle = {
+  title: '',
+  slug: '',
+  dek: '',
+  content_type: 'analysis',
+  status: 'draft',
+  author_slug: 'nuzenio-news-desk',
+  publisher_slug: 'nuzenio',
+  category: 'top',
+  tags: '',
+  opinion_label: false,
+  scheduled_at: '',
+};
+
 const aiCategoryOptions = ['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'local'];
+const originalContentTypes = ['analysis', 'explainer', 'fact_check', 'opinion', 'research'];
+const editorialStatuses = ['draft', 'review', 'scheduled', 'published', 'archived'];
 
 const defaultAiSettings = {
   key: 'global',
@@ -83,6 +99,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [adSlots, setAdSlots] = useState([]);
   const [affiliates, setAffiliates] = useState([]);
   const [sponsoredBlocks, setSponsoredBlocks] = useState([]);
+  const [publishers, setPublishers] = useState([]);
+  const [journalists, setJournalists] = useState([]);
+  const [originalArticles, setOriginalArticles] = useState([]);
   const [correctionReports, setCorrectionReports] = useState([]);
   const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
@@ -92,6 +111,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [adForm, setAdForm] = useState(emptyAdSlot);
   const [affiliateForm, setAffiliateForm] = useState(emptyAffiliate);
   const [sponsoredForm, setSponsoredForm] = useState(emptySponsored);
+  const [originalForm, setOriginalForm] = useState(emptyOriginalArticle);
   const [cacheRefresh, setCacheRefresh] = useState({ category: 'top', country: 'IN' });
 
   const isAdmin = profile?.role === 'admin';
@@ -123,6 +143,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     const clicks = analytics.reduce((sum, event) => sum + Number(event.metadata?.clicks || 0), 0);
     return impressions ? `${((clicks / impressions) * 100).toFixed(2)}%` : 'Connect GSC';
   }, [analytics]);
+  const sourceCoverage = useMemo(() => topEntries(groupCount(cacheRows, 'source'), 12), [cacheRows]);
+  const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
+  const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
 
   useEffect(() => {
     loadAdmin();
@@ -160,6 +183,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         adResult,
         affiliateResult,
         sponsoredResult,
+        publisherResult,
+        journalistResult,
+        originalResult,
         correctionResult,
         aiSettingsResult,
         newsletterResult,
@@ -178,6 +204,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('adsense_slots').select('*').order('updated_at', { ascending: false }),
         supabase.from('affiliate_links').select('*').order('updated_at', { ascending: false }),
         supabase.from('sponsored_blocks').select('*').order('updated_at', { ascending: false }),
+        supabase.from('publisher_profiles').select('*').order('updated_at', { ascending: false }),
+        supabase.from('journalist_profiles').select('*').order('updated_at', { ascending: false }),
+        supabase.from('original_articles').select('*').order('updated_at', { ascending: false }).limit(120),
         supabase.from('correction_reports').select('*').order('created_at', { ascending: false }).limit(80),
         supabase.from('ai_settings').select('*').eq('key', 'global').maybeSingle(),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
@@ -192,12 +221,18 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
+      if (publisherResult.error) throw publisherResult.error;
+      if (journalistResult.error) throw journalistResult.error;
+      if (originalResult.error) throw originalResult.error;
       setSources(sourceResult.data || []);
       setCacheRows(cacheResult.data || []);
       setAnalytics(analyticsResult.data || []);
       setAdSlots(adResult.data || []);
       setAffiliates(affiliateResult.data || []);
       setSponsoredBlocks(sponsoredResult.data || []);
+      setPublishers(publisherResult.data || []);
+      setJournalists(journalistResult.data || []);
+      setOriginalArticles(originalResult.data || []);
       setCorrectionReports(correctionResult.data || []);
       if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
@@ -211,6 +246,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         preferencesCount,
         digestLogCount,
         correctionCount: correctionResult.data?.length || 0,
+        publisherCount: publisherResult.data?.length || 0,
+        journalistCount: journalistResult.data?.length || 0,
+        originalCount: originalResult.data?.length || 0,
+        publishedOriginalCount: (originalResult.data || []).filter((item) => item.status === 'published').length,
         sourceCount: sourceResult.data?.length || 0,
         enabledSources: (sourceResult.data || []).filter((item) => item.enabled).length,
       });
@@ -372,6 +411,60 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     }
   }
 
+  function slugify(value = '') {
+    return String(value)
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 90) || 'nuzenio-original';
+  }
+
+  async function saveOriginalArticle(event) {
+    event.preventDefault();
+    const payload = {
+      ...originalForm,
+      slug: originalForm.slug || slugify(originalForm.title),
+      tags: String(originalForm.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
+      scheduled_at: originalForm.scheduled_at || null,
+      opinion_label: originalForm.content_type === 'opinion' || originalForm.opinion_label,
+    };
+    const { error } = await supabase.from('original_articles').insert(payload);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('original_article_create', 'error', { table: 'original_articles', id: payload.slug, message: error.message });
+      return;
+    }
+    setOriginalForm(emptyOriginalArticle);
+    setNotice('Original article draft created.');
+    await logAdmin('original_article_create', 'ok', { table: 'original_articles', id: payload.slug });
+    loadAdmin();
+  }
+
+  async function updateOriginalArticleStatus(article, status) {
+    const patch = {
+      status,
+      published_at: status === 'published' ? new Date().toISOString() : article.published_at,
+    };
+    const { error } = await supabase.from('original_articles').update(patch).eq('id', article.id);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('original_article_status', 'error', { table: 'original_articles', id: article.id, message: error.message });
+      return;
+    }
+    await supabase.from('editorial_workflow_logs').insert({
+      article_id: article.id,
+      actor_id: user.id,
+      action: `status:${status}`,
+      status,
+      message: `Status changed from ${article.status} to ${status}`,
+    });
+    await logAdmin('original_article_status', 'ok', { table: 'original_articles', id: article.id, message: status });
+    loadAdmin();
+  }
+
   async function toggleRow(table, item) {
     const { error } = await supabase.from(table).update({ enabled: !item.enabled }).eq('id', item.id);
     if (error) {
@@ -476,6 +569,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Megaphone} label="Newsletter" value={overview.newsletterCount || 0} />
         <StatCard icon={ShieldCheck} label="Corrections" value={overview.correctionCount || 0} />
         <StatCard icon={BarChart3} label="Digest logs" value={overview.digestLogCount || 0} />
+        <StatCard icon={Globe2} label="Publishers" value={overview.publisherCount || 0} />
+        <StatCard icon={Edit3} label="Original CMS" value={`${overview.publishedOriginalCount || 0}/${overview.originalCount || 0}`} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
@@ -533,6 +628,91 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
               <td>{article.country}</td>
               <td>{localDate(article.published_at)}</td>
               <td><button className="dangerAction" onClick={() => deleteRow('news_cache', article.id, article.title)}>Delete</button></td>
+            </tr>
+          ))}
+        </AdminTable>
+      </AdminPanel>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="Publisher Network">
+          <MetricRow label="Publisher profiles" value={overview.publisherCount || 0} />
+          <MetricRow label="Journalist profiles" value={overview.journalistCount || 0} />
+          <h4>Most active cached sources</h4>
+          {sourceCoverage.slice(0, 8).map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Publisher directory</h4>
+          <AdminTable headers={['Publisher', 'Country', 'Categories', 'Status']}>
+            {publishers.slice(0, 30).map((publisher) => (
+              <tr key={publisher.id || publisher.slug}>
+                <td><b>{publisher.name}</b><small>/publisher/{publisher.slug}</small></td>
+                <td>{publisher.country || 'GLOBAL'}</td>
+                <td>{(publisher.categories || []).join(', ')}</td>
+                <td>{publisher.status || 'active'}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+
+        <AdminPanel title="Journalist Directory">
+          <MetricRow label="Author profiles" value={overview.journalistCount || 0} />
+          <MetricRow label="Editorial desks" value={journalists.filter((item) => (item.role || '').toLowerCase().includes('desk')).length} />
+          <AdminTable headers={['Author', 'Publisher', 'Expertise', 'Updated']}>
+            {journalists.slice(0, 30).map((author) => (
+              <tr key={author.id || author.slug}>
+                <td><b>{author.full_name}</b><small>/author/{author.slug}</small></td>
+                <td>{author.publisher_slug || 'nuzenio'}</td>
+                <td>{(author.expertise || []).join(', ')}</td>
+                <td>{localDate(author.updated_at)}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+      </section>
+
+      <AdminPanel title="Editorial CMS">
+        <section className="adminGrid twoColumn">
+          <div>
+            <h4>Create original article</h4>
+            <form className="adminForm stacked" onSubmit={saveOriginalArticle}>
+              <input value={originalForm.title} onChange={(event) => setOriginalForm({ ...originalForm, title: event.target.value, slug: originalForm.slug || slugify(event.target.value) })} placeholder="Original article title" required />
+              <input value={originalForm.slug} onChange={(event) => setOriginalForm({ ...originalForm, slug: event.target.value })} placeholder="SEO slug" required />
+              <input value={originalForm.dek} onChange={(event) => setOriginalForm({ ...originalForm, dek: event.target.value })} placeholder="Short description / dek" />
+              <select value={originalForm.content_type} onChange={(event) => setOriginalForm({ ...originalForm, content_type: event.target.value, opinion_label: event.target.value === 'opinion' })}>
+                {originalContentTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
+              <select value={originalForm.status} onChange={(event) => setOriginalForm({ ...originalForm, status: event.target.value })}>
+                {editorialStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+              </select>
+              <input value={originalForm.author_slug} onChange={(event) => setOriginalForm({ ...originalForm, author_slug: event.target.value })} placeholder="Author slug" />
+              <input value={originalForm.publisher_slug} onChange={(event) => setOriginalForm({ ...originalForm, publisher_slug: event.target.value })} placeholder="Publisher slug" />
+              <input value={originalForm.category} onChange={(event) => setOriginalForm({ ...originalForm, category: event.target.value })} placeholder="Category" />
+              <input value={originalForm.tags} onChange={(event) => setOriginalForm({ ...originalForm, tags: event.target.value })} placeholder="Tags, comma separated" />
+              <input value={originalForm.scheduled_at} onChange={(event) => setOriginalForm({ ...originalForm, scheduled_at: event.target.value })} type="datetime-local" aria-label="Scheduled publish time" />
+              <label><input type="checkbox" checked={originalForm.opinion_label} onChange={(event) => setOriginalForm({ ...originalForm, opinion_label: event.target.checked })} /> Clearly label as opinion</label>
+              <button className="primaryAction">Create draft</button>
+            </form>
+          </div>
+          <div>
+            <h4>Workflow overview</h4>
+            {originalByStatus.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+            <h4>Content types</h4>
+            {originalByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+            <p className="adminHint">Use original articles only for Nuzenio-owned work. Aggregated RSS stories stay copyright-safe with title, summary, source, timestamp, and original link.</p>
+          </div>
+        </section>
+        <AdminTable headers={['Article', 'Type', 'Status', 'Author', 'Scheduled', 'Actions']}>
+          {originalArticles.slice(0, 80).map((article) => (
+            <tr key={article.id}>
+              <td><b>{article.title}</b><small>/article/{article.slug} · {article.dek || 'No dek yet'}</small></td>
+              <td>{article.content_type}{article.opinion_label ? ' · opinion label' : ''}</td>
+              <td>{article.status}</td>
+              <td>{article.author_slug || '-'}</td>
+              <td>{localDate(article.scheduled_at || article.published_at || article.updated_at)}</td>
+              <td className="adminActions">
+                <button onClick={() => updateOriginalArticleStatus(article, 'review')}>Review</button>
+                <button onClick={() => updateOriginalArticleStatus(article, 'scheduled')}>Schedule</button>
+                <button onClick={() => updateOriginalArticleStatus(article, 'published')}>Publish</button>
+                <button className="dangerAction" onClick={() => deleteRow('original_articles', article.id, article.title)}>Delete</button>
+              </td>
             </tr>
           ))}
         </AdminTable>
