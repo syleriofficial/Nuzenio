@@ -292,6 +292,83 @@ const entitySeeds = [
 
 const dataPlatformPages = [
   {
+    slug: 'ecosystem',
+    label: 'Global News Ecosystem',
+    category: 'top',
+    query: 'global news intelligence research data ecosystem publishers journalists enterprise integrations',
+    intent: 'Nuzenio ecosystem for publisher partners, journalists, research reports, API marketplace, enterprise feeds, integrations, and AI research.',
+  },
+  {
+    slug: 'publisher-portal',
+    label: 'Publisher Portal',
+    category: 'top',
+    query: 'publisher RSS feeds verification analytics news source network',
+    intent: 'Publisher accounts, RSS feed submission, verification workflow, analytics, and trusted source network controls.',
+  },
+  {
+    slug: 'journalist-portal',
+    label: 'Journalist Portal',
+    category: 'top',
+    query: 'journalist author profile verification publishing tools audience analytics',
+    intent: 'Author profiles, verification badges, publishing tools, audience analytics, and editorial identity foundation.',
+  },
+  {
+    slug: 'research-hub',
+    label: 'Research Hub',
+    category: 'science',
+    query: 'research reports historical archives topic intelligence data downloads',
+    intent: 'Deep research reports, historical archives, topic intelligence, timeline data, and export-ready downloads.',
+  },
+  {
+    slug: 'api-marketplace',
+    label: 'API Marketplace',
+    category: 'business',
+    query: 'news API trends API entity API intelligence API marketplace',
+    intent: 'Marketplace for News API, Trends API, Entity API, Intelligence API, quotas, plans, and developer access.',
+  },
+  {
+    slug: 'enterprise',
+    label: 'Enterprise Platform',
+    category: 'business',
+    query: 'enterprise news intelligence custom feeds organization dashboards alerts teams',
+    intent: 'Custom intelligence feeds, organization dashboards, alerts, team collaboration, exports, and enterprise controls.',
+  },
+  {
+    slug: 'ai-research-assistant',
+    label: 'AI Research Assistant',
+    category: 'ai',
+    query: 'AI research assistant source comparison timeline generation topic summaries',
+    intent: 'Ask questions about news, generate timelines, compare sources, and summarize topics with attribution-first AI.',
+  },
+  {
+    slug: 'knowledge-graph',
+    label: 'Global Knowledge Graph',
+    category: 'top',
+    query: 'news entities relationships events timelines knowledge graph',
+    intent: 'News entities, relationships, events, timelines, story graph, and public intelligence data structure.',
+  },
+  {
+    slug: 'marketplace',
+    label: 'Nuzenio Marketplace',
+    category: 'business',
+    query: 'research reports premium datasets industry intelligence partner integrations marketplace',
+    intent: 'Marketplace for research reports, premium datasets, industry intelligence, API plans, and partner integrations.',
+  },
+  {
+    slug: 'integrations',
+    label: 'Ecosystem Integrations',
+    category: 'tech',
+    query: 'Slack Teams email webhooks CRM news alerts integrations',
+    intent: 'Slack, Teams, email, webhook, and CRM integrations for alerts, reports, and organization workflows.',
+  },
+  {
+    slug: 'brand-infrastructure',
+    label: 'Global Brand Infrastructure',
+    category: 'top',
+    query: 'editorial network regional editions enterprise sales strategic partnerships',
+    intent: 'Editorial network, regional editions, enterprise sales, strategic partnerships, and global brand operating system.',
+  },
+  {
     slug: 'data-platform',
     label: 'News Data Platform',
     category: 'top',
@@ -3070,6 +3147,19 @@ function IntelligencePage({
   const isArchive = route.type === 'archive';
   const isMobileApp = route.type === 'mobile';
   const isDashboard = route.type === 'dashboard';
+  const isEcosystem = [
+    'ecosystem',
+    'publisher-portal',
+    'journalist-portal',
+    'research-hub',
+    'api-marketplace',
+    'enterprise',
+    'ai-research-assistant',
+    'knowledge-graph',
+    'marketplace',
+    'integrations',
+    'brand-infrastructure',
+  ].includes(route.slug);
   const title = isCountry
     ? `${route.label} News Intelligence`
     : isPublisher
@@ -3077,7 +3167,7 @@ function IntelligencePage({
       : isAuthor
         ? `${route.label} Author Profile`
         : isDataPlatform
-          ? 'Enterprise News Data Platform'
+          ? route.label || 'Enterprise News Data Platform'
           : isArchive
             ? 'Nuzenio News Archive'
             : isMobileApp
@@ -3096,7 +3186,7 @@ function IntelligencePage({
       : isAuthor
         ? `${route.label} editorial profile, desk responsibilities, published-work foundation, and Nuzenio E-E-A-T transparency.`
         : isDataPlatform
-          ? 'Knowledge graph, story graph, public API, archive, trend detection, and API-management foundation for enterprise news intelligence.'
+          ? route.intent || 'Knowledge graph, story graph, public API, archive, trend detection, and API-management foundation for enterprise news intelligence.'
           : isArchive
             ? 'Historical story archive with topic, entity, publisher, country, timeline, and date-range discovery.'
             : isMobileApp
@@ -3163,8 +3253,28 @@ function IntelligencePage({
             </a>
           ))}
         </div>
+        <div className="intelligenceLinkBar topicLinks ecosystemLinks">
+          {dataPlatformPages.filter((page) => [
+            'ecosystem',
+            'publisher-portal',
+            'journalist-portal',
+            'research-hub',
+            'api-marketplace',
+            'enterprise',
+            'ai-research-assistant',
+            'knowledge-graph',
+            'marketplace',
+            'integrations',
+            'brand-infrastructure',
+          ].includes(page.slug)).map((page) => (
+            <a key={page.slug} className={route.slug === page.slug ? 'active' : ''} href={`/${page.slug}`}>
+              {page.label}
+            </a>
+          ))}
+        </div>
 
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
+        {isEcosystem && <EcosystemPanel articles={articles} route={route} />}
         {isDataPlatform && <DataPlatformPanel articles={articles} />}
         {isArchive && <NewsArchivePanel articles={articles} route={route} />}
         {isMobileApp && <MobileAppPlatformPanel articles={articles} />}
@@ -3505,6 +3615,249 @@ function DataPlatformPanel({ articles = [] }) {
         <h4>Publisher coverage sample</h4>
         {publishers.map((item) => <div className="sourceMetricRow" key={item.source}><span>{item.source}</span><b>{item.count} stories</b></div>)}
       </div>
+    </section>
+  );
+}
+
+const ecosystemModules = [
+  {
+    slug: 'publisher-portal',
+    title: 'Publisher Portal',
+    text: 'Publisher accounts, feed submission, verification review, source quality, and publisher analytics.',
+    metrics: ['RSS feed submission', 'Verification process', 'Analytics dashboard'],
+    href: '/publisher-portal',
+  },
+  {
+    slug: 'journalist-portal',
+    title: 'Journalist Portal',
+    text: 'Author identity, publishing tools, audience analytics, profile verification, and badges.',
+    metrics: ['Author profiles', 'Publishing tools', 'Verification badges'],
+    href: '/journalist-portal',
+  },
+  {
+    slug: 'research-hub',
+    title: 'Research Hub',
+    text: 'Deep reports, historical archives, topic intelligence, story timelines, and data downloads.',
+    metrics: ['Research reports', 'Historical archive', 'CSV/JSON/PDF exports'],
+    href: '/research-hub',
+  },
+  {
+    slug: 'api-marketplace',
+    title: 'API Marketplace',
+    text: 'News API, Trends API, Entity API, Intelligence API, usage quotas, and developer access.',
+    metrics: ['/api/v1/latest', '/api/v1/trends', '/api/v1/entities'],
+    href: '/api-marketplace',
+  },
+  {
+    slug: 'enterprise',
+    title: 'Enterprise Platform',
+    text: 'Custom feeds, organization dashboards, custom alerts, shared reports, and team workflows.',
+    metrics: ['Custom feeds', 'Team dashboards', 'Shared alerts'],
+    href: '/enterprise',
+  },
+  {
+    slug: 'ai-research-assistant',
+    title: 'AI Research Assistant',
+    text: 'Ask questions, generate timelines, compare publisher coverage, and summarize topics with source links.',
+    metrics: ['Questions', 'Timelines', 'Source comparison'],
+    href: '/ai-research-assistant',
+  },
+  {
+    slug: 'knowledge-graph',
+    title: 'Global Knowledge Graph',
+    text: 'News entities, relationships, story clusters, event chains, and timeline tracking.',
+    metrics: ['Entities', 'Relationships', 'Events'],
+    href: '/knowledge-graph',
+  },
+  {
+    slug: 'integrations',
+    title: 'Ecosystem Integrations',
+    text: 'Slack, Teams, email, webhooks, and CRM delivery for alerts and reports.',
+    metrics: ['Slack', 'Teams', 'Webhooks'],
+    href: '/integrations',
+  },
+];
+
+const marketplaceProducts = [
+  ['News API Pro', 'Higher-quota latest news, search, trends, entities, graph, and intelligence endpoints.', '$49/mo starter'],
+  ['Enterprise Intelligence Feed', 'Custom country, topic, entity, publisher, and alert feeds for organizations.', 'Sales approval'],
+  ['Premium Research Datasets', 'Export-ready datasets for research, media monitoring, and market analysis.', 'Enterprise'],
+  ['Partner Integrations Pack', 'Slack, Teams, email, webhook, and CRM delivery setup.', 'Enterprise'],
+];
+
+function EcosystemPanel({ articles = [], route }) {
+  const [formType, setFormType] = useState(() => {
+    if (route.slug === 'journalist-portal') return 'journalist';
+    if (route.slug === 'enterprise') return 'enterprise';
+    if (route.slug === 'integrations') return 'integration';
+    if (route.slug === 'ai-research-assistant' || route.slug === 'research-hub') return 'research';
+    if (route.slug === 'publisher-portal') return 'publisher';
+    return 'publisher-account';
+  });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    website_url: '',
+    feed_url: '',
+    country: 'GLOBAL',
+    category: 'top',
+    language: 'en',
+    organization_name: '',
+    integration_type: 'slack',
+    query: '',
+    notes: '',
+  });
+  const [notice, setNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const sourceCount = new Set(articles.map((article) => article.source).filter(Boolean)).size;
+  const entityCount = extractEntities(articles).length;
+  const topicCount = extractTrendingTopics(articles).length;
+
+  async function submitEcosystemRequest(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setNotice('Submitting to Nuzenio ecosystem review...');
+    try {
+      const response = await fetch('/api/ecosystem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          type: formType,
+          publisher_name: form.name,
+          full_name: form.name,
+          contact_email: form.email,
+          company: form.organization_name,
+          use_case: form.notes,
+        }),
+      });
+      const data = await response.json();
+      if (!data.ok) throw new Error(data.error || 'Submission failed');
+      setNotice(data.message || 'Request received for review.');
+      setForm((current) => ({ ...current, name: '', email: '', website_url: '', feed_url: '', organization_name: '', query: '', notes: '' }));
+    } catch (error) {
+      setNotice(error.message || 'Submission failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="ecosystemPanel">
+      <div className="ecosystemHero">
+        <div>
+          <span className="badge"><Database size={15} /> Complete Global News Ecosystem</span>
+          <h3>{route.label}</h3>
+          <p>{route.intent}</p>
+        </div>
+        <div className="ecosystemStats">
+          <div><b>{articles.length}</b><span>live story signals</span></div>
+          <div><b>{sourceCount || 'Ready'}</b><span>publisher sources</span></div>
+          <div><b>{entityCount || 'Ready'}</b><span>entity candidates</span></div>
+          <div><b>{topicCount || 'Ready'}</b><span>topic signals</span></div>
+        </div>
+      </div>
+
+      <div className="ecosystemModuleGrid">
+        {ecosystemModules.map((module) => (
+          <a className={route.slug === module.slug ? 'ecosystemModule active' : 'ecosystemModule'} href={module.href} key={module.slug}>
+            <b>{module.title}</b>
+            <span>{module.text}</span>
+            <small>{module.metrics.join(' · ')}</small>
+          </a>
+        ))}
+      </div>
+
+      <section className="ecosystemGrid">
+        <div className="ecosystemCard">
+          <h4>API Marketplace</h4>
+          <p>Production endpoints for developers and enterprise teams.</p>
+          <div className="apiEndpointGrid compact">
+            {[
+              ['/api/v1/latest', 'News API'],
+              ['/api/v1/trends', 'Trends API'],
+              ['/api/v1/entities', 'Entity API'],
+              ['/api/v1/intelligence', 'Intelligence API'],
+              ['/api/v1/ecosystem', 'Ecosystem API'],
+              ['/api/v1/marketplace', 'Marketplace API'],
+            ].map(([href, label]) => <a href={href} key={href}><b>{label}</b><span>{href}</span></a>)}
+          </div>
+        </div>
+
+        <div className="ecosystemCard">
+          <h4>Marketplace</h4>
+          <p>Commercial products stay clearly labeled and approval-based.</p>
+          {marketplaceProducts.map(([title, text, price]) => (
+            <div className="marketplaceRow" key={title}>
+              <b>{title}</b>
+              <span>{text}</span>
+              <small>{price}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="ecosystemGrid">
+        <div className="ecosystemCard">
+          <h4>Global brand infrastructure</h4>
+          <div className="pipelineGrid">
+            {['Editorial network', 'Regional editions', 'Enterprise sales', 'Strategic partnerships', 'Publisher verification', 'Source transparency'].map((item) => (
+              <div key={item}><CheckCircle2 size={16} /> {item}</div>
+            ))}
+          </div>
+        </div>
+        <div className="ecosystemCard">
+          <h4>AI research workflow</h4>
+          <p>AI output must use source metadata, RSS briefs, cached stories, and visible publisher links. No invented facts.</p>
+          <div className="pipelineGrid">
+            {['Ask about news', 'Timeline generation', 'Source comparison', 'Topic summaries', 'Citation-first answers', 'Admin review'].map((item) => (
+              <div key={item}><Sparkles size={16} /> {item}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="ecosystemSubmitPanel">
+        <div>
+          <span className="badge"><Mail size={15} /> Ecosystem request</span>
+          <h4>Join or request access</h4>
+          <p>Submit a publisher feed, journalist profile, enterprise request, integration, or AI research question. Everything goes through review before approval.</p>
+        </div>
+        <form className="ecosystemForm" onSubmit={submitEcosystemRequest}>
+          <label>
+            Request type
+            <select value={formType} onChange={(event) => setFormType(event.target.value)}>
+              <option value="publisher-account">Publisher account</option>
+              <option value="publisher">RSS feed submission</option>
+              <option value="journalist">Journalist verification</option>
+              <option value="enterprise">Enterprise platform</option>
+              <option value="integration">Integration request</option>
+              <option value="research">AI research request</option>
+            </select>
+          </label>
+          <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Name or publisher name" />
+          <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" type="email" required />
+          <input value={form.organization_name} onChange={(event) => setForm({ ...form, organization_name: event.target.value })} placeholder="Organization or company" />
+          <input value={form.website_url} onChange={(event) => setForm({ ...form, website_url: event.target.value })} placeholder="Website or portfolio URL" type="url" />
+          <input value={form.feed_url} onChange={(event) => setForm({ ...form, feed_url: event.target.value })} placeholder="RSS feed URL" type="url" />
+          <div className="ecosystemFormRow">
+            <input value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value.toUpperCase() })} placeholder="Country" />
+            <input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} placeholder="Category" />
+            <input value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value })} placeholder="Language" />
+            <select value={form.integration_type} onChange={(event) => setForm({ ...form, integration_type: event.target.value })}>
+              <option value="slack">Slack</option>
+              <option value="teams">Teams</option>
+              <option value="email">Email</option>
+              <option value="webhook">Webhook</option>
+              <option value="crm">CRM</option>
+            </select>
+          </div>
+          <textarea value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder="Research question, topic, or use case" />
+          <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes, verification details, custom feeds, alerts, or integration needs" />
+          <button className="primaryAction" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit for review'}</button>
+          {notice && <small className="ecosystemNotice">{notice}</small>}
+        </form>
+      </section>
     </section>
   );
 }

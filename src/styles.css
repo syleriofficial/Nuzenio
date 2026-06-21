@@ -5325,3 +5325,212 @@ button {
     width: 100%;
   }
 }
+
+.ecosystemLinks {
+  align-items: stretch;
+}
+
+.ecosystemPanel,
+.ecosystemHero,
+.ecosystemCard,
+.ecosystemSubmitPanel {
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.ecosystemPanel {
+  display: grid;
+  gap: 18px;
+  margin-block: 18px;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.ecosystemHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.ecosystemHero h3 {
+  margin: 10px 0 8px;
+  color: var(--ink);
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.02;
+}
+
+.ecosystemHero p,
+.ecosystemCard p,
+.ecosystemSubmitPanel p {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.ecosystemStats,
+.ecosystemModuleGrid,
+.ecosystemGrid,
+.ecosystemFormRow {
+  display: grid;
+  gap: 12px;
+}
+
+.ecosystemStats {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.ecosystemStats div {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.ecosystemStats b {
+  display: block;
+  color: var(--accent-blue);
+  font-size: 28px;
+}
+
+.ecosystemStats span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ecosystemModuleGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ecosystemModule {
+  display: grid;
+  gap: 8px;
+  min-height: 158px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ecosystemModule.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #dbeafe;
+}
+
+.ecosystemModule b,
+.marketplaceRow b {
+  color: var(--ink);
+}
+
+.ecosystemModule span,
+.ecosystemModule small,
+.marketplaceRow span,
+.marketplaceRow small,
+.ecosystemNotice {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.ecosystemGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ecosystemCard,
+.ecosystemSubmitPanel {
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.ecosystemCard h4,
+.ecosystemSubmitPanel h4 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.apiEndpointGrid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.marketplaceRow {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.ecosystemSubmitPanel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+  gap: 18px;
+}
+
+.ecosystemForm {
+  display: grid;
+  gap: 10px;
+}
+
+.ecosystemForm label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ecosystemForm input,
+.ecosystemForm select,
+.ecosystemForm textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+
+.ecosystemForm textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.ecosystemFormRow {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .ecosystemHero,
+  .ecosystemSubmitPanel,
+  .ecosystemGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystemModuleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ecosystemPanel {
+    padding: 12px;
+  }
+
+  .ecosystemHero {
+    padding: 16px;
+  }
+
+  .ecosystemStats,
+  .ecosystemModuleGrid,
+  .apiEndpointGrid.compact,
+  .ecosystemFormRow {
+    grid-template-columns: 1fr;
+  }
+}

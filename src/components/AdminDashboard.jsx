@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowLeft, BarChart3, Database, Edit3, Eye, Globe2, Megaphone, RefreshCw, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Activity, ArrowLeft, BarChart3, BriefcaseBusiness, Database, Edit3, Eye, Globe2, Megaphone, RefreshCw, ShieldCheck, Sparkles, Trash2, Users } from 'lucide-react';
 
 const emptySource = {
   name: '',
@@ -120,6 +120,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [savedReports, setSavedReports] = useState([]);
   const [sharedDashboards, setSharedDashboards] = useState([]);
   const [dashboardExports, setDashboardExports] = useState([]);
+  const [publisherAccounts, setPublisherAccounts] = useState([]);
+  const [feedSubmissions, setFeedSubmissions] = useState([]);
+  const [journalistAccounts, setJournalistAccounts] = useState([]);
+  const [researchReports, setResearchReports] = useState([]);
+  const [marketplaceProducts, setMarketplaceProducts] = useState([]);
+  const [enterpriseAccounts, setEnterpriseAccounts] = useState([]);
+  const [integrationConnections, setIntegrationConnections] = useState([]);
+  const [aiResearchQueries, setAiResearchQueries] = useState([]);
   const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -173,6 +181,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const trendsByStatus = useMemo(() => topEntries(groupCount(trends, 'status'), 8), [trends]);
   const sentimentByLabel = useMemo(() => topEntries(groupCount(sentimentScores, 'sentiment_label'), 8), [sentimentScores]);
   const alertsByType = useMemo(() => topEntries(groupCount(alerts, 'alert_type'), 8), [alerts]);
+  const publisherAccountStatuses = useMemo(() => topEntries(groupCount(publisherAccounts, 'verification_status'), 8), [publisherAccounts]);
+  const feedSubmissionStatuses = useMemo(() => topEntries(groupCount(feedSubmissions, 'status'), 8), [feedSubmissions]);
+  const journalistAccountStatuses = useMemo(() => topEntries(groupCount(journalistAccounts, 'verification_status'), 8), [journalistAccounts]);
+  const marketplaceByType = useMemo(() => topEntries(groupCount(marketplaceProducts, 'product_type'), 8), [marketplaceProducts]);
+  const enterpriseByPlan = useMemo(() => topEntries(groupCount(enterpriseAccounts, 'plan'), 8), [enterpriseAccounts]);
+  const integrationsByType = useMemo(() => topEntries(groupCount(integrationConnections, 'integration_type'), 8), [integrationConnections]);
 
   useEffect(() => {
     loadAdmin();
@@ -243,6 +257,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         savedReportResult,
         sharedDashboardResult,
         dashboardExportResult,
+        publisherAccountResult,
+        feedSubmissionResult,
+        journalistAccountResult,
+        researchReportResult,
+        marketplaceProductResult,
+        enterpriseAccountResult,
+        integrationResult,
+        aiResearchResult,
         articleCount,
         userCount,
         savedCount,
@@ -271,6 +293,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         savedReportCount,
         sharedDashboardCount,
         dashboardExportCount,
+        publisherAccountCount,
+        feedSubmissionCount,
+        journalistAccountCount,
+        researchReportCount,
+        marketplaceProductCount,
+        enterpriseAccountCount,
+        integrationCount,
+        aiResearchCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
         supabase.from('profiles').select('id,email,full_name,role,created_at,updated_at').order('created_at', { ascending: false }).limit(100),
@@ -305,6 +335,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         safeQuery(supabase.from('saved_reports').select('id,title,report_type,shared,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('shared_dashboards').select('id,name,organization_name,access_level,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('dashboard_exports').select('id,export_type,status,file_url,created_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('publisher_accounts').select('id,publisher_name,contact_email,country,verification_status,website_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('feed_submissions').select('id,publisher_name,feed_url,category,country,language,status,submitted_by_email,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('journalist_accounts').select('id,full_name,email,publisher_name,verification_status,badge_label,portfolio_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('research_reports').select('id,slug,title,topic,report_type,access_level,status,published_at,updated_at').order('updated_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('marketplace_products').select('id,slug,title,product_type,access_level,status,price_cents,currency,updated_at').order('updated_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('enterprise_accounts').select('id,organization_name,contact_email,plan,status,seats,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('integration_connections').select('id,integration_type,name,status,last_delivery_at,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('ai_research_queries').select('id,query,mode,status,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         countRows('news_cache'),
         countRows('profiles'),
         countRows('saved_articles'),
@@ -333,6 +371,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         countRows('saved_reports'),
         countRows('shared_dashboards'),
         countRows('dashboard_exports'),
+        countRows('publisher_accounts'),
+        countRows('feed_submissions'),
+        countRows('journalist_accounts'),
+        countRows('research_reports'),
+        countRows('marketplace_products'),
+        countRows('enterprise_accounts'),
+        countRows('integration_connections'),
+        countRows('ai_research_queries'),
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
@@ -382,6 +428,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setSavedReports(savedReportResult.data || []);
       setSharedDashboards(sharedDashboardResult.data || []);
       setDashboardExports(dashboardExportResult.data || []);
+      setPublisherAccounts(publisherAccountResult.data || []);
+      setFeedSubmissions(feedSubmissionResult.data || []);
+      setJournalistAccounts(journalistAccountResult.data || []);
+      setResearchReports(researchReportResult.data || []);
+      setMarketplaceProducts(marketplaceProductResult.data || []);
+      setEnterpriseAccounts(enterpriseAccountResult.data || []);
+      setIntegrationConnections(integrationResult.data || []);
+      setAiResearchQueries(aiResearchResult.data || []);
       if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
       setLogs(logResult.data || []);
@@ -414,6 +468,14 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         savedReportCount,
         sharedDashboardCount,
         dashboardExportCount,
+        publisherAccountCount,
+        feedSubmissionCount,
+        journalistAccountCount,
+        researchReportCount,
+        marketplaceProductCount,
+        enterpriseAccountCount,
+        integrationCount,
+        aiResearchCount,
         correctionCount: correctionResult.data?.length || 0,
         publisherCount: publisherResult.data?.length || 0,
         journalistCount: journalistResult.data?.length || 0,
@@ -766,7 +828,49 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Activity} label="Trends" value={overview.trendCount || 0} />
         <StatCard icon={BarChart3} label="Sentiment" value={overview.sentimentCount || 0} />
         <StatCard icon={Megaphone} label="Alerts" value={overview.alertCount || 0} />
+        <StatCard icon={Globe2} label="Publisher portal" value={overview.publisherAccountCount || 0} />
+        <StatCard icon={Edit3} label="Journalist portal" value={overview.journalistAccountCount || 0} />
+        <StatCard icon={Database} label="Research reports" value={overview.researchReportCount || 0} />
+        <StatCard icon={BriefcaseBusiness} label="Enterprise leads" value={overview.enterpriseAccountCount || 0} />
+        <StatCard icon={Activity} label="Integrations" value={overview.integrationCount || 0} />
+        <StatCard icon={Sparkles} label="AI research" value={overview.aiResearchCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="V20 Publisher & Journalist Portal">
+          <MetricRow label="Publisher accounts" value={overview.publisherAccountCount || 0} />
+          <MetricRow label="Feed submissions" value={overview.feedSubmissionCount || 0} />
+          <MetricRow label="Journalist accounts" value={overview.journalistAccountCount || 0} />
+          <h4>Publisher verification</h4>
+          {publisherAccountStatuses.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Feed submission status</h4>
+          {feedSubmissionStatuses.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <AdminTable headers={['Submission', 'Country', 'Category', 'Status']}>
+            {feedSubmissions.slice(0, 10).map((item) => (
+              <tr key={item.id}>
+                <td><b>{item.publisher_name}</b><small>{item.feed_url}</small></td>
+                <td>{item.country || 'GLOBAL'}</td>
+                <td>{item.category || 'top'}</td>
+                <td>{item.status}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+
+        <AdminPanel title="V20 Research, Marketplace & Enterprise">
+          <MetricRow label="Research reports" value={overview.researchReportCount || 0} />
+          <MetricRow label="Marketplace products" value={overview.marketplaceProductCount || 0} />
+          <MetricRow label="Enterprise accounts" value={overview.enterpriseAccountCount || 0} />
+          <MetricRow label="Integration requests" value={overview.integrationCount || 0} />
+          <MetricRow label="AI research queries" value={overview.aiResearchCount || 0} />
+          <h4>Marketplace by type</h4>
+          {marketplaceByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Enterprise plans</h4>
+          {enterpriseByPlan.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Integrations</h4>
+          {integrationsByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+        </AdminPanel>
       </section>
 
       <section className="adminGrid twoColumn">

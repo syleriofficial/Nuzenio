@@ -749,6 +749,125 @@ create table if not exists public.dashboard_exports (
   created_at timestamptz default now()
 );
 
+create table if not exists public.publisher_accounts (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid references auth.users(id) on delete set null,
+  publisher_slug text,
+  publisher_name text not null,
+  contact_email text not null,
+  website_url text,
+  country text default 'GLOBAL',
+  verification_status text default 'submitted' check (verification_status in ('submitted', 'reviewing', 'verified', 'rejected', 'suspended')),
+  verification_notes text,
+  analytics_enabled boolean default true,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.feed_submissions (
+  id uuid primary key default gen_random_uuid(),
+  publisher_account_id uuid references public.publisher_accounts(id) on delete set null,
+  publisher_name text not null,
+  feed_url text not null,
+  category text default 'top',
+  country text default 'GLOBAL',
+  language text default 'en',
+  status text default 'submitted' check (status in ('submitted', 'testing', 'approved', 'rejected', 'disabled')),
+  test_result jsonb default '{}'::jsonb,
+  submitted_by_email text,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.journalist_accounts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  full_name text not null,
+  email text not null,
+  publisher_name text,
+  author_slug text,
+  verification_status text default 'submitted' check (verification_status in ('submitted', 'reviewing', 'verified', 'rejected', 'suspended')),
+  badge_label text default 'Journalist',
+  portfolio_url text,
+  audience_metrics jsonb default '{}'::jsonb,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.research_reports (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  topic text default 'global',
+  report_type text default 'research' check (report_type in ('research', 'archive', 'topic_intelligence', 'dataset', 'industry_intelligence')),
+  summary text,
+  access_level text default 'public' check (access_level in ('public', 'registered', 'premium', 'enterprise')),
+  download_url text,
+  status text default 'draft' check (status in ('draft', 'review', 'published', 'archived')),
+  published_at timestamptz,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.marketplace_products (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  title text not null,
+  product_type text default 'research_report' check (product_type in ('research_report', 'dataset', 'industry_intelligence', 'partner_integration', 'api_plan')),
+  description text,
+  price_cents integer,
+  currency text default 'USD',
+  access_level text default 'premium' check (access_level in ('free', 'premium', 'enterprise')),
+  status text default 'draft' check (status in ('draft', 'published', 'archived')),
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.enterprise_accounts (
+  id uuid primary key default gen_random_uuid(),
+  organization_name text not null,
+  contact_email text not null,
+  plan text default 'trial' check (plan in ('trial', 'team', 'business', 'enterprise')),
+  status text default 'lead' check (status in ('lead', 'trial', 'active', 'paused', 'cancelled')),
+  seats integer default 1,
+  custom_feeds jsonb default '[]'::jsonb,
+  alert_rules jsonb default '[]'::jsonb,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.integration_connections (
+  id uuid primary key default gen_random_uuid(),
+  enterprise_account_id uuid references public.enterprise_accounts(id) on delete set null,
+  integration_type text not null check (integration_type in ('slack', 'teams', 'email', 'webhook', 'crm')),
+  name text not null,
+  status text default 'requested' check (status in ('requested', 'testing', 'active', 'paused', 'failed')),
+  endpoint_url text,
+  last_delivery_at timestamptz,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.ai_research_queries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  query text not null,
+  answer_summary text,
+  source_article_ids text[] default '{}',
+  mode text default 'question' check (mode in ('question', 'timeline', 'source_comparison', 'topic_summary')),
+  status text default 'queued' check (status in ('queued', 'processing', 'completed', 'failed')),
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 alter table public.profiles enable row level security;
 alter table public.saved_articles enable row level security;
 alter table public.reading_history enable row level security;
@@ -804,6 +923,14 @@ alter table public.alerts enable row level security;
 alter table public.saved_reports enable row level security;
 alter table public.shared_dashboards enable row level security;
 alter table public.dashboard_exports enable row level security;
+alter table public.publisher_accounts enable row level security;
+alter table public.feed_submissions enable row level security;
+alter table public.journalist_accounts enable row level security;
+alter table public.research_reports enable row level security;
+alter table public.marketplace_products enable row level security;
+alter table public.enterprise_accounts enable row level security;
+alter table public.integration_connections enable row level security;
+alter table public.ai_research_queries enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -928,6 +1055,26 @@ drop policy if exists "Admins can manage alerts" on public.alerts;
 drop policy if exists "Admins can manage saved reports" on public.saved_reports;
 drop policy if exists "Admins can manage shared dashboards" on public.shared_dashboards;
 drop policy if exists "Admins can manage dashboard exports" on public.dashboard_exports;
+drop policy if exists "Users can read own publisher accounts" on public.publisher_accounts;
+drop policy if exists "Anyone can submit publisher account" on public.publisher_accounts;
+drop policy if exists "Users can read own feed submissions" on public.feed_submissions;
+drop policy if exists "Anyone can submit publisher feed" on public.feed_submissions;
+drop policy if exists "Users can read own journalist account" on public.journalist_accounts;
+drop policy if exists "Anyone can submit journalist account" on public.journalist_accounts;
+drop policy if exists "Published research reports are public" on public.research_reports;
+drop policy if exists "Published marketplace products are public" on public.marketplace_products;
+drop policy if exists "Users can read own enterprise accounts" on public.enterprise_accounts;
+drop policy if exists "Anyone can submit enterprise account" on public.enterprise_accounts;
+drop policy if exists "Enterprise integrations are owner readable" on public.integration_connections;
+drop policy if exists "Users can manage own AI research queries" on public.ai_research_queries;
+drop policy if exists "Admins can manage publisher accounts" on public.publisher_accounts;
+drop policy if exists "Admins can manage feed submissions" on public.feed_submissions;
+drop policy if exists "Admins can manage journalist accounts" on public.journalist_accounts;
+drop policy if exists "Admins can manage research reports" on public.research_reports;
+drop policy if exists "Admins can manage marketplace products" on public.marketplace_products;
+drop policy if exists "Admins can manage enterprise accounts" on public.enterprise_accounts;
+drop policy if exists "Admins can manage integrations" on public.integration_connections;
+drop policy if exists "Admins can manage AI research queries" on public.ai_research_queries;
 
 create policy "Profiles are readable by owner"
 on public.profiles for select using (auth.uid() = id);
@@ -1294,6 +1441,72 @@ on public.shared_dashboards for all using (public.is_admin()) with check (public
 create policy "Admins can manage dashboard exports"
 on public.dashboard_exports for all using (public.is_admin()) with check (public.is_admin());
 
+create policy "Users can read own publisher accounts"
+on public.publisher_accounts for select using (auth.uid() = owner_id or auth.jwt() ->> 'email' = contact_email);
+
+create policy "Anyone can submit publisher account"
+on public.publisher_accounts for insert with check (verification_status = 'submitted');
+
+create policy "Users can read own feed submissions"
+on public.feed_submissions for select using (auth.jwt() ->> 'email' = submitted_by_email);
+
+create policy "Anyone can submit publisher feed"
+on public.feed_submissions for insert with check (status = 'submitted');
+
+create policy "Users can read own journalist account"
+on public.journalist_accounts for select using (auth.uid() = user_id or auth.jwt() ->> 'email' = email);
+
+create policy "Anyone can submit journalist account"
+on public.journalist_accounts for insert with check (verification_status = 'submitted');
+
+create policy "Published research reports are public"
+on public.research_reports for select using (status = 'published' and (published_at is null or published_at <= now()));
+
+create policy "Published marketplace products are public"
+on public.marketplace_products for select using (status = 'published');
+
+create policy "Users can read own enterprise accounts"
+on public.enterprise_accounts for select using (auth.jwt() ->> 'email' = contact_email);
+
+create policy "Anyone can submit enterprise account"
+on public.enterprise_accounts for insert with check (status = 'lead');
+
+create policy "Enterprise integrations are owner readable"
+on public.integration_connections for select using (
+  exists (
+    select 1 from public.enterprise_accounts
+    where enterprise_accounts.id = integration_connections.enterprise_account_id
+      and auth.jwt() ->> 'email' = enterprise_accounts.contact_email
+  )
+);
+
+create policy "Users can manage own AI research queries"
+on public.ai_research_queries for all using (auth.uid() = user_id) with check (auth.uid() = user_id or user_id is null);
+
+create policy "Admins can manage publisher accounts"
+on public.publisher_accounts for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage feed submissions"
+on public.feed_submissions for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage journalist accounts"
+on public.journalist_accounts for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage research reports"
+on public.research_reports for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage marketplace products"
+on public.marketplace_products for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage enterprise accounts"
+on public.enterprise_accounts for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage integrations"
+on public.integration_connections for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage AI research queries"
+on public.ai_research_queries for all using (public.is_admin()) with check (public.is_admin());
+
 create index if not exists saved_articles_user_idx on public.saved_articles(user_id, created_at desc);
 create index if not exists reading_history_user_idx on public.reading_history(user_id, read_at desc);
 create index if not exists reading_history_article_idx on public.reading_history(article_id, read_at desc);
@@ -1372,6 +1585,18 @@ create index if not exists alerts_query_idx on public.alerts(alert_type, enabled
 create index if not exists saved_reports_user_idx on public.saved_reports(user_id, report_type, created_at desc);
 create index if not exists shared_dashboards_owner_idx on public.shared_dashboards(owner_id, created_at desc);
 create index if not exists dashboard_exports_user_idx on public.dashboard_exports(user_id, export_type, created_at desc);
+create index if not exists publisher_accounts_status_idx on public.publisher_accounts(verification_status, country, created_at desc);
+create index if not exists publisher_accounts_owner_idx on public.publisher_accounts(owner_id, updated_at desc);
+create index if not exists feed_submissions_status_idx on public.feed_submissions(status, country, category, created_at desc);
+create index if not exists feed_submissions_url_idx on public.feed_submissions(feed_url, status);
+create index if not exists journalist_accounts_status_idx on public.journalist_accounts(verification_status, publisher_name, created_at desc);
+create index if not exists research_reports_status_idx on public.research_reports(status, access_level, published_at desc);
+create index if not exists research_reports_topic_idx on public.research_reports(topic, report_type, updated_at desc);
+create index if not exists marketplace_products_status_idx on public.marketplace_products(status, product_type, access_level);
+create index if not exists enterprise_accounts_status_idx on public.enterprise_accounts(status, plan, created_at desc);
+create index if not exists integration_connections_status_idx on public.integration_connections(integration_type, status, updated_at desc);
+create index if not exists ai_research_queries_user_idx on public.ai_research_queries(user_id, mode, created_at desc);
+create index if not exists ai_research_queries_status_idx on public.ai_research_queries(status, mode, created_at desc);
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -1769,6 +1994,33 @@ values
   ('mobile-feed', 'Mobile feed after story cards', 'responsive', 'Mobile-first revenue slot.'),
   ('newsletter-sponsor', 'Daily brief sponsorship', 'sponsor', 'Sponsor slot for newsletter campaigns.')
 on conflict (slot_key) do nothing;
+
+insert into public.research_reports (slug, title, topic, report_type, summary, access_level, status, published_at, metadata)
+values
+  ('global-news-intelligence-brief', 'Global News Intelligence Brief', 'global', 'topic_intelligence', 'Daily intelligence structure for top global stories, sources, entities, and regional impact.', 'registered', 'published', now(), '{"source_policy":"publisher_attribution_required"}'::jsonb),
+  ('ai-and-technology-watch', 'AI and Technology Watch', 'ai', 'research', 'Research-ready hub for AI models, chips, startups, regulation, and enterprise adoption signals.', 'registered', 'published', now(), '{"refresh":"daily"}'::jsonb),
+  ('publisher-speed-index', 'Publisher Speed Index', 'publishers', 'dataset', 'Dataset framework for fastest reporting sources, source diversity, and coverage comparison.', 'enterprise', 'published', now(), '{"download_format":["csv","json"]}'::jsonb)
+on conflict (slug) do update set
+  title = excluded.title,
+  summary = excluded.summary,
+  access_level = excluded.access_level,
+  status = excluded.status,
+  published_at = excluded.published_at,
+  metadata = excluded.metadata;
+
+insert into public.marketplace_products (slug, title, product_type, description, price_cents, currency, access_level, status, metadata)
+values
+  ('news-api-pro', 'News API Pro', 'api_plan', 'Higher-quota access to latest news, search, trends, entities, graph, and intelligence endpoints.', 4900, 'USD', 'premium', 'published', '{"endpoints":["latest","search","trends","entities","intelligence"]}'::jsonb),
+  ('enterprise-intelligence-feed', 'Enterprise Intelligence Feed', 'industry_intelligence', 'Custom country, topic, entity, publisher, and alert feeds for organizations.', null, 'USD', 'enterprise', 'published', '{"sales_required":true}'::jsonb),
+  ('premium-research-datasets', 'Premium Research Datasets', 'dataset', 'Export-ready news intelligence datasets for research, media monitoring, and market analysis.', null, 'USD', 'enterprise', 'published', '{"formats":["csv","json","pdf"]}'::jsonb),
+  ('partner-integrations-pack', 'Partner Integrations Pack', 'partner_integration', 'Slack, Teams, email, webhook, and CRM delivery setup for Nuzenio intelligence alerts.', null, 'USD', 'enterprise', 'published', '{"channels":["slack","teams","email","webhook","crm"]}'::jsonb)
+on conflict (slug) do update set
+  title = excluded.title,
+  description = excluded.description,
+  product_type = excluded.product_type,
+  access_level = excluded.access_level,
+  status = excluded.status,
+  metadata = excluded.metadata;
 
 insert into public.ai_settings (key, enabled, categories, simple_brief_enabled, comparison_enabled)
 values ('global', true, array['top','world','business','tech','ai','sports','health','science','entertainment','local'], true, true)

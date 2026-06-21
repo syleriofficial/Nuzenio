@@ -301,6 +301,73 @@ async function readIntelligenceDashboard(url) {
   };
 }
 
+async function readEcosystem() {
+  const [reports, products, publishers, journalists] = await Promise.all([
+    optionalSupabaseRequest('research_reports?select=slug,title,topic,report_type,summary,access_level,published_at&status=eq.published&order=published_at.desc&limit=12'),
+    optionalSupabaseRequest('marketplace_products?select=slug,title,product_type,description,price_cents,currency,access_level,status,metadata&status=eq.published&order=updated_at.desc&limit=20'),
+    optionalSupabaseRequest('publisher_profiles?select=slug,name,country,categories,status&status=eq.active&order=updated_at.desc&limit=20'),
+    optionalSupabaseRequest('journalist_profiles?select=slug,full_name,role,publisher_slug,expertise&order=updated_at.desc&limit=20'),
+  ]);
+  return {
+    ecosystem: {
+      surfaces: ['publisher-portal', 'journalist-portal', 'research-hub', 'api-marketplace', 'enterprise', 'ai-research-assistant', 'knowledge-graph', 'marketplace', 'integrations', 'brand-infrastructure'],
+      reports: reports || [],
+      products: products || [],
+      publishers: publishers || [],
+      journalists: journalists || [],
+      submissionEndpoint: '/api/ecosystem',
+    },
+  };
+}
+
+async function readResearchHub() {
+  const [reports, queries, timelines] = await Promise.all([
+    optionalSupabaseRequest('research_reports?select=slug,title,topic,report_type,summary,access_level,published_at,metadata&status=eq.published&order=published_at.desc&limit=30'),
+    optionalSupabaseRequest('ai_research_queries?select=mode,status,created_at&order=created_at.desc&limit=50'),
+    optionalSupabaseRequest('story_timelines?select=cluster_id,event_time,event_type,title,source&order=event_time.desc&limit=30'),
+  ]);
+  return {
+    research: {
+      reports: reports || [],
+      recentQueryModes: queries || [],
+      timelines: timelines || [],
+      downloads: ['csv', 'json', 'pdf-report'],
+    },
+  };
+}
+
+async function readMarketplace() {
+  const products = await optionalSupabaseRequest('marketplace_products?select=slug,title,product_type,description,price_cents,currency,access_level,status,metadata&status=eq.published&order=updated_at.desc&limit=50');
+  return {
+    marketplace: products || [],
+    disclosure: 'Marketplace products require approval, clear commercial labels, and no misleading ad placement.',
+  };
+}
+
+async function readEnterprise() {
+  const [accounts, integrations, reports] = await Promise.all([
+    optionalSupabaseRequest('enterprise_accounts?select=plan,status,seats,created_at&order=created_at.desc&limit=50'),
+    optionalSupabaseRequest('integration_connections?select=integration_type,status,last_delivery_at,created_at&order=created_at.desc&limit=50'),
+    optionalSupabaseRequest('saved_reports?select=report_type,shared,created_at&order=created_at.desc&limit=50'),
+  ]);
+  return {
+    enterprise: {
+      accountSignals: accounts || [],
+      integrations: integrations || [],
+      savedReports: reports || [],
+      features: ['custom feeds', 'organization dashboards', 'custom alerts', 'team collaboration', 'exports'],
+    },
+  };
+}
+
+async function readIntegrations() {
+  const rows = await optionalSupabaseRequest('integration_connections?select=integration_type,name,status,last_delivery_at,metadata,created_at&order=created_at.desc&limit=50');
+  return {
+    integrations: rows || [],
+    supported: ['slack', 'teams', 'email', 'webhook', 'crm'],
+  };
+}
+
 async function logUsage(event, endpoint, statusCode) {
   const key = event.headers['x-nuzenio-key'] || event.headers['X-Nuzenio-Key'] || '';
   if (!key) return;
@@ -356,13 +423,23 @@ export const handler = async (event) => {
                         ? await readLanguages(url)
                         : endpoint === 'regional-editions'
                           ? await readRegionalEditions(url)
-                          : endpoint === 'infrastructure'
+                  : endpoint === 'infrastructure'
                             ? await readInfrastructureStatus(url)
                             : endpoint === 'intelligence'
                               ? await readIntelligenceDashboard(url)
+                              : endpoint === 'ecosystem'
+                                ? await readEcosystem(url)
+                                : endpoint === 'research'
+                                  ? await readResearchHub(url)
+                                  : endpoint === 'marketplace'
+                                    ? await readMarketplace(url)
+                                    : endpoint === 'enterprise'
+                                      ? await readEnterprise(url)
+                                      : endpoint === 'integrations'
+                                        ? await readIntegrations(url)
                           : null;
 
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure', 'intelligence'] });
+    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure', 'intelligence', 'ecosystem', 'research', 'marketplace', 'enterprise', 'integrations'] });
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {

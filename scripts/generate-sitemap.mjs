@@ -22,7 +22,23 @@ const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', '
 const intelligenceCountries = ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'];
 const intelligenceTopics = ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'];
 const seoLandingPages = ['latest-news', 'breaking-news', 'world-news', 'technology-news', 'business-news', 'sports-news', 'ai-news', 'science-news', 'health-news'];
-const dataPlatformPages = ['data-platform', 'archive', 'mobile-app', 'intelligence-dashboard'];
+const dataPlatformPages = [
+  'ecosystem',
+  'publisher-portal',
+  'journalist-portal',
+  'research-hub',
+  'api-marketplace',
+  'enterprise',
+  'ai-research-assistant',
+  'knowledge-graph',
+  'marketplace',
+  'integrations',
+  'brand-infrastructure',
+  'data-platform',
+  'archive',
+  'mobile-app',
+  'intelligence-dashboard',
+];
 const evergreenHubs = ['ai', 'space', 'climate', 'economy', 'startup'];
 const hubAliases = ['ai-hub', 'space-hub', 'climate-hub', 'economy-hub', 'startup-hub'];
 const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states', 'anthropic', 'samsung', 'spacex', 'bitcoin', 'world-bank', 'imf', 'netflix', 'premier-league', 'ipl', 'isro', 'climate-change'];
