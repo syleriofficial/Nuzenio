@@ -2006,6 +2006,159 @@ button {
   background: #dbeafe;
 }
 
+.intelligenceMain {
+  align-items: flex-start;
+}
+
+.intelligenceHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 18px;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 58%, #f8fafc 100%);
+  padding: 22px;
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.09);
+}
+
+.intelligenceHero h2 {
+  margin: 10px 0 8px;
+  font-size: 40px;
+  line-height: 1.04;
+}
+
+.intelligenceHero p {
+  max-width: 760px;
+  color: #475569;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.intelligenceMeta,
+.intelligenceLinkBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.intelligenceMeta span,
+.intelligenceLinkBar a {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e40af;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.intelligenceScore {
+  display: grid;
+  place-items: center;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: var(--red);
+}
+
+.intelligenceScore b {
+  font-size: 46px;
+  line-height: 1;
+}
+
+.intelligenceScore span {
+  color: #9f1239;
+  font-weight: 950;
+}
+
+.intelligenceLinkBar {
+  margin: 10px 0;
+}
+
+.topicLinks {
+  margin-bottom: 16px;
+}
+
+.intelligenceLinkBar a.active {
+  background: var(--blue);
+  color: #fff;
+}
+
+.trendSignalGrid,
+.internalLinkGraph {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.trendSignalCard,
+.linkCluster {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.trendSignalCard h3,
+.linkCluster h3 {
+  margin: 0 0 7px;
+}
+
+.trendSignalCard p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.trendSignalCard button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--text);
+  padding: 10px;
+  text-align: start;
+}
+
+.trendSignalCard button:hover {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.trendSignalCard span,
+.trendSignalCard small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.intelligenceSection {
+  margin-top: 16px;
+}
+
+.linkCluster div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.linkCluster a {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: var(--blue);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
 .homeSectionGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3456,6 +3609,16 @@ button {
 
   .newsBriefingPanel {
     grid-template-columns: 1fr;
+  }
+
+  .intelligenceHero,
+  .trendSignalGrid,
+  .internalLinkGraph {
+    grid-template-columns: 1fr;
+  }
+
+  .intelligenceScore {
+    min-height: 120px;
   }
 
   .newsBriefingActions {

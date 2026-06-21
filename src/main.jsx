@@ -84,6 +84,48 @@ const categoryRoutes = {
   science: '/science',
 };
 
+const intelligenceCountries = [
+  { slug: 'us', code: 'US', label: 'United States' },
+  { slug: 'uk', code: 'GB', label: 'United Kingdom' },
+  { slug: 'in', code: 'IN', label: 'India' },
+  { slug: 'ca', code: 'CA', label: 'Canada' },
+  { slug: 'au', code: 'AU', label: 'Australia' },
+  { slug: 'de', code: 'DE', label: 'Germany' },
+  { slug: 'fr', code: 'FR', label: 'France' },
+  { slug: 'jp', code: 'JP', label: 'Japan' },
+  { slug: 'kr', code: 'KR', label: 'South Korea' },
+  { slug: 'br', code: 'BR', label: 'Brazil' },
+];
+
+const topicIntelligence = [
+  { slug: 'ai', label: 'AI', category: 'ai', query: 'artificial intelligence AI chips models startups policy' },
+  { slug: 'economy', label: 'Economy', category: 'business', query: 'economy inflation jobs GDP central bank' },
+  { slug: 'markets', label: 'Markets', category: 'business', query: 'markets stocks bonds commodities currency' },
+  { slug: 'climate', label: 'Climate', category: 'science', query: 'climate change weather emissions energy transition' },
+  { slug: 'energy', label: 'Energy', category: 'business', query: 'energy oil gas solar power electricity' },
+  { slug: 'space', label: 'Space', category: 'science', query: 'space NASA rocket satellite moon mars' },
+  { slug: 'science', label: 'Science', category: 'science', query: 'science research discovery study space climate' },
+  { slug: 'startups', label: 'Startups', category: 'business', query: 'startups venture capital funding technology founders' },
+];
+
+const entitySeeds = [
+  'OpenAI',
+  'Google',
+  'Microsoft',
+  'Nvidia',
+  'Apple',
+  'Tesla',
+  'Amazon',
+  'Meta',
+  'United Nations',
+  'World Health Organization',
+  'Federal Reserve',
+  'European Union',
+  'NASA',
+  'India',
+  'United States',
+];
+
 const countryNames = {
   AE: 'United Arab Emirates',
   AU: 'Australia',
@@ -229,6 +271,29 @@ function isAdminPath() {
   return normalizedPathname() === '/admin';
 }
 
+function readIntelligenceRoute(path = normalizedPathname()) {
+  const countryMatch = path.match(/^\/country\/([^/]+)$/);
+  if (countryMatch) {
+    const country = intelligenceCountries.find((item) => item.slug === countryMatch[1].toLowerCase());
+    return country ? { type: 'country', slug: country.slug, country: country.code, label: country.label } : null;
+  }
+  const topicMatch = path.match(/^\/topic\/([^/]+)$/);
+  if (topicMatch) {
+    const topic = topicIntelligence.find((item) => item.slug === topicMatch[1].toLowerCase());
+    return topic ? { type: 'topic', ...topic } : null;
+  }
+  const entityMatch = path.match(/^\/entity\/([^/]+)$/);
+  if (entityMatch) {
+    const slug = entityMatch[1].toLowerCase();
+    return { type: 'entity', slug, label: titleFromSlug(slug), query: titleFromSlug(slug) };
+  }
+  return null;
+}
+
+function titleFromSlug(slug = '') {
+  return slug.split('-').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || 'Entity';
+}
+
 function readArticleIdFromUrl() {
   const [, articleId] = window.location.pathname.match(/^\/article\/([^/]+)\/?$/) || [];
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
@@ -253,6 +318,10 @@ function articleSlug(article) {
 
 function initialCategory() {
   const path = normalizedPathname();
+  const intelligenceRoute = readIntelligenceRoute(path);
+  if (intelligenceRoute?.type === 'topic') return intelligenceRoute.category || 'top';
+  if (intelligenceRoute?.type === 'entity') return 'top';
+  if (intelligenceRoute?.type === 'country') return 'top';
   const routeCategory = Object.entries(categoryRoutes)
     .find(([, routePath]) => path === routePath)?.[0];
   if (routeCategory) return routeCategory;
@@ -265,6 +334,16 @@ function initialLanguage() {
 }
 
 function initialLocation() {
+  const intelligenceRoute = readIntelligenceRoute();
+  if (intelligenceRoute?.type === 'country') {
+    return {
+      country: intelligenceRoute.country,
+      region: '',
+      city: '',
+      label: intelligenceRoute.label,
+      source: 'link',
+    };
+  }
   const urlCountry = readUrlParam('country');
   if (!urlCountry) return readLocal('nuzenio_location', detectLocaleCountry(), 'newssetu_location');
   const country = normalizeCountry(urlCountry);
@@ -333,6 +412,7 @@ function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isLocalPage, setIsLocalPage] = useState(() => window.location.pathname === categoryRoutes.local);
   const [isRootHome, setIsRootHome] = useState(() => !isAdminPath() && isRootHomePath());
+  const [intelligenceRoute, setIntelligenceRoute] = useState(() => readIntelligenceRoute());
   const [analyticsConsent, setAnalyticsConsent] = useState(() => readLocal('nuzenio_analytics_consent', ''));
   const [homeSectionFeeds, setHomeSectionFeeds] = useState({});
   const [affiliateLinks, setAffiliateLinks] = useState(configuredAffiliateLinks);
@@ -360,6 +440,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (intelligenceRoute) {
+      loadIntelligenceRoute(intelligenceRoute);
+      return;
+    }
     const urlQuery = (readUrlParam('q') || '').trim();
     if (urlQuery) {
       setQuery(urlQuery);
@@ -367,7 +451,7 @@ function App() {
       return;
     }
     loadNews(category, location.country, location.region, location.city, 'en');
-  }, [category, location.country, location.region, location.city]);
+  }, [category, location.country, location.region, location.city, intelligenceRoute?.type, intelligenceRoute?.slug]);
 
   useEffect(() => {
     if (!isRootHome) {
@@ -381,6 +465,10 @@ function App() {
   }, [isRootHome, location.country]);
 
   useEffect(() => {
+    if (intelligenceRoute) {
+      setIsLocalPage(false);
+      return;
+    }
     if (isRootHome && category === 'top') {
       setIsLocalPage(false);
       return;
@@ -388,7 +476,7 @@ function App() {
     const url = contextUrl({ category, location });
     window.history.replaceState({}, '', url);
     setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
-  }, [category, isRootHome, location.country, location.region, location.city]);
+  }, [category, isRootHome, location.country, location.region, location.city, intelligenceRoute?.type, intelligenceRoute?.slug]);
 
   useEffect(() => {
     function syncArticleFromUrl() {
@@ -396,9 +484,12 @@ function App() {
         setScreen('admin');
         setSelected(null);
         setIsRootHome(false);
+        setIntelligenceRoute(null);
         return;
       }
       setScreen('home');
+      const nextIntelligenceRoute = readIntelligenceRoute();
+      setIntelligenceRoute(nextIntelligenceRoute);
       setIsRootHome(isRootHomePath());
       setIsLocalPage(window.location.pathname === categoryRoutes.local);
       setCategory(initialCategory());
@@ -430,8 +521,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    updatePageSeo(selected, { category, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
-  }, [selected, articles, category, isRootHome, query, location.country, location.region, location.city]);
+    updatePageSeo(selected, { category, intelligenceRoute, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
+  }, [selected, articles, category, intelligenceRoute?.type, intelligenceRoute?.slug, isRootHome, query, location.country, location.region, location.city]);
 
   useEffect(() => {
     if (screen !== 'admin') return;
@@ -566,6 +657,54 @@ function App() {
     }
   }
 
+  async function loadIntelligenceRoute(route) {
+    if (!route) return;
+    setIsRootHome(false);
+    setIsLocalPage(false);
+    setQuery('');
+    if (route.type === 'country') {
+      const nextLocation = {
+        country: route.country,
+        region: '',
+        city: '',
+        label: route.label,
+        source: 'link',
+      };
+      if (location.country !== nextLocation.country || location.region || location.city) setLocation(nextLocation);
+      if (category !== 'top') setCategory('top');
+      await loadNews('top', route.country, '', '', 'en');
+      loadHomeSectionFeeds(route.country);
+      return;
+    }
+    const topicCategory = route.category || 'top';
+    if (category !== topicCategory) setCategory(topicCategory);
+    await loadIntelligenceSearch(route.query || route.label, topicCategory);
+  }
+
+  async function loadIntelligenceSearch(searchTerm, routeCategory = 'top') {
+    const requestId = newsRequestId.current + 1;
+    newsRequestId.current = requestId;
+    setIsLoadingNews(true);
+    setStatus(`Loading intelligence for ${searchTerm}...`);
+    setArticles([]);
+    try {
+      const data = await fetchNewsJson({
+        q: searchTerm,
+        country: location.country,
+        language: 'en',
+      });
+      if (requestId !== newsRequestId.current) return;
+      setArticles((data.articles || []).map((article) => ({ ...article, category: routeCategory })));
+      setLastUpdated(new Date());
+      setStatus(`${data.total || 0} intelligence stories for ${searchTerm}`);
+    } catch (error) {
+      if (requestId !== newsRequestId.current) return;
+      setStatus(`Intelligence error: ${error.message}`);
+    } finally {
+      if (requestId === newsRequestId.current) setIsLoadingNews(false);
+    }
+  }
+
   async function loadMonetization() {
     if (!supabase) return;
     const [affiliateResult, adResult, sponsoredResult] = await Promise.all([
@@ -617,6 +756,10 @@ function App() {
   }
 
   function refreshCurrentNews() {
+    if (intelligenceRoute) {
+      loadIntelligenceRoute(intelligenceRoute);
+      return;
+    }
     trackEvent('refresh_news', {
       category,
       country: location.country,
@@ -655,6 +798,7 @@ function App() {
 
   function navigateCategory(nextCategory) {
     setScreen('home');
+    setIntelligenceRoute(null);
     setIsRootHome(false);
     setCategory(nextCategory);
     setQuery('');
@@ -671,6 +815,7 @@ function App() {
 
   function navigateHome() {
     setScreen('home');
+    setIntelligenceRoute(null);
     setCategory('top');
     setIsRootHome(true);
     setIsLocalPage(false);
@@ -685,6 +830,7 @@ function App() {
 
   function navigateAdmin() {
     setScreen('admin');
+    setIntelligenceRoute(null);
     setSelected(null);
     setIsRootHome(false);
     setMobileSearchOpen(false);
@@ -711,7 +857,7 @@ function App() {
   }
 
   function trackCurrentPageView() {
-    const context = { category, isRootHome, location, language, searchTerm: (readUrlParam('q') || query).trim() };
+    const context = { category, intelligenceRoute, isRootHome, location, language, searchTerm: (readUrlParam('q') || query).trim() };
     const url = selected ? articleContextUrl(selected, context) : contextUrlForSeo(context);
     const title = selected ? `${displayTitle(selected)} | Nuzenio` : pageSeoTitle(context);
     trackPageView(productionUrl(url), title);
@@ -831,6 +977,7 @@ function App() {
   const currentSearchTerm = (readUrlParam('q') || query).trim();
   const semanticPageTitle = pageSeoTitle({
     category,
+    intelligenceRoute,
     isRootHome,
     location,
     language,
@@ -882,7 +1029,23 @@ function App() {
       <AdSlot slots={adSlots} name="header-leaderboard" label="Header advertising inventory" />
       {!selected && <h1 className="srOnly">{semanticPageTitle}</h1>}
 
-      {screen === 'home' && (
+      {screen === 'home' && intelligenceRoute && (
+        <IntelligencePage
+          articles={articles}
+          copy={copy}
+          homeSectionFeeds={homeSectionFeeds}
+          isLoading={isLoadingNews || isLoadingHomeSections}
+          lastUpdated={lastUpdated}
+          location={location}
+          openArticle={openArticle}
+          refreshNews={refreshCurrentNews}
+          route={intelligenceRoute}
+          savedIds={savedIds}
+          status={status}
+          toggleSave={toggleSave}
+        />
+      )}
+      {screen === 'home' && !intelligenceRoute && (
         <Home
           articles={articles}
           category={category}
@@ -1781,6 +1944,271 @@ function HomeSectionStack({
   );
 }
 
+function IntelligencePage({
+  articles,
+  copy,
+  homeSectionFeeds,
+  isLoading,
+  lastUpdated,
+  location,
+  openArticle,
+  refreshNews,
+  route,
+  savedIds,
+  status,
+  toggleSave,
+}) {
+  const isCountry = route.type === 'country';
+  const isTopic = route.type === 'topic';
+  const title = isCountry
+    ? `${route.label} News Intelligence`
+    : isTopic
+      ? `${route.label} Topic Intelligence`
+      : `${route.label} Entity Intelligence`;
+  const intro = isCountry
+    ? `Top headlines, business, technology, sports, health, politics, and trend signals for ${route.label}.`
+    : isTopic
+      ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
+      : `Live news intelligence for ${route.label}, including related topics, countries, organizations, and stories.`;
+  const sections = buildIntelligenceSections(route, articles, homeSectionFeeds);
+  const trends = detectTrendSignals(articles);
+  const topics = extractTrendingTopics(articles);
+  const entities = extractEntities(articles);
+  const relatedCountries = relatedCountryLinks(route, articles);
+  const relatedTopics = relatedTopicLinks(route, articles);
+
+  return (
+    <main id="main-content" className="main intelligenceMain" tabIndex="-1">
+      <section>
+        <section className="intelligenceHero">
+          <div>
+            <span className="badge">
+              <Globe2 size={15} /> Global News Intelligence
+            </span>
+            <h2>{title}</h2>
+            <p>{intro}</p>
+            <div className="intelligenceMeta">
+              <span>{articles.length} live stories</span>
+              <span>{new Set(articles.map((article) => article.source).filter(Boolean)).size || 'Verified'} sources</span>
+              <span>{lastUpdated ? `Updated ${formatLastUpdated(lastUpdated)}` : 'Refreshing'}</span>
+            </div>
+          </div>
+          <div className="intelligenceScore">
+            <b>{trends.breaking.length + trends.growing.length + trends.spikes.length}</b>
+            <span>signals</span>
+          </div>
+        </section>
+
+        <div className="intelligenceLinkBar">
+          {intelligenceCountries.slice(0, 10).map((country) => (
+            <a key={country.slug} className={route.type === 'country' && route.slug === country.slug ? 'active' : ''} href={`/country/${country.slug}`}>
+              {country.label}
+            </a>
+          ))}
+        </div>
+        <div className="intelligenceLinkBar topicLinks">
+          {topicIntelligence.map((topic) => (
+            <a key={topic.slug} className={route.type === 'topic' && route.slug === topic.slug ? 'active' : ''} href={`/topic/${topic.slug}`}>
+              {topic.label}
+            </a>
+          ))}
+        </div>
+
+        <TrendSignalPanel trends={trends} openArticle={openArticle} />
+
+        {sections.map((section) => (
+          <section className="intelligenceSection" key={section.key}>
+            <div className="homeTopicHead">
+              <div>
+                <h3>{section.title}</h3>
+                <p>{section.intro}</p>
+              </div>
+              {section.href && <a href={section.href}>Explore <ChevronRight size={14} /></a>}
+            </div>
+            <div className="homeSectionGrid">
+              {section.articles.map((article) => (
+                <ArticleCard
+                  key={`${section.key}-${article.id}`}
+                  article={article}
+                  copy={copy}
+                  openArticle={openArticle}
+                  savedIds={savedIds}
+                  toggleSave={toggleSave}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <InternalLinkGraph
+          entities={entities}
+          relatedCountries={relatedCountries}
+          relatedTopics={relatedTopics}
+          topics={topics}
+        />
+
+        {isLoading && articles.length === 0 && <LoadingCards count={6} />}
+        {!isLoading && articles.length === 0 && <EmptyFeedState copy={copy} refreshNews={refreshNews} />}
+      </section>
+
+      <aside className="rightRail">
+        <Trending articles={articles} copy={copy} openArticle={openArticle} />
+        <AISummaryBox copy={copy} />
+        <TopicRail />
+        <div className="railCard">
+          <h3><ShieldCheck size={18} /> Intelligence status</h3>
+          <p>{status}</p>
+          <button onClick={refreshNews}>Refresh intelligence</button>
+        </div>
+      </aside>
+    </main>
+  );
+}
+
+function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
+  if (route.type === 'country') {
+    return [
+      { key: 'top', title: 'Top headlines', intro: 'The most important stories right now.', articles: articles.slice(0, 6), href: `/country/${route.slug}` },
+      { key: 'politics', title: 'Politics', intro: 'Government, policy, elections, courts, and public affairs.', articles: filterByKeywords(articles, ['government', 'election', 'minister', 'policy', 'court', 'president', 'parliament']).slice(0, 6) },
+      { key: 'business', title: 'Business', intro: 'Companies, economy, markets, and money.', articles: (homeSectionFeeds.business || filterByKeywords(articles, ['business', 'market', 'stock', 'economy', 'bank'])).slice(0, 6), href: '/business' },
+      { key: 'tech', title: 'Technology', intro: 'Technology, AI, startups, chips, apps, and platforms.', articles: (homeSectionFeeds.aiTech || filterByKeywords(articles, ['technology', 'ai', 'startup', 'chip', 'software'])).slice(0, 6), href: '/technology' },
+      { key: 'sports', title: 'Sports', intro: 'Sports highlights and match updates.', articles: (homeSectionFeeds.sports || filterByKeywords(articles, ['sports', 'match', 'league', 'cricket', 'football'])).slice(0, 6), href: '/sports' },
+      { key: 'health', title: 'Health', intro: 'Health, medicine, hospitals, and wellness.', articles: (homeSectionFeeds.health || filterByKeywords(articles, ['health', 'medical', 'hospital', 'doctor', 'disease'])).slice(0, 6), href: '/health' },
+    ].filter((section) => section.articles.length);
+  }
+
+  const keywordArticles = filterByKeywords(articles, route.type === 'topic' ? route.query.split(/\s+/) : [route.label]);
+  return [
+    { key: 'top', title: 'Top intelligence', intro: 'Most relevant live stories for this page.', articles: articles.slice(0, 6) },
+    { key: 'clusters', title: 'Breaking clusters', intro: 'Stories with multiple reports, source overlap, or rapid freshness.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
+    { key: 'context', title: 'Background and context', intro: 'Useful related reading around this topic or entity.', articles: keywordArticles.slice(0, 6) },
+  ].filter((section) => section.articles.length);
+}
+
+function filterByKeywords(articles, keywords = []) {
+  const terms = keywords.map((term) => String(term).toLowerCase()).filter((term) => term.length > 2);
+  if (!terms.length) return [];
+  return articles.filter((article) => {
+    const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''}`.toLowerCase();
+    return terms.some((term) => text.includes(term));
+  });
+}
+
+function detectTrendSignals(articles = []) {
+  const now = Date.now();
+  const recent = articles.filter((article) => {
+    const time = new Date(article.pubDate).getTime();
+    return Number.isFinite(time) && now - time < 6 * 60 * 60 * 1000;
+  });
+  return {
+    growing: articles.filter((article) => (article.clusterSize || 1) > 1 || (article.alsoReportedBy || []).length).slice(0, 6),
+    breaking: articles.filter((article) => /breaking|live|developing|alert|updates?/i.test(`${article.title} ${article.summary}`)).slice(0, 6),
+    spikes: recent.slice(0, 6),
+  };
+}
+
+function extractTrendingTopics(articles = []) {
+  const stop = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'after', 'over', 'into', 'news', 'says']);
+  const counts = new Map();
+  articles.forEach((article) => {
+    String(`${article.title || ''} ${article.summary || ''}`)
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .split(/\s+/)
+      .filter((word) => word.length > 4 && !stop.has(word))
+      .forEach((word) => counts.set(word, (counts.get(word) || 0) + 1));
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([label, count]) => ({ label, count }));
+}
+
+function extractEntities(articles = []) {
+  const counts = new Map();
+  const seedLabels = entitySeeds;
+  articles.forEach((article) => {
+    const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''}`;
+    seedLabels.forEach((label) => {
+      if (text.toLowerCase().includes(label.toLowerCase())) counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    const properNames = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b/g) || [];
+    properNames.slice(0, 8).forEach((label) => {
+      if (label.length > 3 && !['The', 'This', 'That'].includes(label)) counts.set(label, (counts.get(label) || 0) + 1);
+    });
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([label, count]) => ({
+    label,
+    count,
+    href: `/entity/${slugifyTitle(label)}`,
+  }));
+}
+
+function relatedCountryLinks(route, articles = []) {
+  const articleCountries = new Set(articles.map((article) => article.country).filter(Boolean));
+  return intelligenceCountries
+    .filter((country) => route.type !== 'country' || country.slug !== route.slug)
+    .filter((country) => articleCountries.size === 0 || articleCountries.has(country.code) || ['US', 'GB', 'IN'].includes(country.code))
+    .slice(0, 6)
+    .map((country) => ({ label: country.label, href: `/country/${country.slug}` }));
+}
+
+function relatedTopicLinks(route, articles = []) {
+  const text = articles.map((article) => `${article.title} ${article.summary}`).join(' ').toLowerCase();
+  return topicIntelligence
+    .filter((topic) => route.type !== 'topic' || topic.slug !== route.slug)
+    .filter((topic) => text.includes(topic.slug) || text.includes(topic.label.toLowerCase()) || ['ai', 'economy', 'markets', 'science'].includes(topic.slug))
+    .slice(0, 8)
+    .map((topic) => ({ label: topic.label, href: `/topic/${topic.slug}` }));
+}
+
+function TrendSignalPanel({ trends, openArticle }) {
+  const cards = [
+    { key: 'growing', title: 'Rapidly growing stories', text: 'Multiple reports or clusters are forming.', articles: trends.growing },
+    { key: 'breaking', title: 'Breaking clusters', text: 'Headlines with live, breaking, or developing signals.', articles: trends.breaking },
+    { key: 'spikes', title: 'Global discussion spikes', text: 'Fresh stories published in the last few hours.', articles: trends.spikes },
+  ];
+  return (
+    <section className="trendSignalGrid">
+      {cards.map((card) => (
+        <div className="trendSignalCard" key={card.key}>
+          <h3>{card.title}</h3>
+          <p>{card.text}</p>
+          {card.articles.slice(0, 3).map((article) => (
+            <button key={`${card.key}-${article.id}`} onClick={() => openArticle(article)}>
+              <b>{displayTitle(article)}</b>
+              <span>{article.source} · {formatFreshAge(article.pubDate)}</span>
+            </button>
+          ))}
+          {!card.articles.length && <small>No signal yet.</small>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function InternalLinkGraph({ entities, relatedCountries, relatedTopics, topics }) {
+  return (
+    <section className="internalLinkGraph">
+      <LinkCluster title="Trending topics" items={topics.map((topic) => ({ label: `${topic.label} (${topic.count})`, href: `/entity/${slugifyTitle(topic.label)}` }))} />
+      <LinkCluster title="Related countries" items={relatedCountries} />
+      <LinkCluster title="Related entities" items={entities} />
+      <LinkCluster title="Related intelligence topics" items={relatedTopics} />
+    </section>
+  );
+}
+
+function LinkCluster({ title, items = [] }) {
+  if (!items.length) return null;
+  return (
+    <div className="linkCluster">
+      <h3>{title}</h3>
+      <div>
+        {items.slice(0, 12).map((item) => (
+          <a key={`${title}-${item.href}-${item.label}`} href={item.href}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MustReadBand({ articles, copy, openArticle, savedIds, toggleSave }) {
   if (!articles.length) return null;
   const [lead, ...items] = articles.slice(0, 4);
@@ -2351,6 +2779,9 @@ function AISummaryBox({ copy }) {
 
 function TopicRail() {
   const topics = [
+    { label: 'India Intelligence', icon: Globe2, path: '/country/in' },
+    { label: 'US Intelligence', icon: Globe2, path: '/country/us' },
+    { label: 'AI Intelligence', icon: Sparkles, path: '/topic/ai' },
     { label: 'Business', icon: BriefcaseBusiness, path: categoryRoutes.business },
     { label: 'Technology', icon: Zap, path: categoryRoutes.tech },
     { label: 'Sports', icon: Trophy, path: categoryRoutes.sports },
@@ -3644,10 +4075,22 @@ function updateGoogleConsent(consent) {
 }
 
 function contextUrlForSeo(context) {
+  if (context.intelligenceRoute) {
+    return intelligenceRouteUrl(context.intelligenceRoute);
+  }
   if (context.isRootHome) {
     return new URL('/', window.location.href);
   }
   return homeContextUrl(context);
+}
+
+function intelligenceRouteUrl(route) {
+  const url = new URL('/', window.location.href);
+  if (route.type === 'country') url.pathname = `/country/${route.slug}`;
+  else if (route.type === 'topic') url.pathname = `/topic/${route.slug}`;
+  else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
+  url.search = '';
+  return url;
 }
 
 function productionUrl(url) {
@@ -3671,8 +4114,11 @@ function setAlternateLinks(context) {
   document.head.appendChild(link);
 }
 
-function pageSeoTitle({ category, isRootHome, location, language, searchTerm }) {
+function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, language, searchTerm }) {
   if (searchTerm) return `Search results for "${searchTerm}" | Nuzenio`;
+  if (intelligenceRoute?.type === 'country') return `${intelligenceRoute.label} News Intelligence | Nuzenio`;
+  if (intelligenceRoute?.type === 'topic') return `${intelligenceRoute.label} Topic Intelligence | Nuzenio`;
+  if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
   if (isRootHome) return 'Nuzenio - Global News, Local News, Live News & Video News';
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -3680,7 +4126,7 @@ function pageSeoTitle({ category, isRootHome, location, language, searchTerm }) 
   return `${sectionTitle} for ${place} | Nuzenio`;
 }
 
-function pageSeoDescription({ category, isRootHome, location, language, articles = [], searchTerm }) {
+function pageSeoDescription({ category, intelligenceRoute, isRootHome, location, language, articles = [], searchTerm }) {
   if (searchTerm) {
     const place = pageSeoPlace(category, location);
     const count = articles.length ? `${articles.length} live results` : 'Live news results';
@@ -3688,6 +4134,15 @@ function pageSeoDescription({ category, isRootHome, location, language, articles
   }
   if (isRootHome) {
     return 'Nuzenio is a professional English news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
+  }
+  if (intelligenceRoute?.type === 'country') {
+    return `Live ${intelligenceRoute.label} news intelligence on Nuzenio: top headlines, politics, business, technology, sports, health, trend signals, related topics, and source-attributed stories.`;
+  }
+  if (intelligenceRoute?.type === 'topic') {
+    return `Track ${intelligenceRoute.label} news intelligence on Nuzenio with live RSS headlines, trend detection, related entities, countries, source clusters, and AI-powered context.`;
+  }
+  if (intelligenceRoute?.type === 'entity') {
+    return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
@@ -3701,9 +4156,11 @@ function pageSeoDescription({ category, isRootHome, location, language, articles
 function pageJsonLd(url, { context, description, image, title }) {
   const sectionTitle = context.searchTerm
     ? `Search results for ${context.searchTerm}`
-    : (context.isRootHome
+    : (context.intelligenceRoute
+      ? `${context.intelligenceRoute.label} ${context.intelligenceRoute.type} intelligence`
+      : (context.isRootHome
       ? 'Global News Home'
-      : sectionContent(context.category, uiCopy(context.language.code), context.location).title);
+      : sectionContent(context.category, uiCopy(context.language.code), context.location).title));
   const place = pageSeoPlace(context.category, context.location);
   const websiteId = `${productionOrigin}/#website`;
   const organizationId = `${productionOrigin}/#organization`;
@@ -3846,9 +4303,11 @@ function itemListSchema(articles, context) {
 
   return {
     '@type': 'ItemList',
-    '@id': `${productionUrl(homeContextUrl(context))}#live-headlines`,
+    '@id': `${productionUrl(contextUrlForSeo(context))}#live-headlines`,
     name: context.searchTerm
       ? `Search results for ${context.searchTerm}`
+      : context.intelligenceRoute
+        ? `${context.intelligenceRoute.label} intelligence headlines`
       : `${sectionContent(context.category, uiCopy(context.language.code), context.location).title} live headlines`,
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: items.length,
@@ -3867,11 +4326,14 @@ function breadcrumbSchema(context, url, title, article = null) {
   ];
 
   if (!context.isRootHome) {
-    const sectionUrl = productionUrl(homeContextUrl(context));
+    const isIntelligence = Boolean(context.intelligenceRoute);
+    const sectionUrl = productionUrl(isIntelligence ? contextUrlForSeo(context) : homeContextUrl(context));
     items.push({
       '@type': 'ListItem',
       position: 2,
-      name: sectionContent(context.category, uiCopy(context.language.code), context.location).title,
+      name: isIntelligence
+        ? `${context.intelligenceRoute.label} intelligence`
+        : sectionContent(context.category, uiCopy(context.language.code), context.location).title,
       item: article ? sectionUrl : url,
     });
   }

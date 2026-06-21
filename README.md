@@ -19,6 +19,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
 - AI explain layer with 3-line summaries, key points, simple-English mode, timelines, background, and source comparison
 - Trust layer with source credibility labels, story clustering, fact-check status, source transparency, and correction reporting
+- Global intelligence pages for countries, topics, and entities with trend signals and internal linking
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
@@ -185,6 +186,13 @@ npm run build
 - The article page clearly labels AI summaries and keeps original source links visible.
 - Admins can enable or disable AI summaries, simple explain mode, source comparison, and category coverage in `public.ai_settings`.
 - Nuzenio should not invent facts or copy full publisher articles.
+
+## Intelligence pages
+
+- Country routes such as `/country/us`, `/country/in`, `/country/uk`, `/country/de`, and `/country/jp` provide live news dashboards.
+- Topic routes such as `/topic/ai`, `/topic/economy`, `/topic/markets`, `/topic/climate`, `/topic/energy`, `/topic/space`, and `/topic/startups` provide topic intelligence.
+- Entity routes such as `/entity/nvidia` or `/entity/openai` track people, companies, countries, and organizations through live RSS search.
+- Intelligence pages include trend signals, breaking clusters, related countries, related topics, related entities, and sitemap entries.
 
 ## Deploy
 

@@ -18,6 +18,9 @@ const categories = [
 ];
 
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
+const intelligenceCountries = ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'];
+const intelligenceTopics = ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'];
+const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states'];
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
@@ -89,6 +92,18 @@ for (const [category, priority] of categories) {
 
 for (const place of localPlaces) {
   entries.push(entry(url('local', place), 'hourly', '0.82'));
+}
+
+for (const country of intelligenceCountries) {
+  entries.push(entry(url(`country/${country}`), 'hourly', '0.88'));
+}
+
+for (const topic of intelligenceTopics) {
+  entries.push(entry(url(`topic/${topic}`), 'hourly', '0.86'));
+}
+
+for (const entity of intelligenceEntities) {
+  entries.push(entry(url(`entity/${entity}`), 'hourly', '0.72'));
 }
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
