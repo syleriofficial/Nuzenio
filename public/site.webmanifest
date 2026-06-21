@@ -1,7 +1,7 @@
 {
   "name": "Nuzenio",
   "short_name": "Nuzenio",
-  "description": "Nuzenio is a professional English news platform for local news, world news, live news, video news, and AI-powered context.",
+  "description": "Nuzenio is a professional multi-language news platform for local news, world news, live news, video news, and AI-powered context.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

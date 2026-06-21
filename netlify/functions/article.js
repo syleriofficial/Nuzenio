@@ -2,6 +2,8 @@ import { handler as newsHandler } from './news.js';
 
 const siteUrl = 'https://nuzenio.com';
 const fallbackImage = `${siteUrl}/og-image.svg`;
+const supportedLanguages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
+const supportedLanguageSet = new Set(supportedLanguages);
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -30,8 +32,16 @@ function normalizeCountry(value = 'IN') {
 }
 
 function articleIdFromPath(path = '') {
-  const [, encodedId] = path.match(/^\/article\/([^/?#]+)\/?/) || [];
+  const [, maybeLang, rest = path] = path.match(/^\/([a-z]{2})(\/article\/.*)$/i) || [];
+  const articlePath = maybeLang && supportedLanguageSet.has(maybeLang.toLowerCase()) ? rest : path;
+  const [, encodedId] = articlePath.match(/^\/article\/([^/?#]+)\/?/) || [];
   return encodedId ? decodeURIComponent(encodedId) : '';
+}
+
+function languageFromPath(path = '', fallback = 'en') {
+  const [, maybeLang] = path.match(/^\/([a-z]{2})(?:\/|$)/i) || [];
+  const value = String(maybeLang || fallback || 'en').toLowerCase().split('-')[0];
+  return supportedLanguageSet.has(value) ? value : 'en';
 }
 
 function slugifyTitle(value = '') {
@@ -51,8 +61,12 @@ function articleSlug(article, fallback = '') {
   return article?.slug || slugifyTitle(article?.title || fallback || 'news-story');
 }
 
-function articleUrl(slug, category, country) {
-  const url = new URL(`/article/${encodeURIComponent(slug)}`, siteUrl);
+function localizedPath(path, language = 'en') {
+  return language === 'en' ? path : `/${language}${path}`;
+}
+
+function articleUrl(slug, category, country, language = 'en') {
+  const url = new URL(localizedPath(`/article/${encodeURIComponent(slug)}`, language), siteUrl);
   url.searchParams.set('country', country);
   url.searchParams.set('category', category);
   return url.toString();
@@ -77,9 +91,9 @@ function safeJsonScript(value) {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
-function htmlDocument({ article, articleId, category, country }) {
+function htmlDocument({ article, articleId, category, country, language }) {
   const slug = articleSlug(article, articleId);
-  const canonical = articleUrl(slug, category, country);
+  const canonical = articleUrl(slug, category, country, language);
   const app = appUrl(slug, category, country);
   const isFound = Boolean(article);
   const title = article?.title ? `${article.title} | Nuzenio` : 'Story expired | Nuzenio';
@@ -103,7 +117,7 @@ function htmlDocument({ article, articleId, category, country }) {
     },
     url: canonical,
     articleSection: category,
-    inLanguage: 'en',
+    inLanguage: language,
     isAccessibleForFree: true,
     publisher: {
       '@type': 'NewsMediaOrganization',
@@ -126,12 +140,14 @@ function htmlDocument({ article, articleId, category, country }) {
   };
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(language)}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="${isFound ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' : 'noindex, follow'}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
+  <link rel="alternate" hreflang="x-default" href="${escapeHtml(articleUrl(slug, category, country, 'en'))}">
+  ${supportedLanguages.map((code) => `<link rel="alternate" hreflang="${code}" href="${escapeHtml(articleUrl(slug, category, country, code))}">`).join('\n  ')}
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(description)}">
@@ -165,7 +181,7 @@ function htmlDocument({ article, articleId, category, country }) {
 </html>`;
 }
 
-async function findArticle(articleKey, category, country, event) {
+async function findArticle(articleKey, category, country, language, event) {
   const categories = [category, 'top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment'];
   for (const cat of [...new Set(categories)]) {
     const newsResponse = await newsHandler({
@@ -174,7 +190,7 @@ async function findArticle(articleKey, category, country, event) {
       queryStringParameters: {
         category: cat,
         country,
-        language: 'en',
+        language,
       },
     });
     const data = JSON.parse(newsResponse.body || '{}');
@@ -199,16 +215,17 @@ export const handler = async (event) => {
     };
   }
 
+  const language = languageFromPath(event.path || '', event.queryStringParameters?.language || 'en');
   const articleId = articleIdFromPath(event.path || '');
   const requestedCategory = normalizeCategory(event.queryStringParameters?.category || 'top');
   const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
   const { article, category } = articleId
-    ? await findArticle(articleId, requestedCategory, country, event)
+    ? await findArticle(articleId, requestedCategory, country, language, event)
     : { article: null, category: requestedCategory };
 
   return {
     statusCode: article ? 200 : 404,
     headers,
-    body: htmlDocument({ article, articleId, category, country }),
+    body: htmlDocument({ article, articleId, category, country, language }),
   };
 };

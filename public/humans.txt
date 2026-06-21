@@ -2,7 +2,7 @@
 
 Site: https://nuzenio.com
 Name: Nuzenio
-Description: Professional English news platform for live RSS headlines, local news, video news, live news channels, and AI-powered context.
+Description: Professional multi-language news platform for live RSS headlines, local news, video news, live news channels, and AI-powered context.
 
 /* Contact */
 
@@ -24,6 +24,6 @@ Advertising: Google AdSense-ready structure
 
 /* Standards */
 
-Language: English
+Language: English plus Hindi, Spanish, French, German, Portuguese, Arabic, Japanese, Korean, Chinese, Bengali, Tamil, Telugu, Marathi, and Urdu
 Source Model: Publisher-attributed RSS and approved playable news sources
 Last Updated: 2026-06-19

@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 
 const siteUrl = 'https://nuzenio.com';
+const languages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
 
 const categories = [
   ['top-news', '0.95'],
@@ -81,11 +82,26 @@ function url(path = '', params = {}) {
   return output.toString();
 }
 
+function localizedPath(path = '', language = 'en') {
+  const clean = String(path || '').replace(/^\/+/, '');
+  if (language === 'en') return clean;
+  return clean ? `${language}/${clean}` : language;
+}
+
 function entry(loc, changefreq = 'hourly', priority = '0.70') {
   return `  <url><loc>${escapeXml(loc)}</loc><lastmod>${lastmod}</lastmod><changefreq>${changefreq}</changefreq><priority>${priority}</priority></url>`;
 }
 
 const entries = [];
+const languageEntries = [];
+
+function pushLocalized(path, changefreq = 'hourly', priority = '0.70', params = {}) {
+  for (const language of languages) {
+    const loc = url(localizedPath(path, language), params);
+    entries.push(entry(loc, changefreq, priority));
+    languageEntries.push({ path, loc, language, changefreq, priority, params });
+  }
+}
 
 for (const [path, changefreq, priority] of staticPages) {
   entries.push(entry(url(path), changefreq, priority));
@@ -93,6 +109,7 @@ for (const [path, changefreq, priority] of staticPages) {
 
 for (const [category, priority] of categories) {
   entries.push(entry(url(category), 'hourly', priority));
+  pushLocalized(category, 'hourly', priority);
   for (const country of countries) {
     entries.push(entry(url(category, { country }), 'hourly', priority));
   }
@@ -104,38 +121,47 @@ for (const place of localPlaces) {
 
 for (const country of intelligenceCountries) {
   entries.push(entry(url(`country/${country}`), 'hourly', '0.88'));
+  pushLocalized(`country/${country}`, 'hourly', '0.88');
 }
 
 for (const topic of intelligenceTopics) {
   entries.push(entry(url(`topic/${topic}`), 'hourly', '0.86'));
+  pushLocalized(`topic/${topic}`, 'hourly', '0.86');
 }
 
 for (const entity of intelligenceEntities) {
   entries.push(entry(url(`entity/${entity}`), 'hourly', '0.72'));
+  pushLocalized(`entity/${entity}`, 'hourly', '0.72');
 }
 
 for (const publisher of publisherPages) {
   entries.push(entry(url(`publisher/${publisher}`), 'hourly', '0.76'));
+  pushLocalized(`publisher/${publisher}`, 'hourly', '0.76');
 }
 
 for (const author of authorPages) {
   entries.push(entry(url(`author/${author}`), 'weekly', '0.68'));
+  pushLocalized(`author/${author}`, 'weekly', '0.68');
 }
 
 for (const page of seoLandingPages) {
   entries.push(entry(url(page), 'hourly', '0.90'));
+  pushLocalized(page, 'hourly', '0.90');
 }
 
 for (const page of dataPlatformPages) {
   entries.push(entry(url(page), 'hourly', '0.82'));
+  pushLocalized(page, 'hourly', '0.82');
 }
 
 for (const hub of evergreenHubs) {
   entries.push(entry(url(`hub/${hub}`), 'hourly', '0.84'));
+  pushLocalized(`hub/${hub}`, 'hourly', '0.84');
 }
 
 for (const alias of hubAliases) {
   entries.push(entry(url(alias), 'hourly', '0.78'));
+  pushLocalized(alias, 'hourly', '0.78');
 }
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -145,4 +171,28 @@ ${[...new Set(entries)].join('\n')}
 `;
 
 writeFileSync(new URL('../public/sitemap.xml', import.meta.url), sitemap);
-console.log(`Generated sitemap with ${new Set(entries).size} URLs`);
+
+function languageEntry({ path, loc, language, changefreq, priority }) {
+  const alternates = languages.map((code) => {
+    const href = url(localizedPath(path, code));
+    return `    <xhtml:link rel="alternate" hreflang="${code}" href="${escapeXml(href)}" />`;
+  }).join('\n');
+  return `  <url>
+    <loc>${escapeXml(loc)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(url(path))}" />
+${alternates}
+  </url>`;
+}
+
+const languageSitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${languageEntries.map(languageEntry).join('\n')}
+</urlset>
+`;
+
+writeFileSync(new URL('../public/sitemap-languages.xml', import.meta.url), languageSitemap);
+console.log(`Generated sitemap with ${new Set(entries).size} URLs and ${languageEntries.length} localized URLs`);

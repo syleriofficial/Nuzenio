@@ -10,12 +10,16 @@ Production-oriented Netlify + Supabase AI news platform.
 - Clean section pages for `/local`, `/live`, and `/video`
 - SEO topic pages for `/top-news`, `/world`, `/business`, `/technology`, `/ai`, `/sports`, `/entertainment`, `/health`, and `/science`
 - English-first website experience with automatic local-country news
+- Global multi-language expansion for English, Hindi, Spanish, French, German, Portuguese, Arabic, Japanese, Korean, Chinese, Bengali, Tamil, Telugu, Marathi, and Urdu
+- Localized routes such as `/en/world-news`, `/hi/world-news`, `/es/world-news`, with hreflang alternates and `sitemap-languages.xml`
+- Regional editions for India, USA, UK, Canada, Australia, Europe, Middle East, and Asia-Pacific
+- Translation workflow tables for translated summaries, AI confidence, source language tracking, and human review
 - Premium clean white responsive UI
 - Red breaking-news accent and blue AI/action buttons
 - Google login wiring with Supabase Auth
 - Saved articles, reading history, newsletter subscribers, RSS sources, AdSense slots, sponsored blocks, and analytics schema
 - Newsletter retention system with double opt-in, unsubscribe tokens, reader preferences, and digest logs
-- English-only launch flow for cleaner UX, SEO, AdSense review, and source consistency
+- English-first editorial safety with global language routes, localized RSS requests, and translation quality controls
 - Article detail modal with AI summary, what happened, why it matters, key facts, source attribution, and read-original link
 - AI explain layer with 3-line summaries, key points, simple-English mode, timelines, background, and source comparison
 - Trust layer with source credibility labels, story clustering, fact-check status, source transparency, and correction reporting
@@ -139,6 +143,7 @@ https://nuzenio.com
 https://nuzenio.com/api/news
 https://nuzenio.com/feed.xml
 https://nuzenio.com/news-sitemap.xml
+https://nuzenio.com/sitemap-languages.xml
 https://nuzenio.com/about.html
 https://nuzenio.com/editorial-policy.html
 https://nuzenio.com/ai-policy.html
@@ -155,6 +160,25 @@ https://nuzenio.com/.well-known/security.txt
 8. Submit `https://nuzenio.com/sitemap.xml` and `https://nuzenio.com/news-sitemap.xml` in Google Search Console.
 9. Confirm `/feed.xml` and `/news-sitemap.xml` return XML, not the SPA HTML shell.
 10. Keep `https://nuzenio.com` as the canonical production URL.
+
+## Multi-language SEO
+
+Nuzenio supports these language codes:
+
+```text
+en, hi, es, fr, de, pt, ar, ja, ko, zh, bn, ta, te, mr, ur
+```
+
+Examples:
+
+```text
+https://nuzenio.com/en/world-news
+https://nuzenio.com/hi/world-news
+https://nuzenio.com/es/world-news
+https://nuzenio.com/ar/world-news
+```
+
+The app auto-detects browser language, lets readers switch manually, remembers `nuzenio_news_language`, and marks non-English article views as localized summary views while preserving original publisher links. Run the new Supabase schema so `languages`, `translated_articles`, `translation_jobs`, and `regional_editions` exist before turning on human-reviewed translation workflows.
 
 ## Local development
 

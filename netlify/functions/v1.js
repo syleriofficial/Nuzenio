@@ -7,6 +7,35 @@ const headers = {
   'X-Content-Type-Options': 'nosniff',
 };
 
+const supportedLanguages = [
+  { code: 'en', name: 'English', native_name: 'English', direction: 'ltr', region: 'Global' },
+  { code: 'hi', name: 'Hindi', native_name: 'हिन्दी', direction: 'ltr', region: 'India' },
+  { code: 'es', name: 'Spanish', native_name: 'Español', direction: 'ltr', region: 'Latin America' },
+  { code: 'fr', name: 'French', native_name: 'Français', direction: 'ltr', region: 'Europe / Africa' },
+  { code: 'de', name: 'German', native_name: 'Deutsch', direction: 'ltr', region: 'Europe' },
+  { code: 'pt', name: 'Portuguese', native_name: 'Português', direction: 'ltr', region: 'Brazil / Portugal' },
+  { code: 'ar', name: 'Arabic', native_name: 'العربية', direction: 'rtl', region: 'Middle East' },
+  { code: 'ja', name: 'Japanese', native_name: '日本語', direction: 'ltr', region: 'Japan' },
+  { code: 'ko', name: 'Korean', native_name: '한국어', direction: 'ltr', region: 'South Korea' },
+  { code: 'zh', name: 'Chinese', native_name: '中文', direction: 'ltr', region: 'Greater China' },
+  { code: 'bn', name: 'Bengali', native_name: 'বাংলা', direction: 'ltr', region: 'Bangladesh / India' },
+  { code: 'ta', name: 'Tamil', native_name: 'தமிழ்', direction: 'ltr', region: 'India / Sri Lanka' },
+  { code: 'te', name: 'Telugu', native_name: 'తెలుగు', direction: 'ltr', region: 'India' },
+  { code: 'mr', name: 'Marathi', native_name: 'मराठी', direction: 'ltr', region: 'India' },
+  { code: 'ur', name: 'Urdu', native_name: 'اردو', direction: 'rtl', region: 'Pakistan / India' },
+];
+
+const regionalEditions = [
+  { slug: 'india', name: 'India', countries: ['IN'], languages: ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'ur'] },
+  { slug: 'usa', name: 'USA', countries: ['US'], languages: ['en', 'es'] },
+  { slug: 'uk', name: 'UK', countries: ['GB'], languages: ['en'] },
+  { slug: 'canada', name: 'Canada', countries: ['CA'], languages: ['en', 'fr'] },
+  { slug: 'australia', name: 'Australia', countries: ['AU'], languages: ['en'] },
+  { slug: 'europe', name: 'Europe', countries: ['DE', 'FR', 'ES'], languages: ['en', 'fr', 'de', 'es', 'pt'] },
+  { slug: 'middle-east', name: 'Middle East', countries: ['AE'], languages: ['en', 'ar', 'ur'] },
+  { slug: 'asia-pacific', name: 'Asia-Pacific', countries: ['JP', 'KR', 'SG', 'AU'], languages: ['en', 'ja', 'ko', 'zh'] },
+];
+
 function supabaseConfig() {
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -189,6 +218,23 @@ async function readUserCapabilities() {
   };
 }
 
+async function readLanguages() {
+  return {
+    languages: supportedLanguages,
+    translationPolicy: {
+      summariesOnly: true,
+      preserveSourceAttribution: true,
+      labelTranslatedContent: true,
+      humanReviewWorkflow: true,
+      confidenceScore: true,
+    },
+  };
+}
+
+async function readRegionalEditions() {
+  return { regionalEditions };
+}
+
 async function logUsage(event, endpoint, statusCode) {
   const key = event.headers['x-nuzenio-key'] || event.headers['X-Nuzenio-Key'] || '';
   if (!key) return;
@@ -240,9 +286,13 @@ export const handler = async (event) => {
                     ? await readRecommendations(url)
                     : endpoint === 'user'
                       ? await readUserCapabilities(url)
-                  : null;
+                      : endpoint === 'languages'
+                        ? await readLanguages(url)
+                        : endpoint === 'regional-editions'
+                          ? await readRegionalEditions(url)
+                          : null;
 
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user'] });
+    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions'] });
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {

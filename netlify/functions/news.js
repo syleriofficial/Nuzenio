@@ -10,6 +10,8 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
+const SUPPORTED_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur']);
+
 const CATEGORY_SEARCH_TERMS = {
   top: {
     ar: 'أهم الأخبار العاجلة اليوم',
@@ -1198,7 +1200,8 @@ function normalizeCategory(category = 'local') {
 }
 
 function normalizeLanguage(language = 'en') {
-  return 'en';
+  const value = String(language || 'en').toLowerCase().split('-')[0];
+  return SUPPORTED_LANGUAGES.has(value) ? value : 'en';
 }
 
 function googleNewsUrl({ category, country, q, region, city, language }) {

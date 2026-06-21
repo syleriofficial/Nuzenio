@@ -374,7 +374,34 @@ const localPlacePresets = {
 };
 
 const languages = [
-  { code: 'en', label: 'English', native: 'English', dir: 'ltr' },
+  { code: 'en', label: 'English', native: 'English', dir: 'ltr', region: 'Global' },
+  { code: 'hi', label: 'Hindi', native: 'हिन्दी', dir: 'ltr', region: 'India' },
+  { code: 'es', label: 'Spanish', native: 'Español', dir: 'ltr', region: 'Latin America' },
+  { code: 'fr', label: 'French', native: 'Français', dir: 'ltr', region: 'Europe / Africa' },
+  { code: 'de', label: 'German', native: 'Deutsch', dir: 'ltr', region: 'Europe' },
+  { code: 'pt', label: 'Portuguese', native: 'Português', dir: 'ltr', region: 'Brazil / Portugal' },
+  { code: 'ar', label: 'Arabic', native: 'العربية', dir: 'rtl', region: 'Middle East' },
+  { code: 'ja', label: 'Japanese', native: '日本語', dir: 'ltr', region: 'Japan' },
+  { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr', region: 'South Korea' },
+  { code: 'zh', label: 'Chinese', native: '中文', dir: 'ltr', region: 'Greater China' },
+  { code: 'bn', label: 'Bengali', native: 'বাংলা', dir: 'ltr', region: 'Bangladesh / India' },
+  { code: 'ta', label: 'Tamil', native: 'தமிழ்', dir: 'ltr', region: 'India / Sri Lanka' },
+  { code: 'te', label: 'Telugu', native: 'తెలుగు', dir: 'ltr', region: 'India' },
+  { code: 'mr', label: 'Marathi', native: 'मराठी', dir: 'ltr', region: 'India' },
+  { code: 'ur', label: 'Urdu', native: 'اردو', dir: 'rtl', region: 'Pakistan / India' },
+];
+
+const languageCodes = new Set(languages.map((item) => item.code));
+
+const regionalEditions = [
+  { slug: 'india', label: 'India', countries: ['IN'], languages: ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'ur'] },
+  { slug: 'usa', label: 'USA', countries: ['US'], languages: ['en', 'es'] },
+  { slug: 'uk', label: 'UK', countries: ['GB'], languages: ['en'] },
+  { slug: 'canada', label: 'Canada', countries: ['CA'], languages: ['en', 'fr'] },
+  { slug: 'australia', label: 'Australia', countries: ['AU'], languages: ['en'] },
+  { slug: 'europe', label: 'Europe', countries: ['DE', 'FR', 'ES'], languages: ['en', 'fr', 'de', 'es', 'pt'] },
+  { slug: 'middle-east', label: 'Middle East', countries: ['AE'], languages: ['en', 'ar', 'ur'] },
+  { slug: 'asia-pacific', label: 'Asia-Pacific', countries: ['JP', 'KR', 'SG', 'AU'], languages: ['en', 'ja', 'ko', 'zh'] },
 ];
 
 const translations = {
@@ -431,10 +458,84 @@ const translations = {
       video: 'Video',
     },
   },
+  hi: {
+    tagline: 'AI वैश्विक समाचार पुल',
+    searchPlaceholder: 'समाचार खोजें...',
+    search: 'खोजें',
+    newsLanguage: 'समाचार भाषा',
+    home: 'होम',
+    login: 'Google लॉगिन',
+    logout: 'लॉगआउट',
+    breaking: 'ब्रेकिंग',
+    localNewsFor: 'स्थानीय खबरें',
+    useLocation: 'मेरी लोकेशन',
+    latestStories: 'ताज़ा खबरें',
+    aiBriefReady: 'AI सारांश तैयार',
+    readStory: 'खबर पढ़ें',
+    aiBrief: 'AI सारांश',
+    save: 'सेव',
+    source: 'स्रोत',
+    trending: 'ट्रेंडिंग',
+    readOriginal: 'मूल प्रकाशक की खबर पढ़ें',
+    emptyFeed: 'अभी लाइव खबरें नहीं मिलीं।',
+    categories: { local: 'लोकल', top: 'टॉप न्यूज़', world: 'दुनिया', business: 'बिजनेस', tech: 'टेक्नोलॉजी', ai: 'AI', sports: 'खेल', entertainment: 'मनोरंजन', health: 'स्वास्थ्य', science: 'विज्ञान', live: 'लाइव न्यूज़', video: 'वीडियो' },
+  },
+  es: {
+    tagline: 'Puente global de noticias con IA',
+    searchPlaceholder: 'Buscar noticias...',
+    search: 'Buscar',
+    newsLanguage: 'Idioma de noticias',
+    home: 'Inicio',
+    login: 'Google Login',
+    logout: 'Salir',
+    breaking: 'ÚLTIMA HORA',
+    localNewsFor: 'Noticias locales de',
+    useLocation: 'Usar mi ubicación',
+    latestStories: 'Últimas historias',
+    aiBriefReady: 'Resumen IA listo',
+    readStory: 'Leer historia',
+    aiBrief: 'Resumen IA',
+    save: 'Guardar',
+    source: 'Fuente',
+    trending: 'Tendencias',
+    readOriginal: 'Leer historia original',
+    emptyFeed: 'No hay noticias en vivo todavía.',
+    categories: { local: 'Local', top: 'Titulares', world: 'Mundo', business: 'Negocios', tech: 'Tecnología', ai: 'IA', sports: 'Deportes', entertainment: 'Entretenimiento', health: 'Salud', science: 'Ciencia', live: 'Noticias en vivo', video: 'Video' },
+  },
+  ar: {
+    tagline: 'جسر أخبار عالمي بالذكاء الاصطناعي',
+    searchPlaceholder: 'ابحث في الأخبار...',
+    search: 'بحث',
+    newsLanguage: 'لغة الأخبار',
+    home: 'الرئيسية',
+    login: 'تسجيل Google',
+    logout: 'خروج',
+    breaking: 'عاجل',
+    localNewsFor: 'أخبار محلية لـ',
+    useLocation: 'استخدم موقعي',
+    latestStories: 'آخر الأخبار',
+    aiBriefReady: 'ملخص AI جاهز',
+    readStory: 'اقرأ الخبر',
+    aiBrief: 'ملخص AI',
+    save: 'حفظ',
+    source: 'المصدر',
+    trending: 'الأكثر تداولاً',
+    readOriginal: 'اقرأ الخبر من الناشر الأصلي',
+    emptyFeed: 'لا توجد أخبار مباشرة بعد.',
+    categories: { local: 'محلي', top: 'أهم الأخبار', world: 'العالم', business: 'الأعمال', tech: 'التقنية', ai: 'AI', sports: 'رياضة', entertainment: 'ترفيه', health: 'صحة', science: 'علوم', live: 'أخبار مباشرة', video: 'فيديو' },
+  },
 };
 
-function uiCopy() {
-  return translations.en;
+function uiCopy(languageCode = 'en') {
+  const selectedCopy = translations[languageCode] || {};
+  return {
+    ...translations.en,
+    ...selectedCopy,
+    categories: {
+      ...translations.en.categories,
+      ...(selectedCopy.categories || {}),
+    },
+  };
 }
 
 function readUrlParam(name) {
@@ -442,8 +543,46 @@ function readUrlParam(name) {
 }
 
 function normalizedPathname() {
-  const path = window.location.pathname.replace(/\/+$/, '');
-  return path || '/';
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  return stripLanguagePrefix(path);
+}
+
+function stripLanguagePrefix(path = '/') {
+  const cleanPath = path.replace(/\/+$/, '') || '/';
+  const [, maybeLang, rest = ''] = cleanPath.match(/^\/([a-z]{2})(\/.*)?$/i) || [];
+  if (!maybeLang || !languageCodes.has(maybeLang.toLowerCase())) return cleanPath;
+  return rest || '/';
+}
+
+function readLanguageCodeFromPath(path = window.location.pathname) {
+  const [, maybeLang] = path.match(/^\/([a-z]{2})(?:\/|$)/i) || [];
+  return languageCodes.has(String(maybeLang || '').toLowerCase()) ? maybeLang.toLowerCase() : '';
+}
+
+function languageByCode(code = 'en') {
+  return languages.find((item) => item.code === code) || languages[0];
+}
+
+function detectBrowserLanguage() {
+  const candidates = [navigator.language, ...(navigator.languages || [])].filter(Boolean);
+  const matched = candidates
+    .map((value) => String(value).split('-')[0].toLowerCase())
+    .find((code) => languageCodes.has(code));
+  return matched || 'en';
+}
+
+function currentLanguageCode() {
+  const urlLanguage = readLanguageCodeFromPath() || readUrlParam('language');
+  if (languageCodes.has(String(urlLanguage || '').toLowerCase())) return String(urlLanguage).toLowerCase();
+  const saved = readLocal('nuzenio_news_language', '', 'newssetu_news_language');
+  if (languageCodes.has(String(saved || '').toLowerCase())) return String(saved).toLowerCase();
+  return detectBrowserLanguage();
+}
+
+function localizedPath(path = '/', languageCode = 'en') {
+  const clean = stripLanguagePrefix(path || '/');
+  if (languageCode === 'en') return clean || '/';
+  return clean === '/' ? `/${languageCode}` : `/${languageCode}${clean}`;
 }
 
 function isRootHomePath() {
@@ -507,7 +646,7 @@ function titleFromSlug(slug = '') {
 }
 
 function readArticleIdFromUrl() {
-  const [, articleId] = window.location.pathname.match(/^\/article\/([^/]+)\/?$/) || [];
+  const [, articleId] = stripLanguagePrefix(window.location.pathname).match(/^\/article\/([^/]+)\/?$/) || [];
   return articleId ? decodeURIComponent(articleId) : readUrlParam('article');
 }
 
@@ -544,7 +683,7 @@ function initialCategory() {
 }
 
 function initialLanguage() {
-  return languages[0];
+  return languageByCode(currentLanguageCode());
 }
 
 function initialLocation() {
@@ -572,10 +711,10 @@ function initialLocation() {
   };
 }
 
-function contextUrl({ category, location }) {
+function contextUrl({ category, location, language = languageByCode(currentLanguageCode()) }) {
   const url = new URL('/', window.location.origin);
   const currentArticle = readArticleIdFromUrl();
-  url.pathname = categoryRoutes[category] || '/';
+  url.pathname = localizedPath(categoryRoutes[category] || '/', language.code);
   if (categoryRoutes[category]) url.searchParams.delete('category');
   else url.searchParams.set('category', category);
   url.searchParams.set('country', location.country);
@@ -585,23 +724,23 @@ function contextUrl({ category, location }) {
   if (category === 'local' && location.city) url.searchParams.set('city', location.city);
   else url.searchParams.delete('city');
   if (currentArticle) {
-    url.pathname = `/article/${encodeURIComponent(currentArticle)}`;
+    url.pathname = localizedPath(`/article/${encodeURIComponent(currentArticle)}`, language.code);
     url.searchParams.set('category', category);
   }
   url.searchParams.delete('article');
   return url;
 }
 
-function homeContextUrl({ category, location }) {
-  const url = contextUrl({ category, location });
-  url.pathname = categoryRoutes[category] || '/';
+function homeContextUrl({ category, location, language }) {
+  const url = contextUrl({ category, location, language });
+  url.pathname = localizedPath(categoryRoutes[category] || '/', language?.code || currentLanguageCode());
   url.searchParams.delete('article');
   return url;
 }
 
 function articleContextUrl(article, context) {
   const url = contextUrl(context);
-  url.pathname = `/article/${encodeURIComponent(articleSlug(article))}`;
+  url.pathname = localizedPath(`/article/${encodeURIComponent(articleSlug(article))}`, context.language?.code || currentLanguageCode());
   url.searchParams.set('category', article.category || context.category || 'top');
   url.searchParams.delete('article');
   return url;
@@ -616,7 +755,7 @@ function App() {
   const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [query, setQuery] = useState(() => readUrlParam('q') || '');
-  const language = initialLanguage();
+  const [language, setLanguage] = useState(initialLanguage);
   const [location, setLocation] = useState(initialLocation);
   const [savedIds, setSavedIds] = useState(() => readLocal('nuzenio_saved_ids', [], 'newssetu_saved_ids'));
   const [history, setHistory] = useState(() => readLocal('nuzenio_history', [], 'newssetu_history'));
@@ -668,8 +807,8 @@ function App() {
       searchNewsByTerm(urlQuery, { updateUrl: false });
       return;
     }
-    loadNews(category, location.country, location.region, location.city, 'en');
-  }, [category, location.country, location.region, location.city, intelligenceRoute?.type, intelligenceRoute?.slug]);
+    loadNews(category, location.country, location.region, location.city, language.code);
+  }, [category, location.country, location.region, location.city, language.code, intelligenceRoute?.type, intelligenceRoute?.slug]);
 
   useEffect(() => {
     if (!isRootHome) {
@@ -680,7 +819,7 @@ function App() {
     const cancel = window.cancelIdleCallback || window.clearTimeout;
     const handle = schedule(() => loadHomeSectionFeeds(location.country));
     return () => cancel(handle);
-  }, [isRootHome, location.country]);
+  }, [isRootHome, location.country, language.code]);
 
   useEffect(() => {
     if (intelligenceRoute) {
@@ -691,10 +830,10 @@ function App() {
       setIsLocalPage(false);
       return;
     }
-    const url = contextUrl({ category, location });
+    const url = contextUrl({ category, location, language });
     window.history.replaceState({}, '', url);
     setIsLocalPage(category === 'local' && url.pathname === categoryRoutes.local);
-  }, [category, isRootHome, location.country, location.region, location.city, intelligenceRoute?.type, intelligenceRoute?.slug]);
+  }, [category, isRootHome, location.country, location.region, location.city, language.code, intelligenceRoute?.type, intelligenceRoute?.slug]);
 
   useEffect(() => {
     function syncArticleFromUrl() {
@@ -706,6 +845,8 @@ function App() {
         return;
       }
       setScreen('home');
+      const pathLanguage = readLanguageCodeFromPath();
+      if (pathLanguage && pathLanguage !== language.code) setLanguage(languageByCode(pathLanguage));
       const nextIntelligenceRoute = readIntelligenceRoute();
       setIntelligenceRoute(nextIntelligenceRoute);
       setIsRootHome(isRootHomePath());
@@ -726,7 +867,7 @@ function App() {
     syncArticleFromUrl();
     window.addEventListener('popstate', syncArticleFromUrl);
     return () => window.removeEventListener('popstate', syncArticleFromUrl);
-  }, [articles]);
+  }, [articles, language.code]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -743,7 +884,7 @@ function App() {
 
   useEffect(() => {
     updatePageSeo(selected, { category, intelligenceRoute, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
-  }, [selected, articles, category, intelligenceRoute?.type, intelligenceRoute?.slug, isRootHome, query, location.country, location.region, location.city]);
+  }, [selected, articles, category, intelligenceRoute?.type, intelligenceRoute?.slug, isRootHome, query, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
     if (screen !== 'admin') return;
@@ -808,12 +949,12 @@ function App() {
     const searchTerm = query.trim();
     if (!searchTerm) {
       clearSearchUrl();
-      return loadNews(category, location.country, location.region, location.city, 'en');
+      return loadNews(category, location.country, location.region, location.city, language.code);
     }
     return searchNewsByTerm(searchTerm, { updateUrl: true });
   }
 
-  async function searchNewsByTerm(searchTerm, { updateUrl = true } = {}) {
+  async function searchNewsByTerm(searchTerm, { updateUrl = true, languageCode = language.code } = {}) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
     setIsRootHome(false);
@@ -825,7 +966,7 @@ function App() {
       const data = await fetchNewsJson({
         q: searchTerm,
         country: location.country,
-        language: 'en',
+        language: languageCode,
       });
       if (requestId !== newsRequestId.current) return;
       if (!data.ok) throw new Error(data.error || 'Search failed');
@@ -845,7 +986,7 @@ function App() {
     }
   }
 
-  async function loadHomeSectionFeeds(country = location.country, { forceFresh = false } = {}) {
+  async function loadHomeSectionFeeds(country = location.country, { forceFresh = false, languageCode = language.code } = {}) {
     const requestId = homeSectionsRequestId.current + 1;
     homeSectionsRequestId.current = requestId;
     const sectionCategories = {
@@ -863,7 +1004,7 @@ function App() {
         const data = await fetchNewsJson({
           category: cat,
           country,
-          language: 'en',
+          language: languageCode,
           forceFresh,
         });
         return [key, data.ok ? data.articles || [] : []];
@@ -878,7 +1019,7 @@ function App() {
     }
   }
 
-  async function loadIntelligenceRoute(route) {
+  async function loadIntelligenceRoute(route, languageCode = language.code) {
     if (!route) return;
     setIsRootHome(false);
     setIsLocalPage(false);
@@ -893,24 +1034,24 @@ function App() {
       };
       if (location.country !== nextLocation.country || location.region || location.city) setLocation(nextLocation);
       if (category !== 'top') setCategory('top');
-      await loadNews('top', route.country, '', '', 'en');
-      loadHomeSectionFeeds(route.country);
+      await loadNews('top', route.country, '', '', languageCode);
+      loadHomeSectionFeeds(route.country, { languageCode });
       return;
     }
     const topicCategory = route.category || 'top';
     if (category !== topicCategory) setCategory(topicCategory);
     if (route.type === 'landing' && !route.query) {
-      await loadNews(topicCategory, location.country, '', '', 'en');
+      await loadNews(topicCategory, location.country, '', '', languageCode);
       return;
     }
     if (route.type === 'author') {
-      await loadNews('top', location.country, '', '', 'en');
+      await loadNews('top', location.country, '', '', languageCode);
       return;
     }
-    await loadIntelligenceSearch(route.query || route.label, topicCategory);
+    await loadIntelligenceSearch(route.query || route.label, topicCategory, languageCode);
   }
 
-  async function loadIntelligenceSearch(searchTerm, routeCategory = 'top') {
+  async function loadIntelligenceSearch(searchTerm, routeCategory = 'top', languageCode = language.code) {
     const requestId = newsRequestId.current + 1;
     newsRequestId.current = requestId;
     setIsLoadingNews(true);
@@ -920,7 +1061,7 @@ function App() {
       const data = await fetchNewsJson({
         q: searchTerm,
         country: location.country,
-        language: 'en',
+        language: languageCode,
       });
       if (requestId !== newsRequestId.current) return;
       setArticles((data.articles || []).map((article) => ({ ...article, category: routeCategory })));
@@ -998,7 +1139,7 @@ function App() {
       searchNewsByTerm(activeSearch, { updateUrl: true });
       return;
     }
-    loadNews(category, location.country, location.region, location.city, 'en', { forceFresh: true });
+    loadNews(category, location.country, location.region, location.city, language.code, { forceFresh: true });
     if (isRootHome) loadHomeSectionFeeds(location.country, { forceFresh: true });
   }
 
@@ -1014,7 +1155,7 @@ function App() {
   }
 
   function writeSearchUrl(searchTerm) {
-    const url = homeContextUrl({ category, location });
+    const url = homeContextUrl({ category, location, language });
     url.searchParams.set('q', searchTerm);
     window.history.replaceState({}, '', url);
   }
@@ -1032,7 +1173,7 @@ function App() {
     setCategory(nextCategory);
     setQuery('');
     setMobileSearchOpen(false);
-    const url = homeContextUrl({ category: nextCategory, location });
+    const url = homeContextUrl({ category: nextCategory, location, language });
     url.searchParams.delete('q');
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && url.pathname === categoryRoutes.local);
@@ -1050,7 +1191,7 @@ function App() {
     setIsLocalPage(false);
     setQuery('');
     setMobileSearchOpen(false);
-    window.history.pushState({}, '', '/');
+    window.history.pushState({}, '', localizedPath('/', language.code));
     trackEvent('select_content', {
       content_type: 'home',
       item_id: 'home',
@@ -1266,13 +1407,34 @@ function App() {
   function closeArticle() {
     setSelected(null);
     if (isRootHome && category === 'top') {
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', localizedPath('/', language.code));
       return;
     }
-    window.history.replaceState({}, '', homeContextUrl({ category, location }));
+    window.history.replaceState({}, '', homeContextUrl({ category, location, language }));
   }
 
-  const copy = translations.en;
+  function chooseLanguage(nextCode) {
+    const nextLanguage = languageByCode(nextCode);
+    setLanguage(nextLanguage);
+    writeLocal('nuzenio_news_language', nextLanguage.code);
+    trackEvent('set_language', {
+      language: nextLanguage.code,
+      region: nextLanguage.region,
+    });
+    const currentPath = stripLanguagePrefix(window.location.pathname);
+    const nextPath = localizedPath(currentPath, nextLanguage.code);
+    const url = new URL(window.location.href);
+    url.pathname = nextPath;
+    url.searchParams.delete('language');
+    window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    const activeSearch = (readUrlParam('q') || query).trim();
+    if (activeSearch) searchNewsByTerm(activeSearch, { updateUrl: false, languageCode: nextLanguage.code });
+    else if (intelligenceRoute) loadIntelligenceRoute(intelligenceRoute, nextLanguage.code);
+    else loadNews(category, location.country, location.region, location.city, nextLanguage.code);
+    if (isRootHome) loadHomeSectionFeeds(location.country, { languageCode: nextLanguage.code });
+  }
+
+  const copy = uiCopy(language.code);
   const lead = articles[0];
   const sideStories = articles.slice(1, 5);
   const feed = articles.slice(5);
@@ -1324,6 +1486,8 @@ function App() {
         copy={copy}
         loginWithGoogle={loginWithGoogle}
         logout={logout}
+        language={language}
+        languages={languages}
         mobileSearchOpen={mobileSearchOpen}
         isRootHome={isRootHome}
         query={query}
@@ -1333,6 +1497,7 @@ function App() {
         navigateCategory={navigateCategory}
         navigateHome={navigateHome}
         navigateAdmin={navigateAdmin}
+        onLanguageChange={chooseLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
         user={user}
@@ -1391,7 +1556,7 @@ function App() {
           clearSearch={() => {
             setQuery('');
             clearSearchUrl();
-            loadNews(category, location.country, location.region, location.city, 'en');
+            loadNews(category, location.country, location.region, location.city, language.code);
           }}
         />
       )}
@@ -1419,6 +1584,43 @@ function App() {
       <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
+  );
+}
+
+function GlobalLanguagePanel({ articles = [], language, location }) {
+  const edition = regionalEditions.find((item) => item.countries.includes(location.country))
+    || regionalEditions.find((item) => item.languages.includes(language.code))
+    || regionalEditions[0];
+  const translatedCount = language.code === 'en' ? 0 : articles.length;
+  const sourceLanguages = [...new Set(articles.slice(0, 20).map((article) => article.language || article.sourceLanguage || 'source').filter(Boolean))].slice(0, 3);
+  return (
+    <section className="languagePanel" aria-label="Nuzenio language and regional edition">
+      <div>
+        <span className="badge"><Languages size={15} /> Global edition</span>
+        <h2>{language.native} news experience for {edition.label}</h2>
+        <p>
+          Nuzenio keeps publisher attribution intact. Summaries and UI can be localized, while every story still links to the original source.
+        </p>
+      </div>
+      <div className="languagePanelGrid">
+        <div>
+          <span>Selected language</span>
+          <b>{language.label}</b>
+        </div>
+        <div>
+          <span>Regional edition</span>
+          <b>{edition.label}</b>
+        </div>
+        <div>
+          <span>Translation label</span>
+          <b>{language.code === 'en' ? 'Original source language' : `${translatedCount} summaries marked translated`}</b>
+        </div>
+        <div>
+          <span>Source tracking</span>
+          <b>{sourceLanguages.join(', ') || 'Publisher RSS'}</b>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1498,7 +1700,10 @@ function Header({
   logout,
   mobileSearchOpen,
   isRootHome,
+  language,
+  languages: languageOptions,
   openArticle,
+  onLanguageChange,
   navigateCategory,
   navigateHome,
   navigateAdmin,
@@ -1543,6 +1748,21 @@ function Header({
         <button className="iconBtn" onClick={() => setMobileSearchOpen((value) => !value)} aria-label="Search">
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
         </button>
+        <label className="languageSwitcher">
+          <Languages size={17} />
+          <span className="srOnly">{copy.newsLanguage}</span>
+          <select
+            value={language.code}
+            onChange={(event) => onLanguageChange(event.target.value)}
+            aria-label={copy.newsLanguage}
+          >
+            {languageOptions.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.native}
+              </option>
+            ))}
+          </select>
+        </label>
         {user ? (
           <button className="loginBtn" onClick={logout}>
             <LogOut size={17} /> {copy.logout}
@@ -1689,11 +1909,11 @@ function Home({
               <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
               <p>
                 {category === 'live'
-                  ? 'Verified English live news channels loaded for your selected country. Watch inside Nuzenio.'
-                  : 'English recorded news videos only. Live streams stay on the Live News page.'}
+                  ? `Verified ${language.native} live news channels loaded for your selected country. Watch inside Nuzenio.`
+                  : `${language.native} recorded news videos only. Live streams stay on the Live News page.`}
               </p>
               <div className="videoHeroMeta">
-                <span>English</span>
+                <span>{language.native}</span>
                 <span>{category === 'live' ? 'Live channels' : 'Recorded only'}</span>
                 <span>Watch inside Nuzenio</span>
               </div>
@@ -1720,7 +1940,7 @@ function Home({
           <div className="sectionHead">
             <div>
               <h2>{category === 'live' ? copy.categories.live : copy.categories.video}</h2>
-                <p>{category === 'live' ? 'Playable live news streams.' : 'Playable English video news feed, excluding live streams.'}</p>
+                <p>{category === 'live' ? 'Playable live news streams.' : `Playable ${language.native} video news feed, excluding live streams.`}</p>
             </div>
             <SectionStatus
               isLoading={isLoadingNews}
@@ -1763,6 +1983,7 @@ function Home({
     <main id="main-content" className="main" tabIndex="-1">
       <section>
         <LocationBanner copy={copy} location={location} setLocation={setLocation} status={status} />
+        <GlobalLanguagePanel language={language} location={location} articles={articles} />
 
         <div className="heroGrid">
           <a
@@ -1817,6 +2038,7 @@ function Home({
         <NewsBriefingPanel
           articles={articles}
           lastUpdated={lastUpdated}
+          language={language}
           location={location}
           refreshNews={refreshNews}
           status={status}
@@ -2229,7 +2451,7 @@ function PersonalizedSection({ articles = [], copy, openArticle, savedIds, title
   );
 }
 
-function NewsBriefingPanel({ articles, lastUpdated, location, refreshNews, status, isLoading }) {
+function NewsBriefingPanel({ articles, lastUpdated, location, refreshNews, status, isLoading, language }) {
   const publishers = new Set(articles.map((article) => article.source).filter(Boolean)).size;
   const latest = articles
     .map((article) => new Date(article.pubDate).getTime())
@@ -2251,7 +2473,7 @@ function NewsBriefingPanel({ articles, lastUpdated, location, refreshNews, statu
           <Sparkles size={15} /> Live briefing
         </span>
         <h2>Everything important, organized before you scroll.</h2>
-        <p>{status || `Latest English headlines for ${focusCountry}, refreshed from publisher RSS sources.`}</p>
+        <p>{status || `Latest ${language.native} headlines for ${focusCountry}, refreshed from publisher RSS sources.`}</p>
       </div>
       <div className="newsBriefingStats">
         {stats.map((item) => (
@@ -2406,7 +2628,7 @@ function VideoModeStrip({ category, language, location, status }) {
       </div>
       <div>
         <Languages size={17} />
-        <span>English</span>
+        <span>{language.native}</span>
       </div>
       <div>
         <Globe2 size={17} />
@@ -4510,7 +4732,7 @@ function RetentionPanel({ location, user }) {
   );
 }
 
-function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, copy, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
+function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, copy, language, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -4553,6 +4775,12 @@ function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, 
           </span>
         </div>
         <SourceQualityLabels article={article} />
+        {language.code !== 'en' && (
+          <div className="translationNotice">
+            <Languages size={16} />
+            <span>{language.native} summary view. Source attribution and original publisher link are preserved.</span>
+          </div>
+        )}
         <div className="articleActionBar" aria-label="Article actions">
           <button onClick={() => toggleSave(article)}>
             <Bookmark size={16} /> {savedIds.includes(article.id) ? copy.saved : copy.save}
@@ -4937,8 +5165,8 @@ function buildFaq(article) {
       a: 'Copying full publisher articles without a license can create copyright and monetization problems. Nuzenio keeps attribution clear and links readers to the source.',
     },
     {
-      q: 'Why is Nuzenio English-only?',
-      a: 'Nuzenio is English-only for launch so the reading flow, SEO, ads review, and source quality stay consistent.',
+      q: 'How does Nuzenio handle translated news?',
+      a: 'Nuzenio localizes UI and summaries while preserving source attribution and original publisher links. Full publisher articles remain on the original source.',
     },
   ];
 }
@@ -5159,24 +5387,26 @@ function updateGoogleConsent(consent) {
 
 function contextUrlForSeo(context) {
   if (context.intelligenceRoute) {
-    return intelligenceRouteUrl(context.intelligenceRoute);
+    return intelligenceRouteUrl(context.intelligenceRoute, context.language);
   }
   if (context.isRootHome) {
-    return new URL('/', window.location.href);
+    return new URL(localizedPath('/', context.language?.code || 'en'), window.location.href);
   }
   return homeContextUrl(context);
 }
 
-function intelligenceRouteUrl(route) {
+function intelligenceRouteUrl(route, language = languageByCode(currentLanguageCode())) {
   const url = new URL('/', window.location.href);
-  if (route.type === 'country') url.pathname = `/country/${route.slug}`;
-  else if (route.type === 'topic') url.pathname = `/topic/${route.slug}`;
-  else if (route.type === 'hub') url.pathname = `/hub/${route.slug}`;
-  else if (route.type === 'landing') url.pathname = `/${route.slug}`;
-  else if (route.type === 'data' || route.type === 'archive' || route.type === 'mobile') url.pathname = `/${route.slug}`;
-  else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
-  else if (route.type === 'publisher') url.pathname = `/publisher/${route.slug}`;
-  else if (route.type === 'author') url.pathname = `/author/${route.slug}`;
+  let path = '/';
+  if (route.type === 'country') path = `/country/${route.slug}`;
+  else if (route.type === 'topic') path = `/topic/${route.slug}`;
+  else if (route.type === 'hub') path = `/hub/${route.slug}`;
+  else if (route.type === 'landing') path = `/${route.slug}`;
+  else if (route.type === 'data' || route.type === 'archive' || route.type === 'mobile') path = `/${route.slug}`;
+  else if (route.type === 'entity') path = `/entity/${route.slug}`;
+  else if (route.type === 'publisher') path = `/publisher/${route.slug}`;
+  else if (route.type === 'author') path = `/author/${route.slug}`;
+  url.pathname = localizedPath(path, language.code || language);
   url.search = '';
   return url;
 }
@@ -5193,13 +5423,21 @@ function setAlternateLinks(context) {
   document.head.querySelectorAll('link[data-nuzenio-alternate="true"]').forEach((link) => link.remove());
   if (!context) return;
 
-  const defaultUrl = context.isRootHome ? new URL('/', window.location.href) : homeContextUrl(context);
-  const link = document.createElement('link');
-  link.rel = 'alternate';
-  link.hreflang = 'x-default';
-  link.href = productionUrl(defaultUrl);
-  link.dataset.nuzenioAlternate = 'true';
-  document.head.appendChild(link);
+  const path = context.intelligenceRoute
+    ? stripLanguagePrefix(intelligenceRouteUrl(context.intelligenceRoute, languages[0]).pathname)
+    : stripLanguagePrefix((context.isRootHome ? new URL('/', window.location.href) : homeContextUrl(context)).pathname);
+  const alternates = [
+    { code: 'x-default', href: productionUrl(new URL(path, window.location.href)) },
+    ...languages.map((item) => ({ code: item.code, href: productionUrl(new URL(localizedPath(path, item.code), window.location.href)) })),
+  ];
+  alternates.forEach((alternate) => {
+    const link = document.createElement('link');
+    link.rel = 'alternate';
+    link.hreflang = alternate.code;
+    link.href = alternate.href;
+    link.dataset.nuzenioAlternate = 'true';
+    document.head.appendChild(link);
+  });
 }
 
 function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, language, searchTerm }) {
@@ -5225,10 +5463,10 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   if (searchTerm) {
     const place = pageSeoPlace(category, location);
     const count = articles.length ? `${articles.length} live results` : 'Live news results';
-    return `${count} for "${searchTerm}" on Nuzenio, focused on ${place}, with English RSS headlines, source attribution, and AI-powered news context.`;
+    return `${count} for "${searchTerm}" on Nuzenio, focused on ${place}, with ${language.native} RSS headlines, source attribution, and AI-powered news context.`;
   }
   if (isRootHome) {
-    return 'Nuzenio is a professional English news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
+    return 'Nuzenio is a professional multi-language news platform for local news, world headlines, live news channels, video news, source attribution, and AI-powered context.';
   }
   if (intelligenceRoute?.type === 'country') {
     return `Live ${intelligenceRoute.label} news intelligence on Nuzenio: top headlines, politics, business, technology, sports, health, trend signals, related topics, and source-attributed stories.`;
@@ -5297,7 +5535,7 @@ function pageJsonLd(url, { context, description, image, title }) {
         url: productionOrigin,
         publisher: { '@id': organizationId },
         inLanguage: context.language.code,
-        availableLanguage: ['en'],
+        availableLanguage: languages.map((item) => item.code),
         hasPart: siteNavigationSchema(),
         potentialAction: {
           '@type': 'SearchAction',
@@ -5494,7 +5732,7 @@ function organizationSchema() {
       height: 512,
     },
     image: `${productionOrigin}/og-image.svg`,
-    description: 'Nuzenio is a professional English news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
+    description: 'Nuzenio is a professional multi-language news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
     slogan: 'Trusted news, simplified.',
     sameAs: ['https://github.com/syleriofficial/Nuzenio'],
   };
@@ -5541,7 +5779,7 @@ function articleEventParams(article) {
 
 function shareArticleUrl(article) {
   const url = new URL('/', window.location.origin);
-  url.pathname = `/article/${encodeURIComponent(articleSlug(article))}`;
+  url.pathname = localizedPath(`/article/${encodeURIComponent(articleSlug(article))}`, currentLanguageCode());
   url.searchParams.delete('article');
   url.hash = '';
   if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
@@ -5551,7 +5789,7 @@ function shareArticleUrl(article) {
 }
 
 function articleHref(article) {
-  const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, window.location.origin);
+  const url = new URL(localizedPath(`/article/${encodeURIComponent(articleSlug(article))}`, currentLanguageCode()), window.location.origin);
   url.searchParams.set('country', article.country || 'IN');
   url.searchParams.set('category', article.category || 'top');
   return `${url.pathname}${url.search}`;

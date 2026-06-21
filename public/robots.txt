@@ -2,4 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://nuzenio.com/sitemap.xml
+Sitemap: https://nuzenio.com/sitemap-languages.xml
 Sitemap: https://nuzenio.com/news-sitemap.xml

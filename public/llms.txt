@@ -1,6 +1,6 @@
 # Nuzenio
 
-> Nuzenio is a professional English news platform for live RSS headlines, local news, world news, video news, live news channels, source attribution, and AI-powered context.
+> Nuzenio is a professional multi-language news platform for live RSS headlines, local news, world news, video news, live news channels, source attribution, and AI-powered context.
 
 ## Core URLs
 
@@ -17,6 +17,7 @@
 ## Feeds And Discovery
 
 - Sitemap: https://nuzenio.com/sitemap.xml
+- Language Sitemap: https://nuzenio.com/sitemap-languages.xml
 - News Sitemap: https://nuzenio.com/news-sitemap.xml
 - RSS Feed: https://nuzenio.com/feed.xml
 - OpenSearch: https://nuzenio.com/opensearch.xml

@@ -515,6 +515,28 @@ button {
   gap: 7px;
 }
 
+.languageSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  padding: 0 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.languageSwitcher select {
+  max-width: 120px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 900;
+}
+
 .authNotice {
   margin: 0 5vw 10px;
   padding: 10px 12px;
@@ -2663,6 +2685,86 @@ button {
   gap: 10px;
 }
 
+.languagePanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  padding: 18px;
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.07);
+}
+
+.languagePanel h2 {
+  margin: 8px 0;
+  color: #172554;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.languagePanel p {
+  margin: 0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.languagePanelGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.languagePanelGrid div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.languagePanelGrid span,
+.languagePanelGrid b {
+  display: block;
+}
+
+.languagePanelGrid span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.languagePanelGrid b {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.translationNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+[dir="rtl"] .topbar,
+[dir="rtl"] .nav,
+[dir="rtl"] .newsNav {
+  direction: rtl;
+}
+
 .apiEndpointGrid a,
 .pipelineGrid div,
 .entityTypeGrid div,
@@ -4243,6 +4345,8 @@ button {
   .archiveSignalGrid,
   .mobileFeatureGrid,
   .mobileReadinessGrid,
+  .languagePanel,
+  .languagePanelGrid,
   .publisherFactGrid,
   .sourceIntelligenceGrid,
   .originalTypeGrid,
@@ -4302,6 +4406,16 @@ button {
 
   .brandLogo {
     width: 148px;
+  }
+
+  .languageSwitcher {
+    min-width: 42px;
+    padding: 0 8px;
+  }
+
+  .languageSwitcher select {
+    max-width: 74px;
+    font-size: 12px;
   }
 
   .searchBox {

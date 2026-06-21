@@ -520,6 +520,63 @@ create table if not exists public.mobile_app_builds (
   unique(platform, version, build_number)
 );
 
+create table if not exists public.languages (
+  code text primary key,
+  name text not null,
+  native_name text not null,
+  direction text default 'ltr' check (direction in ('ltr', 'rtl')),
+  region text,
+  enabled boolean default true,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.translated_articles (
+  id uuid primary key default gen_random_uuid(),
+  article_id text not null,
+  language_code text references public.languages(code) on delete cascade,
+  source_language text default 'en',
+  translated_title text,
+  translated_summary text,
+  translated_ai_brief jsonb default '{}'::jsonb,
+  confidence_score numeric(4,3) default 0.000,
+  review_status text default 'machine' check (review_status in ('machine', 'queued', 'human_reviewed', 'rejected')),
+  reviewer_id uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  source_attribution text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(article_id, language_code)
+);
+
+create table if not exists public.translation_jobs (
+  id uuid primary key default gen_random_uuid(),
+  article_id text,
+  source_language text default 'en',
+  target_language text references public.languages(code) on delete cascade,
+  job_type text default 'summary' check (job_type in ('ui', 'summary', 'ai_brief', 'metadata')),
+  status text default 'queued' check (status in ('queued', 'processing', 'completed', 'failed', 'human_review')),
+  confidence_score numeric(4,3),
+  payload jsonb default '{}'::jsonb,
+  error text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.regional_editions (
+  slug text primary key,
+  name text not null,
+  countries text[] default '{}',
+  languages text[] default '{}',
+  default_country text,
+  default_language text default 'en',
+  enabled boolean default true,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 alter table public.profiles enable row level security;
 alter table public.saved_articles enable row level security;
 alter table public.reading_history enable row level security;
@@ -558,6 +615,10 @@ alter table public.push_subscriptions enable row level security;
 alter table public.offline_sync_queue enable row level security;
 alter table public.mobile_session_events enable row level security;
 alter table public.mobile_app_builds enable row level security;
+alter table public.languages enable row level security;
+alter table public.translated_articles enable row level security;
+alter table public.translation_jobs enable row level security;
+alter table public.regional_editions enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -650,6 +711,13 @@ drop policy if exists "Admins can read offline queue" on public.offline_sync_que
 drop policy if exists "Admins can read mobile session events" on public.mobile_session_events;
 drop policy if exists "Mobile app builds are public" on public.mobile_app_builds;
 drop policy if exists "Admins can manage mobile app builds" on public.mobile_app_builds;
+drop policy if exists "Languages are public" on public.languages;
+drop policy if exists "Regional editions are public" on public.regional_editions;
+drop policy if exists "Reviewed translations are public" on public.translated_articles;
+drop policy if exists "Admins can manage languages" on public.languages;
+drop policy if exists "Admins can manage regional editions" on public.regional_editions;
+drop policy if exists "Admins can manage translations" on public.translated_articles;
+drop policy if exists "Admins can manage translation jobs" on public.translation_jobs;
 
 create policy "Profiles are readable by owner"
 on public.profiles for select using (auth.uid() = id);
@@ -920,6 +988,27 @@ on public.mobile_app_builds for select using (status in ('released', 'review', '
 create policy "Admins can manage mobile app builds"
 on public.mobile_app_builds for all using (public.is_admin()) with check (public.is_admin());
 
+create policy "Languages are public"
+on public.languages for select using (enabled = true);
+
+create policy "Regional editions are public"
+on public.regional_editions for select using (enabled = true);
+
+create policy "Reviewed translations are public"
+on public.translated_articles for select using (review_status in ('machine', 'human_reviewed'));
+
+create policy "Admins can manage languages"
+on public.languages for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage regional editions"
+on public.regional_editions for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage translations"
+on public.translated_articles for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "Admins can manage translation jobs"
+on public.translation_jobs for all using (public.is_admin()) with check (public.is_admin());
+
 create index if not exists saved_articles_user_idx on public.saved_articles(user_id, created_at desc);
 create index if not exists reading_history_user_idx on public.reading_history(user_id, read_at desc);
 create index if not exists reading_history_article_idx on public.reading_history(article_id, read_at desc);
@@ -971,6 +1060,11 @@ create index if not exists offline_sync_queue_user_idx on public.offline_sync_qu
 create index if not exists mobile_session_events_user_idx on public.mobile_session_events(user_id, event_name, created_at desc);
 create index if not exists mobile_session_events_session_idx on public.mobile_session_events(session_id, created_at desc);
 create index if not exists mobile_app_builds_platform_idx on public.mobile_app_builds(platform, status, created_at desc);
+create index if not exists languages_enabled_idx on public.languages(enabled, region);
+create index if not exists translated_articles_lookup_idx on public.translated_articles(article_id, language_code, review_status);
+create index if not exists translated_articles_language_idx on public.translated_articles(language_code, updated_at desc);
+create index if not exists translation_jobs_status_idx on public.translation_jobs(status, target_language, created_at desc);
+create index if not exists regional_editions_enabled_idx on public.regional_editions(enabled, default_country);
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -1086,6 +1180,26 @@ for each row execute function public.touch_updated_at();
 drop trigger if exists mobile_app_builds_touch_updated_at on public.mobile_app_builds;
 create trigger mobile_app_builds_touch_updated_at
 before update on public.mobile_app_builds
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists languages_touch_updated_at on public.languages;
+create trigger languages_touch_updated_at
+before update on public.languages
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists translated_articles_touch_updated_at on public.translated_articles;
+create trigger translated_articles_touch_updated_at
+before update on public.translated_articles
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists translation_jobs_touch_updated_at on public.translation_jobs;
+create trigger translation_jobs_touch_updated_at
+before update on public.translation_jobs
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists regional_editions_touch_updated_at on public.regional_editions;
+create trigger regional_editions_touch_updated_at
+before update on public.regional_editions
 for each row execute function public.touch_updated_at();
 
 create or replace function public.cleanup_old_events(days_to_keep integer default 180)
@@ -1237,6 +1351,48 @@ values
 on conflict (platform, version, build_number) do update set
   status = excluded.status,
   release_notes = excluded.release_notes;
+
+insert into public.languages (code, name, native_name, direction, region, enabled)
+values
+  ('en', 'English', 'English', 'ltr', 'Global', true),
+  ('hi', 'Hindi', 'हिन्दी', 'ltr', 'India', true),
+  ('es', 'Spanish', 'Español', 'ltr', 'Latin America', true),
+  ('fr', 'French', 'Français', 'ltr', 'Europe / Africa', true),
+  ('de', 'German', 'Deutsch', 'ltr', 'Europe', true),
+  ('pt', 'Portuguese', 'Português', 'ltr', 'Brazil / Portugal', true),
+  ('ar', 'Arabic', 'العربية', 'rtl', 'Middle East', true),
+  ('ja', 'Japanese', '日本語', 'ltr', 'Japan', true),
+  ('ko', 'Korean', '한국어', 'ltr', 'South Korea', true),
+  ('zh', 'Chinese', '中文', 'ltr', 'Greater China', true),
+  ('bn', 'Bengali', 'বাংলা', 'ltr', 'Bangladesh / India', true),
+  ('ta', 'Tamil', 'தமிழ்', 'ltr', 'India / Sri Lanka', true),
+  ('te', 'Telugu', 'తెలుగు', 'ltr', 'India', true),
+  ('mr', 'Marathi', 'मराठी', 'ltr', 'India', true),
+  ('ur', 'Urdu', 'اردو', 'rtl', 'Pakistan / India', true)
+on conflict (code) do update set
+  name = excluded.name,
+  native_name = excluded.native_name,
+  direction = excluded.direction,
+  region = excluded.region,
+  enabled = excluded.enabled;
+
+insert into public.regional_editions (slug, name, countries, languages, default_country, default_language, enabled)
+values
+  ('india', 'India', array['IN'], array['en','hi','bn','ta','te','mr','ur'], 'IN', 'hi', true),
+  ('usa', 'USA', array['US'], array['en','es'], 'US', 'en', true),
+  ('uk', 'UK', array['GB'], array['en'], 'GB', 'en', true),
+  ('canada', 'Canada', array['CA'], array['en','fr'], 'CA', 'en', true),
+  ('australia', 'Australia', array['AU'], array['en'], 'AU', 'en', true),
+  ('europe', 'Europe', array['DE','FR','ES'], array['en','fr','de','es','pt'], 'DE', 'en', true),
+  ('middle-east', 'Middle East', array['AE'], array['en','ar','ur'], 'AE', 'ar', true),
+  ('asia-pacific', 'Asia-Pacific', array['JP','KR','SG','AU'], array['en','ja','ko','zh'], 'JP', 'en', true)
+on conflict (slug) do update set
+  name = excluded.name,
+  countries = excluded.countries,
+  languages = excluded.languages,
+  default_country = excluded.default_country,
+  default_language = excluded.default_language,
+  enabled = excluded.enabled;
 
 insert into public.adsense_slots (slot_key, placement, format, notes)
 values
