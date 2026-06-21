@@ -865,6 +865,8 @@ function App() {
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
   const [localMeta, setLocalMeta] = useState(null);
+  const [feedSourceType, setFeedSourceType] = useState('');
+  const [feedIsStale, setFeedIsStale] = useState(false);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -1093,6 +1095,8 @@ function App() {
       if (!data.ok) throw new Error(data.error || 'News fetch failed');
       setArticles(data.articles || []);
       setLocalMeta(cat === 'local' ? data.localMeta : null);
+      setFeedSourceType(data.sourceType || '');
+      setFeedIsStale(Boolean(data.stale));
       setLastUpdated(new Date());
       const place = cat === 'local' && data.city
         ? `${data.city}, ${data.region ? `${data.region}, ` : ''}${countryLabel(data.country)}`
@@ -1111,6 +1115,8 @@ function App() {
     } catch (error) {
       if (requestId !== newsRequestId.current) return;
       if (cat === 'local') setLocalMeta(null);
+      setFeedSourceType('');
+      setFeedIsStale(false);
       setStatus(`Live API error: ${error.message}`);
     } finally {
       if (requestId === newsRequestId.current) setIsLoadingNews(false);
@@ -1787,6 +1793,8 @@ function App() {
           lead={lead}
           location={location}
           localMeta={localMeta}
+          feedSourceType={feedSourceType}
+          feedIsStale={feedIsStale}
           user={user}
           setLocation={updateLocation}
           openArticle={openArticle}
@@ -2240,6 +2248,8 @@ function Home({
   lead,
   location,
   localMeta,
+  feedSourceType,
+  feedIsStale,
   openArticle,
   refreshNews,
   searchTerm,
@@ -2346,6 +2356,14 @@ function Home({
       <section>
         <LocationBanner copy={copy} location={location} localMeta={localMeta} setLocation={setLocation} status={status} />
         <GlobalLanguagePanel language={language} location={location} articles={articles} />
+        {category === 'local' && (
+          <LocalIntelligenceStrip
+            articles={articles}
+            feedIsStale={feedIsStale}
+            localMeta={localMeta}
+            sourceType={feedSourceType}
+          />
+        )}
 
         <div className="heroGrid">
           <a
@@ -2828,6 +2846,37 @@ function PersonalizedSection({ articles = [], copy, openArticle, savedIds, title
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function LocalIntelligenceStrip({ articles, feedIsStale, localMeta, sourceType }) {
+  const publishers = new Set(articles.map((article) => article.source).filter(Boolean)).size;
+  const precision = localMeta?.precision === 'city'
+    ? 'City precision'
+    : localMeta?.precision === 'state'
+      ? 'State precision'
+      : 'Country fallback';
+  const sourceMode = feedIsStale || /cache/.test(String(sourceType || '')) ? 'Cache backup active' : 'Live RSS active';
+  const freshToday = Number.isFinite(localMeta?.freshToday) ? localMeta.freshToday : 0;
+  const strongMatches = Number.isFinite(localMeta?.strongMatches) ? localMeta.strongMatches : 0;
+  const items = [
+    { icon: MapPin, label: precision, value: localMeta?.place || 'Local area' },
+    { icon: Zap, label: 'Fresh today', value: freshToday },
+    { icon: CheckCircle2, label: 'Strong local matches', value: strongMatches },
+    { icon: Newspaper, label: 'Publishers', value: publishers || 'Scanning' },
+    { icon: Database, label: 'Source mode', value: sourceMode },
+  ];
+
+  return (
+    <section className="localIntelligenceStrip" aria-label="Local news intelligence">
+      {items.map(({ icon: Icon, label, value }) => (
+        <div key={label}>
+          <Icon size={16} />
+          <span>{label}</span>
+          <b>{value}</b>
+        </div>
+      ))}
     </section>
   );
 }
