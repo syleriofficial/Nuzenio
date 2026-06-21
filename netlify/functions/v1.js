@@ -7,6 +7,27 @@ const headers = {
   'X-Content-Type-Options': 'nosniff',
 };
 
+const endpointNames = [
+  'latest',
+  'categories',
+  'topics',
+  'entities',
+  'search',
+  'trends',
+  'graph',
+  'recommendations',
+  'user',
+  'languages',
+  'regional-editions',
+  'infrastructure',
+  'intelligence',
+  'ecosystem',
+  'research',
+  'marketplace',
+  'enterprise',
+  'integrations',
+];
+
 const supportedLanguages = [
   { code: 'en', name: 'English', native_name: 'English', direction: 'ltr', region: 'Global' },
   { code: 'hi', name: 'Hindi', native_name: 'हिन्दी', direction: 'ltr', region: 'India' },
@@ -401,45 +422,29 @@ export const handler = async (event) => {
   const endpoint = (url.searchParams.get('endpoint') || url.pathname.replace(/^\/api\/v1\/?/, '') || 'latest').replace(/^\/+/, '') || 'latest';
 
   try {
-    const data = endpoint === 'latest'
-      ? await readLatest(url)
-      : endpoint === 'categories'
-        ? await readCategories(url)
-        : endpoint === 'topics'
-          ? await readTopics(url)
-          : endpoint === 'entities'
-            ? await readEntities(url)
-            : endpoint === 'search'
-              ? await readSearch(url)
-              : endpoint === 'trends'
-                ? await readTrends(url)
-                : endpoint === 'graph'
-                  ? await readGraph(url)
-                  : endpoint === 'recommendations'
-                    ? await readRecommendations(url)
-                    : endpoint === 'user'
-                      ? await readUserCapabilities(url)
-                      : endpoint === 'languages'
-                        ? await readLanguages(url)
-                        : endpoint === 'regional-editions'
-                          ? await readRegionalEditions(url)
-                  : endpoint === 'infrastructure'
-                            ? await readInfrastructureStatus(url)
-                            : endpoint === 'intelligence'
-                              ? await readIntelligenceDashboard(url)
-                              : endpoint === 'ecosystem'
-                                ? await readEcosystem(url)
-                                : endpoint === 'research'
-                                  ? await readResearchHub(url)
-                                  : endpoint === 'marketplace'
-                                    ? await readMarketplace(url)
-                                    : endpoint === 'enterprise'
-                                      ? await readEnterprise(url)
-                                      : endpoint === 'integrations'
-                                        ? await readIntegrations(url)
-                          : null;
-
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user', 'languages', 'regional-editions', 'infrastructure', 'intelligence', 'ecosystem', 'research', 'marketplace', 'enterprise', 'integrations'] });
+    const handlers = {
+      latest: readLatest,
+      categories: readCategories,
+      topics: readTopics,
+      entities: readEntities,
+      search: readSearch,
+      trends: readTrends,
+      graph: readGraph,
+      recommendations: readRecommendations,
+      user: readUserCapabilities,
+      languages: readLanguages,
+      'regional-editions': readRegionalEditions,
+      infrastructure: readInfrastructureStatus,
+      intelligence: readIntelligenceDashboard,
+      ecosystem: readEcosystem,
+      research: readResearchHub,
+      marketplace: readMarketplace,
+      enterprise: readEnterprise,
+      integrations: readIntegrations,
+    };
+    const readEndpoint = handlers[endpoint];
+    if (!readEndpoint) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: endpointNames });
+    const data = await readEndpoint(url);
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {

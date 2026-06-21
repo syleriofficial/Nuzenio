@@ -202,6 +202,11 @@
   status = 200
 
 [[redirects]]
+  from = "/:lang/article/*"
+  to = "/.netlify/functions/article"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

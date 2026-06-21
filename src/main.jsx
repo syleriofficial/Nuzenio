@@ -6336,7 +6336,22 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'topic') return `${intelligenceRoute.label} Topic Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'hub') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
-  if (intelligenceRoute?.type === 'data') return 'News Data Platform, Public API & Knowledge Graph | Nuzenio';
+  if (intelligenceRoute?.type === 'data') {
+    const ecosystemTitles = {
+      ecosystem: 'Global News Ecosystem, Research, Data & Intelligence | Nuzenio',
+      'publisher-portal': 'Publisher Portal, RSS Submission & Source Verification | Nuzenio',
+      'journalist-portal': 'Journalist Portal, Author Profiles & Verification | Nuzenio',
+      'research-hub': 'Research Hub, Archives, Reports & Data Downloads | Nuzenio',
+      'api-marketplace': 'News API Marketplace, Trends API & Entity API | Nuzenio',
+      enterprise: 'Enterprise News Intelligence Platform & Custom Feeds | Nuzenio',
+      'ai-research-assistant': 'AI Research Assistant for News, Timelines & Source Comparison | Nuzenio',
+      'knowledge-graph': 'Global News Knowledge Graph, Entities & Timelines | Nuzenio',
+      marketplace: 'Research Reports, Premium Datasets & Partner Marketplace | Nuzenio',
+      integrations: 'Slack, Teams, Email, Webhook & CRM News Integrations | Nuzenio',
+      'brand-infrastructure': 'Global Editorial Network, Regional Editions & Partnerships | Nuzenio',
+    };
+    return ecosystemTitles[intelligenceRoute.slug] || 'News Data Platform, Public API & Knowledge Graph | Nuzenio';
+  }
   if (intelligenceRoute?.type === 'archive') return 'News Archive, Timeline Search & Historical Stories | Nuzenio';
   if (intelligenceRoute?.type === 'mobile') return 'Android & iOS News Apps, Offline Reading & Alerts | Nuzenio';
   if (intelligenceRoute?.type === 'dashboard') return 'News Intelligence Dashboard, Trends, Sentiment & Alerts | Nuzenio';
@@ -6372,7 +6387,7 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
     return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent} Includes source attribution, update timestamps, related stories, and Discover-ready mobile reading.`;
   }
   if (intelligenceRoute?.type === 'data') {
-    return 'Nuzenio enterprise-grade news data platform with public API v1, knowledge graph, story graph, entity relationships, trend detection, and API-management foundation.';
+    return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent || 'Enterprise-grade news data platform with public API v1, knowledge graph, story graph, entity relationships, trend detection, and API-management foundation.'}`;
   }
   if (intelligenceRoute?.type === 'archive') {
     return 'Nuzenio news archive for historical stories, topic archive, entity archive, publisher archive, timeline tracking, and advanced date-range search.';

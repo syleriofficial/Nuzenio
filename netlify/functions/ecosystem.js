@@ -53,6 +53,11 @@ function slugify(value = '') {
     .slice(0, 90) || 'nuzenio-request';
 }
 
+function allowedValue(value, allowed, fallback) {
+  const clean = cleanText(value || fallback, 60).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+  return allowed.includes(clean) ? clean : fallback;
+}
+
 async function supabaseInsert(table, payload) {
   const config = supabaseConfig();
   if (!config.enabled) {
@@ -146,7 +151,7 @@ function buildPayload(type, body) {
       payload: {
         organization_name: organizationName,
         contact_email: email,
-        plan: cleanText(body.plan || 'trial', 40),
+        plan: allowedValue(body.plan, ['trial', 'team', 'business', 'enterprise'], 'trial'),
         status: 'lead',
         seats: Number(body.seats || 1) || 1,
         custom_feeds: [{ request: cleanText(body.custom_feeds || body.use_case || '', 500) }],
@@ -184,7 +189,7 @@ function buildPayload(type, body) {
       table: 'ai_research_queries',
       payload: {
         query,
-        mode: cleanText(body.mode || 'question', 40),
+        mode: allowedValue(body.mode, ['question', 'timeline', 'source_comparison', 'topic_summary'], 'question'),
         status: 'queued',
         metadata: {
           contact_email: email,
