@@ -130,10 +130,14 @@ Recommended Supabase auth URLs:
 Site URL: https://nuzenio.com
 Redirect URLs:
 https://nuzenio.com
+https://nuzenio.com/login
 https://nuzenio.com/*
 https://<netlify-site-name>.netlify.app
+https://<netlify-site-name>.netlify.app/login
 https://<netlify-site-name>.netlify.app/*
 ```
+
+If Google login redirects to `localhost:3000/?error=bad_oauth_state`, Supabase still has a localhost Site URL or the active domain is missing from Redirect URLs. Set the Site URL to `https://nuzenio.com`, add `/login` redirect URLs, save, then start login again from the same domain.
 
 ## Nuzenio.com launch checklist
 

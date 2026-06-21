@@ -554,6 +554,19 @@ function readUrlParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+function readAuthErrorFromUrl() {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const error = search.get('error') || hash.get('error');
+  if (!error) return null;
+  const code = search.get('error_code') || hash.get('error_code') || error;
+  const description = search.get('error_description') || hash.get('error_description') || 'Login failed. Please try again.';
+  const detail = code === 'bad_oauth_state'
+    ? 'Login session expired or domain mismatch. Start login again from the same Nuzenio domain and make sure Supabase redirect URLs include https://nuzenio.com/login.'
+    : description;
+  return { code, description, detail };
+}
+
 function normalizedPathname() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
   return stripLanguagePrefix(path);
@@ -862,6 +875,16 @@ function App() {
 
   useEffect(() => {
     function syncArticleFromUrl() {
+      const authError = readAuthErrorFromUrl();
+      if (authError) {
+        setScreen('login');
+        setSelected(null);
+        setIsRootHome(false);
+        setIntelligenceRoute(null);
+        setAuthNotice(authError.detail);
+        window.history.replaceState({}, '', '/login');
+        return;
+      }
       if (isAdminPath()) {
         setScreen('admin');
         setSelected(null);
@@ -1319,7 +1342,13 @@ function App() {
     }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/login` },
+      options: {
+        redirectTo: new URL('/login', window.location.origin).toString(),
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
     });
   }
 
