@@ -38,10 +38,13 @@ import { parseConfiguredAffiliateLinks } from './utils/affiliate.js';
 import { formatDate, formatFreshAge, formatLastUpdated } from './utils/format.js';
 import { readLocal, writeLocal } from './utils/storage.js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const defaultSupabaseUrl = 'https://ujmhbyrqpnjrayhoukko.supabase.co';
+const defaultSupabasePublishableKey = 'sb_publishable_zCDPDU6zUkABJo9GuYhEKg_U0KUcK7Z';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || defaultSupabaseUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
   || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  || defaultSupabasePublishableKey;
 const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
