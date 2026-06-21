@@ -4731,6 +4731,11 @@ function LocationBanner({ copy, location, setLocation, status }) {
           </span>
         </div>
         <p>{locationSourceLabel(location.source)} · {status}</p>
+        <div className="locationSignals" aria-label="Local news precision">
+          <span>City-first feed</span>
+          <span>State backup</span>
+          <span>Fresh RSS scan</span>
+        </div>
       </div>
 
       <div className="locationPanel">

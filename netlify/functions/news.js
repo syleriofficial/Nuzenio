@@ -1248,12 +1248,74 @@ function localSearchQueries({ country, region, city }) {
   const cityArea = cleanRegion(city);
   const place = [cityArea, stateRegion, countryLabel(countryCode)].filter(Boolean).join(' ');
   const nearby = [cityArea, stateRegion].filter(Boolean).join(' ');
+  const statePlace = [stateRegion, countryLabel(countryCode)].filter(Boolean).join(' ');
   const base = place || countryLabel(countryCode);
   return [
     `${base} local news when:1d`,
-    `${base} latest news when:3d`,
-    nearby ? `${nearby} news when:7d` : `${base} news when:7d`,
-  ];
+    `${base} breaking news latest updates when:1d`,
+    nearby ? `${nearby} city news local updates when:3d` : `${base} latest local news when:3d`,
+    cityArea ? `${cityArea} ${stateRegion} police weather traffic civic news when:7d` : `${base} local updates when:7d`,
+    statePlace ? `${statePlace} state news local headlines when:3d` : `${base} news when:7d`,
+  ].filter(Boolean);
+}
+
+function tokenizeLocalText(value = '') {
+  return String(value)
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+}
+
+function localRelevanceScore(article, { country, region, city }) {
+  const countryName = countryLabel(normalizeCountry(country));
+  const stateRegion = cleanRegion(region);
+  const cityArea = cleanRegion(city);
+  const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''}`.toLowerCase();
+  const exactCity = cityArea && text.includes(cityArea.toLowerCase());
+  const exactRegion = stateRegion && text.includes(stateRegion.toLowerCase());
+  const exactCountry = countryName && text.includes(countryName.toLowerCase());
+  const cityTokens = tokenizeLocalText(cityArea);
+  const regionTokens = tokenizeLocalText(stateRegion);
+  let score = 0;
+
+  if (exactCity) score += 45;
+  if (exactRegion) score += 26;
+  if (exactCountry) score += 8;
+
+  score += cityTokens.filter((token) => text.includes(token)).length * 12;
+  score += regionTokens.filter((token) => text.includes(token)).length * 7;
+
+  if (/\b(local|nearby|city|district|state|municipal|civic|traffic|weather|police|school|hospital|market|rail|road|metro|airport)\b/i.test(text)) {
+    score += 12;
+  }
+
+  const ageMs = Date.now() - articleTime(article.pubDate);
+  if (Number.isFinite(ageMs)) {
+    if (ageMs <= 12 * 60 * 60 * 1000) score += 18;
+    else if (ageMs <= 24 * 60 * 60 * 1000) score += 13;
+    else if (ageMs <= 3 * 24 * 60 * 60 * 1000) score += 7;
+    else score -= 10;
+  }
+
+  if ((cityArea || stateRegion) && !exactCity && !exactRegion && !cityTokens.some((token) => text.includes(token)) && !regionTokens.some((token) => text.includes(token))) {
+    score -= 22;
+  }
+
+  return score;
+}
+
+function rankLocalArticles(articles, context) {
+  return articles
+    .map((article, index) => ({
+      article,
+      index,
+      score: localRelevanceScore(article, context),
+    }))
+    .sort((a, b) => (b.score - a.score) || (articleTime(b.article.pubDate) - articleTime(a.article.pubDate)) || (a.index - b.index))
+    .map(({ article }) => article);
 }
 
 function categorySearchQueries({ category, country, language }) {
@@ -1507,11 +1569,11 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
       lastError = error;
       continue;
     }
-    const fresh = polishFeed(batches, { days: 14, perSourceLimit: 10 });
+    const fresh = rankLocalArticles(polishFeed(batches, { days: 10, perSourceLimit: 10 }), { country, region, city });
     if (fresh.length >= 18) return fresh.slice(0, 60);
   }
 
-  const finalArticles = polishFeed(batches, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 10 }).slice(0, 60);
+  const finalArticles = rankLocalArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 10 }), { country, region, city }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
 }
