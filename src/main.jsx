@@ -455,13 +455,12 @@ const localPlacePresets = {
     ['Bahia', 'Salvador'],
   ],
   IN: [
-    ['Bihar', 'Motihari'],
-    ['Bihar', 'Raxaul'],
-    ['Bihar', 'Patna'],
     ['Delhi', 'New Delhi'],
     ['Maharashtra', 'Mumbai'],
     ['Karnataka', 'Bengaluru'],
     ['West Bengal', 'Kolkata'],
+    ['Tamil Nadu', 'Chennai'],
+    ['Telangana', 'Hyderabad'],
   ],
   DE: [
     ['Berlin', 'Berlin'],

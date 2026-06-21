@@ -47,8 +47,6 @@ const authorPages = ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [
-  { country: 'IN', region: 'Bihar', city: 'Motihari' },
-  { country: 'IN', region: 'Bihar', city: 'Raxaul' },
   { country: 'IN', region: 'Delhi', city: 'New Delhi' },
   { country: 'IN', region: 'Maharashtra', city: 'Mumbai' },
   { country: 'IN', region: 'Karnataka', city: 'Bengaluru' },
