@@ -623,8 +623,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   if (!user) {
     return (
       <AdminShell onBack={onBack}>
-        <AdminGate title="Admin login required" message="Sign in with Google, then make your profile role admin in Supabase.">
-          <button className="primaryAction" onClick={onLogin}>Google Login</button>
+        <AdminGate title="Admin login required" message="Sign in with Google or email, then make your profile role admin in Supabase.">
+          <button className="primaryAction" onClick={onLogin}>Login</button>
         </AdminGate>
       </AdminShell>
     );
