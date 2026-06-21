@@ -1471,6 +1471,8 @@ button {
 .locationChips button {
   display: grid;
   gap: 2px;
+  min-width: 132px;
+  min-height: 48px;
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #fff;
@@ -1478,6 +1480,21 @@ button {
   padding: 8px 10px;
   text-align: start;
   font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.locationChips button:hover,
+.locationChips button:focus-visible {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+
+.locationChips button:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .locationChips button b,

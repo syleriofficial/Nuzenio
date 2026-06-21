@@ -4954,13 +4954,25 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
               aria-label="Set city or nearby area for local news"
             />
           </label>
-          <button className="primaryAction" onClick={applyDraft}>Apply local news</button>
-          <button onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
+          <button type="button" className="primaryAction" onClick={applyDraft}>Apply local news</button>
+          <button type="button" onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
         </div>
 
         <div className="locationChips" aria-label="Popular local news locations">
           {presets.map(([region, city]) => (
-            <button key={`${region}-${city}`} title={`${city}, ${region}`} onClick={() => applyPreset(region, city)}>
+            <button
+              key={`${region}-${city}`}
+              type="button"
+              title={`${city}, ${region}`}
+              aria-label={`Show local news for ${city}, ${region}`}
+              onClick={() => applyPreset(region, city)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  applyPreset(region, city);
+                }
+              }}
+            >
               <b>{city}</b>
               <span>{region}</span>
             </button>
