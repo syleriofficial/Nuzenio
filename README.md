@@ -59,6 +59,9 @@ Functions directory: netlify/functions
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+# Also accepted by the frontend login flow:
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<supabase-publishable-key>
 SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key-for-server-cache>
 YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
@@ -80,6 +83,7 @@ npm run supabase:check
 The checker verifies the public anon client can read `languages` and the service role can access `news_cache`.
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
+`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` are the preferred frontend auth variables. `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are also supported for compatibility with Supabase's publishable-key naming.
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 `SUPABASE_SERVICE_ROLE_KEY` is used only inside Netlify Functions to read/write the server-side `news_cache` table. Do not expose it in client-side `VITE_` variables.
 `LIVE_NEWS_SOURCES` is optional JSON for verified free live channels and approved publisher RSS feeds. Only add official/publicly available sources that the publisher allows. Live video providers are `youtube`, `twitch`, `official_embed`, and `hls`. Publisher RSS entries use `type: "rss"` plus an HTTPS `rssUrl`.

@@ -38,8 +38,10 @@ import { parseConfiguredAffiliateLinks } from './utils/affiliate.js';
 import { formatDate, formatFreshAge, formatLastUpdated } from './utils/format.js';
 import { readLocal, writeLocal } from './utils/storage.js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+  || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
@@ -600,6 +602,10 @@ function isAdminPath() {
   return normalizedPathname() === '/admin';
 }
 
+function isLoginPath() {
+  return normalizedPathname() === '/login';
+}
+
 function readIntelligenceRoute(path = normalizedPathname()) {
   const cleanPath = path.replace(/^\//, '');
   const landing = seoLandingPages.find((item) => item.slug === cleanPath);
@@ -760,7 +766,7 @@ function articleContextUrl(article, context) {
 }
 
 function App() {
-  const [screen, setScreen] = useState(() => (isAdminPath() ? 'admin' : 'home'));
+  const [screen, setScreen] = useState(() => (isAdminPath() ? 'admin' : isLoginPath() ? 'login' : 'home'));
   const [category, setCategory] = useState(initialCategory);
   const [articles, setArticles] = useState([]);
   const [status, setStatus] = useState('Loading live news...');
@@ -857,6 +863,13 @@ function App() {
         setIntelligenceRoute(null);
         return;
       }
+      if (isLoginPath()) {
+        setScreen('login');
+        setSelected(null);
+        setIsRootHome(false);
+        setIntelligenceRoute(null);
+        return;
+      }
       setScreen('home');
       const pathLanguage = readLanguageCodeFromPath();
       if (pathLanguage && pathLanguage !== language.code) setLanguage(languageByCode(pathLanguage));
@@ -896,8 +909,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (screen === 'login') {
+      const loginUrl = productionUrl(new URL('/login', window.location.href));
+      document.title = 'Login | Nuzenio';
+      setCanonical(loginUrl);
+      setMeta('meta[name="robots"]', 'content', 'noindex, nofollow');
+      setMeta('meta[name="description"]', 'content', 'Login to Nuzenio with Google to sync saved articles, reading history, topics, sources, newsletters, and notification preferences.');
+      setMeta('meta[property="og:title"]', 'content', 'Login | Nuzenio');
+      setMeta('meta[property="og:url"]', 'content', loginUrl);
+      return;
+    }
+    setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     updatePageSeo(selected, { category, intelligenceRoute, isRootHome, location, language, articles, searchTerm: (readUrlParam('q') || query).trim() });
-  }, [selected, articles, category, intelligenceRoute?.type, intelligenceRoute?.slug, isRootHome, query, location.country, location.region, location.city, language.code]);
+  }, [screen, selected, articles, category, intelligenceRoute?.type, intelligenceRoute?.slug, isRootHome, query, location.country, location.region, location.city, language.code]);
 
   useEffect(() => {
     if (screen !== 'admin') return;
@@ -1224,6 +1248,20 @@ function App() {
     });
   }
 
+  function navigateLogin() {
+    setScreen('login');
+    setIntelligenceRoute(null);
+    setSelected(null);
+    setIsRootHome(false);
+    setIsLocalPage(false);
+    setMobileSearchOpen(false);
+    window.history.pushState({}, '', '/login');
+    trackEvent('select_content', {
+      content_type: 'auth',
+      item_id: 'login',
+    });
+  }
+
   function chooseAnalyticsConsent(nextConsent) {
     setAnalyticsConsent(nextConsent);
     writeLocal('nuzenio_analytics_consent', nextConsent);
@@ -1248,18 +1286,19 @@ function App() {
 
   async function loginWithGoogle() {
     if (!supabase) {
-      setAuthNotice('Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Google login.');
+      setAuthNotice('Add VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable Google login.');
       return;
     }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/login` },
     });
   }
 
   async function logout() {
     if (supabase) await supabase.auth.signOut();
     setUser(null);
+    setAuthNotice('Signed out from Nuzenio.');
   }
 
   async function syncSavedFromSupabase(userId) {
@@ -1510,6 +1549,7 @@ function App() {
         navigateCategory={navigateCategory}
         navigateHome={navigateHome}
         navigateAdmin={navigateAdmin}
+        navigateLogin={navigateLogin}
         onLanguageChange={chooseLanguage}
         setMobileSearchOpen={setMobileSearchOpen}
         setQuery={setQuery}
@@ -1518,6 +1558,18 @@ function App() {
       <AdSlot slots={adSlots} name="header-leaderboard" label="Header advertising inventory" />
       {!selected && <h1 className="srOnly">{semanticPageTitle}</h1>}
 
+      {screen === 'login' && (
+        <LoginPage
+          authNotice={authNotice}
+          history={history}
+          loginWithGoogle={loginWithGoogle}
+          logout={logout}
+          navigateHome={navigateHome}
+          savedIds={savedIds}
+          supabaseEnabled={Boolean(supabase)}
+          user={user}
+        />
+      )}
       {screen === 'home' && intelligenceRoute && (
         <IntelligencePage
           articles={articles}
@@ -1597,6 +1649,93 @@ function App() {
       <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
+  );
+}
+
+function LoginPage({
+  authNotice,
+  history,
+  loginWithGoogle,
+  logout,
+  navigateHome,
+  savedIds,
+  supabaseEnabled,
+  user,
+}) {
+  const displayName = user?.user_metadata?.full_name || user?.email || 'Nuzenio reader';
+  const avatar = user?.user_metadata?.avatar_url;
+  const benefits = [
+    ['Saved articles', 'Sync important stories across devices.'],
+    ['Reading history', 'Continue reading and improve recommendations.'],
+    ['Personalized feed', 'Follow topics, countries, sources, authors, and entities.'],
+    ['Alerts ready', 'Use the same account for breaking news and digest preferences.'],
+  ];
+
+  return (
+    <main id="main-content" className="loginMain" tabIndex="-1">
+      <section className="loginPanel">
+        <div className="loginCopy">
+          <span className="badge"><ShieldCheck size={15} /> Secure Nuzenio account</span>
+          <h2>{user ? `Welcome, ${displayName}` : 'Login to personalize Nuzenio'}</h2>
+          <p>
+            Use Google login to sync saved stories, reading history, topic follows, source follows,
+            newsletters, and future notification preferences.
+          </p>
+          <div className="loginActions">
+            {user ? (
+              <>
+                <button className="primaryAction" type="button" onClick={navigateHome}>Go to news</button>
+                <button type="button" onClick={logout}>Sign out</button>
+              </>
+            ) : (
+              <button className="primaryAction" type="button" onClick={loginWithGoogle} disabled={!supabaseEnabled}>
+                <LogIn size={18} /> Continue with Google
+              </button>
+            )}
+          </div>
+          {!supabaseEnabled && (
+            <p className="loginWarning">
+              Supabase env missing. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, or `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+            </p>
+          )}
+          {authNotice && <div className="authNotice inline">{authNotice}</div>}
+        </div>
+
+        <div className="accountCard">
+          {user ? (
+            <>
+              <div className="accountIdentity">
+                {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <span>{displayName.slice(0, 1).toUpperCase()}</span>}
+                <div>
+                  <b>{displayName}</b>
+                  <small>{user.email}</small>
+                </div>
+              </div>
+              <div className="accountStats">
+                <div><b>{savedIds.size || savedIds.length || 0}</b><span>Saved</span></div>
+                <div><b>{history.length}</b><span>History</span></div>
+                <div><b>On</b><span>Sync</span></div>
+              </div>
+            </>
+          ) : (
+            <div className="accountPlaceholder">
+              <LogIn size={34} />
+              <b>One login, one Nuzenio profile</b>
+              <span>Google Auth creates your profile row in Supabase and keeps reader data private with RLS.</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="loginBenefitGrid">
+        {benefits.map(([title, text]) => (
+          <div key={title}>
+            <b>{title}</b>
+            <span>{text}</span>
+          </div>
+        ))}
+      </section>
+    </main>
   );
 }
 
@@ -1720,6 +1859,7 @@ function Header({
   navigateCategory,
   navigateHome,
   navigateAdmin,
+  navigateLogin,
   query,
   screen,
   searchNews,
@@ -1781,7 +1921,7 @@ function Header({
             <LogOut size={17} /> {copy.logout}
           </button>
         ) : (
-          <button className="loginBtn" onClick={loginWithGoogle}>
+          <button className="loginBtn" onClick={navigateLogin}>
             <LogIn size={17} /> {copy.login}
           </button>
         )}

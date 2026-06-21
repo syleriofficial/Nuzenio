@@ -276,6 +276,20 @@
   .exportActions button {
     width: 100%;
   }
+
+  .loginPanel,
+  .loginBenefitGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .loginPanel {
+    padding: 20px;
+  }
+
+  .loginActions,
+  .loginActions button {
+    width: 100%;
+  }
 }
 
 * {
@@ -809,6 +823,212 @@ button {
   background: var(--blue-soft);
   color: #1d4ed8;
   font-weight: 800;
+}
+
+.authNotice.inline {
+  margin: 12px 0 0;
+}
+
+.loginMain {
+  min-height: 58vh;
+  padding: 32px 5vw 48px;
+}
+
+.loginPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  border: 1px solid #cfe1ff;
+  border-radius: 8px;
+  background: #fff;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.loginCopy h2 {
+  margin: 13px 0 10px;
+  color: #0f172a;
+  font-size: clamp(32px, 5vw, 54px);
+  letter-spacing: 0;
+  line-height: 1.02;
+}
+
+.loginCopy p {
+  max-width: 760px;
+  margin: 0;
+  color: #475569;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.loginActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.loginActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  font-weight: 950;
+  padding: 0 16px;
+}
+
+.loginActions .primaryAction {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.loginActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.loginWarning {
+  margin-top: 13px !important;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #be123c !important;
+  font-size: 14px !important;
+  padding: 12px;
+}
+
+.accountCard {
+  display: grid;
+  align-content: center;
+  min-height: 260px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 18px;
+}
+
+.accountIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accountIdentity img,
+.accountIdentity > span {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+}
+
+.accountIdentity img {
+  object-fit: cover;
+}
+
+.accountIdentity > span {
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.accountIdentity b,
+.accountPlaceholder b {
+  display: block;
+  color: #0f172a;
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.accountIdentity small,
+.accountPlaceholder span,
+.loginBenefitGrid span {
+  color: #64748b;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.accountStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.accountStats div {
+  border: 1px solid #dbe1ea;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px;
+}
+
+.accountStats b {
+  display: block;
+  color: var(--red);
+  font-size: 24px;
+}
+
+.accountStats span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.accountPlaceholder {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.accountPlaceholder svg {
+  color: var(--blue);
+}
+
+.loginBenefitGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.loginBenefitGrid div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 15px;
+}
+
+.loginBenefitGrid b {
+  display: block;
+  margin-bottom: 6px;
+  color: #172554;
+  font-weight: 950;
+}
+
+@media (max-width: 900px) {
+  .loginPanel,
+  .loginBenefitGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .loginPanel {
+    padding: 20px;
+  }
+
+  .loginActions,
+  .loginActions button {
+    width: 100%;
+  }
 }
 
 .nav {
