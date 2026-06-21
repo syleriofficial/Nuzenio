@@ -4888,11 +4888,23 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   }
 
   function applyDraft() {
-    setLocation({
+    const next = {
       ...draft,
-      label: placeLabel(draft),
+      region: draft.region?.trim() || '',
+      city: draft.city?.trim() || '',
       source: 'manual',
+    };
+    setLocation({
+      ...next,
+      label: placeLabel(next),
     });
+  }
+
+  function applyOnEnter(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyDraft();
+    }
   }
 
   function applyPreset(region, city) {
@@ -4933,6 +4945,12 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
       </div>
 
       <div className="locationPanel">
+        <div className="manualLocationHeader">
+          <span>
+            <MapPin size={15} /> Manual location
+          </span>
+          <small>Type country, state, and city to get exact local news anywhere in the world.</small>
+        </div>
         <div className="locationControls">
           <label>
             <span>Country</span>
@@ -4949,6 +4967,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             <input
               value={draft.region || ''}
               onChange={changeRegion}
+              onKeyDown={applyOnEnter}
               placeholder={copy.stateRegion}
               aria-label="Set state or region for local news"
             />
@@ -4958,6 +4977,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             <input
               value={draft.city || ''}
               onChange={changeCity}
+              onKeyDown={applyOnEnter}
               placeholder={copy.cityArea}
               aria-label="Set city or nearby area for local news"
             />

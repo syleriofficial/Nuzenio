@@ -1397,6 +1397,31 @@ button {
   gap: 12px;
 }
 
+.manualLocationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.manualLocationHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #1d4ed8;
+  font-weight: 950;
+}
+
+.manualLocationHeader small {
+  color: #64748b;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .localIntelligenceStrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -5196,6 +5221,11 @@ button {
 
   .locationPanel {
     gap: 9px;
+  }
+
+  .manualLocationHeader {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .locationControls {
