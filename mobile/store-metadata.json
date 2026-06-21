@@ -1,0 +1,22 @@
+{
+  "appName": "Nuzenio",
+  "bundleIds": {
+    "android": "com.nuzenio.app",
+    "ios": "com.nuzenio.app"
+  },
+  "category": "News",
+  "subtitle": "Global news, personalized",
+  "shortDescription": "Live global news, local headlines, AI context, saved stories, and alerts.",
+  "fullDescription": "Nuzenio is a mobile-first global news platform with personalized feeds, local and world headlines, live news, video news, saved articles, reading history, followable topics and publishers, offline reading, and AI-powered context with source attribution.",
+  "keywords": ["news", "world news", "local news", "breaking news", "AI news", "business news", "sports news"],
+  "supportUrl": "https://nuzenio.com/contact.html",
+  "marketingUrl": "https://nuzenio.com/mobile-app",
+  "privacyPolicyUrl": "https://nuzenio.com/privacy.html",
+  "termsUrl": "https://nuzenio.com/terms.html",
+  "ageRating": "12+",
+  "screenshotsNeeded": {
+    "androidPhone": ["home", "article", "personalized", "live", "saved"],
+    "iphone": ["home", "article", "personalized", "live", "saved"],
+    "ipad": ["home", "archive", "article", "video"]
+  }
+}

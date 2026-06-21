@@ -300,6 +300,13 @@ const dataPlatformPages = [
     query: 'news archive historical stories timeline topics entities',
     intent: 'Historical story archive with topic, entity, publisher, country, and timeline discovery.',
   },
+  {
+    slug: 'mobile-app',
+    label: 'Mobile Apps',
+    category: 'top',
+    query: 'mobile news app android ios iphone ipad breaking alerts offline reading',
+    intent: 'Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, and app-store readiness.',
+  },
 ];
 
 const countryNames = {
@@ -455,7 +462,8 @@ function readIntelligenceRoute(path = normalizedPathname()) {
   }
   const dataPage = dataPlatformPages.find((item) => item.slug === cleanPath);
   if (dataPage) {
-    return { type: dataPage.slug === 'archive' ? 'archive' : 'data', ...dataPage };
+    const type = dataPage.slug === 'archive' ? 'archive' : dataPage.slug === 'mobile-app' ? 'mobile' : 'data';
+    return { type, ...dataPage };
   }
   const hubAlias = evergreenHubs.find((item) => item.aliases?.includes(cleanPath));
   if (hubAlias) {
@@ -524,7 +532,7 @@ function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
   if (['topic', 'hub', 'landing'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
-  if (['data', 'archive'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
+  if (['data', 'archive', 'mobile'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
   if (intelligenceRoute?.type === 'entity') return 'top';
   if (['publisher', 'author'].includes(intelligenceRoute?.type)) return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
@@ -2567,6 +2575,7 @@ function IntelligencePage({
   const isAuthor = route.type === 'author';
   const isDataPlatform = route.type === 'data';
   const isArchive = route.type === 'archive';
+  const isMobileApp = route.type === 'mobile';
   const title = isCountry
     ? `${route.label} News Intelligence`
     : isPublisher
@@ -2577,6 +2586,8 @@ function IntelligencePage({
           ? 'Enterprise News Data Platform'
           : isArchive
             ? 'Nuzenio News Archive'
+            : isMobileApp
+              ? 'Nuzenio Mobile Apps'
         : isTopic || isHub
       ? `${route.label} Topic Intelligence`
       : isLanding
@@ -2592,6 +2603,8 @@ function IntelligencePage({
           ? 'Knowledge graph, story graph, public API, archive, trend detection, and API-management foundation for enterprise news intelligence.'
           : isArchive
             ? 'Historical story archive with topic, entity, publisher, country, timeline, and date-range discovery.'
+            : isMobileApp
+              ? 'Android, iPhone, iPad, and PWA app foundation with shared accounts, offline reading, push alerts, and mobile analytics.'
         : isTopic || isHub
       ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
       : isLanding
@@ -2656,6 +2669,7 @@ function IntelligencePage({
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
         {isDataPlatform && <DataPlatformPanel articles={articles} />}
         {isArchive && <NewsArchivePanel articles={articles} route={route} />}
+        {isMobileApp && <MobileAppPlatformPanel articles={articles} />}
         {(isDataPlatform || isArchive) && <KnowledgeGraphPanel articles={articles} />}
         {isPublisher && <PublisherProfilePanel publisher={route} articles={articles} />}
         {isAuthor && <AuthorProfilePanel author={route} />}
@@ -2737,6 +2751,14 @@ function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
       { key: 'historical', title: 'Historical story archive', intro: 'Latest cached stories ready for archive search and timeline indexing.', articles: articles.slice(0, 8) },
       { key: 'topic-archive', title: 'Topic archive', intro: 'Stories grouped by topic, entity, publisher, and country signals.', articles: filterByKeywords(articles, ['ai', 'market', 'climate', 'election', 'space', 'health']).slice(0, 6) },
       { key: 'timeline-archive', title: 'Timeline archive', intro: 'Developing stories that can become event chains over time.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'mobile') {
+    return [
+      { key: 'mobile-feed', title: 'Personalized mobile feed', intro: 'For You, country trends, recommendations, saves, history, and follows from the shared Nuzenio account.', articles: articles.slice(0, 6) },
+      { key: 'mobile-alerts', title: 'Breaking alert candidates', intro: 'Stories suitable for followed-topic alerts, major world events, and daily brief notifications.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
+      { key: 'mobile-offline', title: 'Offline reading candidates', intro: 'Latest cached stories ready for low-data and offline reading flows.', articles: articles.filter((article) => article.summary).slice(0, 6) },
     ].filter((section) => section.articles.length);
   }
 
@@ -3041,6 +3063,40 @@ function NewsArchivePanel({ articles = [] }) {
         <div><b>Topic archive</b>{topics.map((topic) => <a key={topic.label} href={`/entity/${slugifyTitle(topic.label)}`}>{topic.label}</a>)}</div>
         <div><b>Publisher archive</b>{sources.map((source) => <span key={source.source}>{source.source}</span>)}</div>
         <div><b>Timeline archive</b>{articles.slice(0, 5).map((article) => <span key={article.id}>{formatFreshAge(article.pubDate)} · {article.source}</span>)}</div>
+      </div>
+    </section>
+  );
+}
+
+function MobileAppPlatformPanel({ articles = [] }) {
+  const latest = articles[0];
+  const features = [
+    ['Android', 'Capacitor-ready wrapper using the same Nuzenio web app and API backend.'],
+    ['iPhone', 'Standalone mobile app flow with bottom nav, offline shell, and push-ready preferences.'],
+    ['iPad', 'Responsive tablet layout using the same premium white news experience.'],
+    ['Offline reading', 'Service worker cache plus Supabase sync tables for saved stories and summaries.'],
+    ['Push notifications', 'Breaking news, followed topics, daily briefing, and major world event channels.'],
+    ['Shared account', 'Google, Apple, email-ready auth with saved articles, follows, and preferences.'],
+  ];
+  return (
+    <section className="mobileAppPanel">
+      <div>
+        <span className="badge"><PlayCircle size={15} /> Android & iOS readiness</span>
+        <h3>Nuzenio mobile apps share the same global news backend</h3>
+        <p>One account, one recommendation graph, one saved-article system, and one API layer across web, PWA, Android, iPhone, and iPad.</p>
+      </div>
+      <div className="mobileFeatureGrid">
+        {features.map(([title, text]) => (
+          <div key={title}>
+            <b>{title}</b>
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mobileReadinessGrid">
+        <div><span>Shared APIs</span><b>/api/news · /api/v1/search · /api/v1/recommendations</b></div>
+        <div><span>Latest cache candidate</span><b>{latest ? `${latest.source} · ${formatFreshAge(latest.pubDate)}` : 'Live cache ready'}</b></div>
+        <div><span>Store readiness</span><b>Privacy, terms, icons, screenshots, metadata</b></div>
       </div>
     </section>
   );
@@ -4689,6 +4745,7 @@ function Footer({ copy, onPrivacySettings }) {
       <a href="/sources.html">Sources</a>
       <a href="/data-platform">Data Platform</a>
       <a href="/archive">Archive</a>
+      <a href="/mobile-app">Mobile App</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
       <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
       <a href="/ai-policy.html">AI Policy</a>
@@ -5116,7 +5173,7 @@ function intelligenceRouteUrl(route) {
   else if (route.type === 'topic') url.pathname = `/topic/${route.slug}`;
   else if (route.type === 'hub') url.pathname = `/hub/${route.slug}`;
   else if (route.type === 'landing') url.pathname = `/${route.slug}`;
-  else if (route.type === 'data' || route.type === 'archive') url.pathname = `/${route.slug}`;
+  else if (route.type === 'data' || route.type === 'archive' || route.type === 'mobile') url.pathname = `/${route.slug}`;
   else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
   else if (route.type === 'publisher') url.pathname = `/publisher/${route.slug}`;
   else if (route.type === 'author') url.pathname = `/author/${route.slug}`;
@@ -5153,6 +5210,7 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'data') return 'News Data Platform, Public API & Knowledge Graph | Nuzenio';
   if (intelligenceRoute?.type === 'archive') return 'News Archive, Timeline Search & Historical Stories | Nuzenio';
+  if (intelligenceRoute?.type === 'mobile') return 'Android & iOS News Apps, Offline Reading & Alerts | Nuzenio';
   if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'publisher') return `${intelligenceRoute.label} Publisher Profile, Source Credibility & Latest News | Nuzenio`;
   if (intelligenceRoute?.type === 'author') return `${intelligenceRoute.label} Author Profile & Editorial Work | Nuzenio`;
@@ -5189,6 +5247,9 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'archive') {
     return 'Nuzenio news archive for historical stories, topic archive, entity archive, publisher archive, timeline tracking, and advanced date-range search.';
+  }
+  if (intelligenceRoute?.type === 'mobile') {
+    return 'Nuzenio mobile app foundation for Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, saved articles, follows, and mobile analytics.';
   }
   if (intelligenceRoute?.type === 'entity') {
     return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;
@@ -5335,6 +5396,7 @@ function siteNavigationSchema() {
     ['Author Directory', '/author/nuzenio-news-desk'],
     ['News Data Platform', '/data-platform'],
     ['News Archive', '/archive'],
+    ['Mobile Apps', '/mobile-app'],
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,

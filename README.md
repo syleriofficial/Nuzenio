@@ -21,6 +21,8 @@ Production-oriented Netlify + Supabase AI news platform.
 - Trust layer with source credibility labels, story clustering, fact-check status, source transparency, and correction reporting
 - Global intelligence pages for countries, topics, and entities with trend signals and internal linking
 - Google Discover and SEO growth pages including news landing pages, evergreen hubs, E-E-A-T panels, and SEO monitoring
+- Android, iPhone, iPad, and PWA launch foundation with mobile API contract, offline sync tables, push-notification tables, store metadata, and app release checklist
+- Shared mobile APIs for news, search, recommendations, and user capability checks through `/api/news` and `/api/v1/*`
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
@@ -60,6 +62,8 @@ TWITCH_EMBED_PARENTS=nuzenio.com,<netlify-site-name>.netlify.app
 VITE_AFFILIATE_LINKS=[]
 EMAIL_WEBHOOK_URL=<optional-email-provider-webhook>
 CRON_SECRET=<optional-secret-for-digest-cron>
+FCM_SERVER_KEY=<optional-android-push-key-for-future-mobile-api>
+APNS_KEY_ID=<optional-ios-push-key-id-for-future-mobile-api>
 ```
 
 `YOUTUBE_API_KEY` lets Netlify Functions load Live News and Video through the official YouTube Data API. Without it, Nuzenio falls back to live YouTube search parsing.
@@ -69,6 +73,7 @@ CRON_SECRET=<optional-secret-for-digest-cron>
 `VITE_AFFILIATE_LINKS` is optional JSON for approved partner links. Links must be real, HTTPS, labeled, and relevant. If Supabase is configured, enabled rows from `public.affiliate_links` are loaded first.
 `EMAIL_WEBHOOK_URL` is optional. When configured, `/api/newsletter` posts opt-in emails to your email provider webhook. Without it, subscriptions are stored as pending and the API returns the confirmation URL for testing/integration.
 `CRON_SECRET` is optional. If set, call `/api/newsletter-digest` with header `X-Nuzenio-Cron: <secret>` from a scheduler to generate daily/weekly digest logs.
+`FCM_SERVER_KEY` and `APNS_KEY_ID` are reserved for the native push notification service. They are not used by the current Netlify build until the push sender function is added.
 
 Example `LIVE_NEWS_SOURCES` value:
 
@@ -163,6 +168,28 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## Mobile app readiness
+
+The `mobile/` folder contains the Android/iOS/iPad launch foundation:
+
+- `mobile/capacitor.config.json` for the future Capacitor native wrapper.
+- `mobile/api-contract.md` for shared News, Search, User, and Recommendation APIs.
+- `mobile/store-metadata.json` for Play Store and App Store listing copy.
+- `mobile/privacy-labels.json` for app privacy disclosures.
+- `mobile/release-checklist.md` for Android, iPhone, and iPad launch QA.
+
+Generate native projects only after installing Capacitor packages:
+
+```bash
+npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios
+npm run build
+npx cap add android
+npx cap add ios
+npx cap sync
+```
+
+Keep `prefer_related_applications` disabled in `public/site.webmanifest` until real Play Store and App Store URLs are live.
 
 ## Monetization notes
 

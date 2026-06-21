@@ -2619,7 +2619,8 @@ button {
 
 .dataPlatformPanel,
 .knowledgeGraphPanel,
-.newsArchivePanel {
+.newsArchivePanel,
+.mobileAppPanel {
   display: grid;
   gap: 14px;
   margin: 16px 0;
@@ -2631,14 +2632,16 @@ button {
 }
 
 .dataPlatformPanel h3,
-.newsArchivePanel h3 {
+.newsArchivePanel h3,
+.mobileAppPanel h3 {
   margin: 8px 0;
   font-size: 26px;
   line-height: 1.15;
 }
 
 .dataPlatformPanel p,
-.newsArchivePanel p {
+.newsArchivePanel p,
+.mobileAppPanel p {
   color: #475569;
   line-height: 1.5;
 }
@@ -2648,6 +2651,13 @@ button {
 .entityTypeGrid,
 .graphRelationshipGrid,
 .archiveSignalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobileFeatureGrid,
+.mobileReadinessGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -2721,6 +2731,35 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+.mobileFeatureGrid div,
+.mobileReadinessGrid div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.mobileFeatureGrid b,
+.mobileFeatureGrid span,
+.mobileReadinessGrid span,
+.mobileReadinessGrid b {
+  display: block;
+}
+
+.mobileFeatureGrid b,
+.mobileReadinessGrid b {
+  color: #172554;
+}
+
+.mobileFeatureGrid span,
+.mobileReadinessGrid span {
+  margin-top: 5px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.4;
 }
 
 .archiveSignalGrid b {
@@ -4202,6 +4241,8 @@ button {
   .graphRelationshipGrid,
   .archiveSearchGrid,
   .archiveSignalGrid,
+  .mobileFeatureGrid,
+  .mobileReadinessGrid,
   .publisherFactGrid,
   .sourceIntelligenceGrid,
   .originalTypeGrid,

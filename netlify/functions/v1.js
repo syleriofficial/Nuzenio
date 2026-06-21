@@ -152,6 +152,43 @@ async function readGraph(url) {
   return { relationships: rows || [] };
 }
 
+async function readRecommendations(url) {
+  const limit = limitParam(url, 30, 60);
+  const country = escapeLike(url.searchParams.get('country') || 'IN').toUpperCase();
+  const categories = escapeLike(url.searchParams.get('categories') || 'top,world,business,tech,ai')
+    .split(/\s*,\s*/)
+    .filter(Boolean)
+    .slice(0, 8);
+  const categoryFilter = categories.length ? `category=in.(${categories.map(encodeURIComponent).join(',')})` : '';
+  const filters = [
+    `select=${articleSelect()}`,
+    'order=published_at.desc',
+    `limit=${limit}`,
+    `country=eq.${encodeURIComponent(country)}`,
+  ];
+  if (categoryFilter) filters.push(categoryFilter);
+  let rows = await supabaseRequest(`news_cache?${filters.join('&')}`);
+  if (!rows?.length) rows = await supabaseRequest(`news_cache?select=${articleSelect()}&order=published_at.desc&limit=${limit}`);
+  return {
+    recommendations: (rows || []).map(rowToArticle),
+    reason: 'Matched country and category preferences from the shared Nuzenio account model.',
+  };
+}
+
+async function readUserCapabilities() {
+  return {
+    authProviders: ['google', 'apple', 'email'],
+    sharedTables: ['user_preferences', 'saved_articles', 'reading_history', 'followed_topics', 'followed_sources', 'followed_entities', 'followed_authors', 'mobile_devices', 'push_subscriptions', 'offline_sync_queue'],
+    sync: {
+      preferences: true,
+      savedArticles: true,
+      readingHistory: true,
+      follows: true,
+      offlineQueue: true,
+    },
+  };
+}
+
 async function logUsage(event, endpoint, statusCode) {
   const key = event.headers['x-nuzenio-key'] || event.headers['X-Nuzenio-Key'] || '';
   if (!key) return;
@@ -199,9 +236,13 @@ export const handler = async (event) => {
                 ? await readTrends(url)
                 : endpoint === 'graph'
                   ? await readGraph(url)
+                  : endpoint === 'recommendations'
+                    ? await readRecommendations(url)
+                    : endpoint === 'user'
+                      ? await readUserCapabilities(url)
                   : null;
 
-    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph'] });
+    if (!data) return json(404, { ok: false, error: 'Unknown API v1 endpoint', endpoints: ['latest', 'categories', 'topics', 'entities', 'search', 'trends', 'graph', 'recommendations', 'user'] });
     await logUsage(event, endpoint, 200);
     return json(200, { ok: true, endpoint, generatedAt: new Date().toISOString(), ...data });
   } catch (error) {

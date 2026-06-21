@@ -1,11 +1,13 @@
-const CACHE_NAME = 'nuzenio-app-v6';
+const CACHE_NAME = 'nuzenio-app-v15';
 const APP_SHELL = [
   '/',
   '/offline.html',
   '/logo.svg',
   '/icon.svg',
   '/site.webmanifest',
+  '/mobile-app',
 ];
+const API_CACHE_PATHS = ['/api/news', '/api/v1/latest', '/api/v1/recommendations'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -45,7 +47,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok && url.pathname === '/api/news') {
+          if (response.ok && API_CACHE_PATHS.some((path) => url.pathname === path)) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

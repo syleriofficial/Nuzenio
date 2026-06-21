@@ -12,7 +12,11 @@
   "theme_color": "#2563eb",
   "launch_handler": { "client_mode": "navigate-existing" },
   "prefer_related_applications": false,
-  "categories": ["news", "productivity", "utilities"],
+  "related_applications": [
+    { "platform": "play", "id": "com.nuzenio.app", "url": "https://play.google.com/store/apps/details?id=com.nuzenio.app" },
+    { "platform": "itunes", "id": "0000000000", "url": "https://apps.apple.com/app/nuzenio/id0000000000" }
+  ],
+  "categories": ["news", "magazines", "productivity", "utilities"],
   "shortcuts": [
     {
       "name": "Top News",
@@ -40,6 +44,20 @@
       "short_name": "Video",
       "description": "Open Nuzenio video news.",
       "url": "/video",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "For You",
+      "short_name": "For You",
+      "description": "Open Nuzenio personalized mobile feed.",
+      "url": "/",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Mobile App",
+      "short_name": "App",
+      "description": "Open Nuzenio mobile app readiness page.",
+      "url": "/mobile-app",
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],

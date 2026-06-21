@@ -1,0 +1,54 @@
+{
+  "appName": "Nuzenio",
+  "lastReviewed": "2026-06-21",
+  "dataSale": false,
+  "tracking": {
+    "thirdPartyTracking": true,
+    "reason": "Google Analytics, AdSense, and affiliate networks may process usage or advertising identifiers according to their own policies when enabled."
+  },
+  "dataTypes": [
+    {
+      "type": "Contact Info",
+      "examples": ["email address", "profile name from auth provider"],
+      "purpose": ["App functionality", "Account management", "Newsletter"],
+      "linkedToUser": true
+    },
+    {
+      "type": "User Content",
+      "examples": ["saved articles", "followed topics", "followed publishers", "preferred countries"],
+      "purpose": ["Personalization", "Sync across web and mobile"],
+      "linkedToUser": true
+    },
+    {
+      "type": "Usage Data",
+      "examples": ["article opens", "search queries", "session duration", "category views"],
+      "purpose": ["Analytics", "Recommendations", "Product improvement"],
+      "linkedToUser": true
+    },
+    {
+      "type": "Identifiers",
+      "examples": ["Supabase user id", "mobile device id", "push notification token"],
+      "purpose": ["Authentication", "Push notifications", "Offline sync"],
+      "linkedToUser": true
+    },
+    {
+      "type": "Location",
+      "examples": ["selected country", "approximate browser or device region when permission is granted"],
+      "purpose": ["Local news", "Country headlines"],
+      "linkedToUser": false
+    },
+    {
+      "type": "Diagnostics",
+      "examples": ["sync failures", "API errors", "device platform", "app version"],
+      "purpose": ["Crash prevention", "Reliability"],
+      "linkedToUser": false
+    }
+  ],
+  "userControls": [
+    "Analytics consent on web",
+    "Newsletter unsubscribe",
+    "Push notification permission",
+    "Delete or access data by contacting Nuzenio",
+    "Disable saved history by signing out"
+  ]
+}
