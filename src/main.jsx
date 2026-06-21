@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Database,
   ExternalLink,
   Globe2,
   Home as HomeIcon,
@@ -284,6 +285,23 @@ const entitySeeds = [
   'United States',
 ];
 
+const dataPlatformPages = [
+  {
+    slug: 'data-platform',
+    label: 'News Data Platform',
+    category: 'top',
+    query: 'global news data intelligence entities trends',
+    intent: 'Nuzenio public API, knowledge graph, story graph, archive, and enterprise news intelligence infrastructure.',
+  },
+  {
+    slug: 'archive',
+    label: 'News Archive',
+    category: 'top',
+    query: 'news archive historical stories timeline topics entities',
+    intent: 'Historical story archive with topic, entity, publisher, country, and timeline discovery.',
+  },
+];
+
 const countryNames = {
   AE: 'United Arab Emirates',
   AU: 'Australia',
@@ -435,6 +453,10 @@ function readIntelligenceRoute(path = normalizedPathname()) {
   if (landing) {
     return { type: 'landing', ...landing };
   }
+  const dataPage = dataPlatformPages.find((item) => item.slug === cleanPath);
+  if (dataPage) {
+    return { type: dataPage.slug === 'archive' ? 'archive' : 'data', ...dataPage };
+  }
   const hubAlias = evergreenHubs.find((item) => item.aliases?.includes(cleanPath));
   if (hubAlias) {
     return { type: 'hub', ...hubAlias };
@@ -502,6 +524,7 @@ function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
   if (['topic', 'hub', 'landing'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
+  if (['data', 'archive'].includes(intelligenceRoute?.type)) return intelligenceRoute.category || 'top';
   if (intelligenceRoute?.type === 'entity') return 'top';
   if (['publisher', 'author'].includes(intelligenceRoute?.type)) return 'top';
   if (intelligenceRoute?.type === 'country') return 'top';
@@ -2542,12 +2565,18 @@ function IntelligencePage({
   const isHub = route.type === 'hub';
   const isPublisher = route.type === 'publisher';
   const isAuthor = route.type === 'author';
+  const isDataPlatform = route.type === 'data';
+  const isArchive = route.type === 'archive';
   const title = isCountry
     ? `${route.label} News Intelligence`
     : isPublisher
       ? `${route.label} Publisher Profile`
       : isAuthor
         ? `${route.label} Author Profile`
+        : isDataPlatform
+          ? 'Enterprise News Data Platform'
+          : isArchive
+            ? 'Nuzenio News Archive'
         : isTopic || isHub
       ? `${route.label} Topic Intelligence`
       : isLanding
@@ -2559,6 +2588,10 @@ function IntelligencePage({
       ? `${route.label} source profile, credibility signals, active coverage, latest RSS stories, and attribution transparency on Nuzenio.`
       : isAuthor
         ? `${route.label} editorial profile, desk responsibilities, published-work foundation, and Nuzenio E-E-A-T transparency.`
+        : isDataPlatform
+          ? 'Knowledge graph, story graph, public API, archive, trend detection, and API-management foundation for enterprise news intelligence.'
+          : isArchive
+            ? 'Historical story archive with topic, entity, publisher, country, timeline, and date-range discovery.'
         : isTopic || isHub
       ? `Live RSS intelligence for ${route.label}, with related entities, countries, clusters, and source comparisons.`
       : isLanding
@@ -2621,6 +2654,9 @@ function IntelligencePage({
         </div>
 
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
+        {isDataPlatform && <DataPlatformPanel articles={articles} />}
+        {isArchive && <NewsArchivePanel articles={articles} route={route} />}
+        {(isDataPlatform || isArchive) && <KnowledgeGraphPanel articles={articles} />}
         {isPublisher && <PublisherProfilePanel publisher={route} articles={articles} />}
         {isAuthor && <AuthorProfilePanel author={route} />}
         <SourceIntelligencePanel articles={articles} route={route} />
@@ -2685,6 +2721,22 @@ function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
       { key: 'breaking', title: 'Breaking and developing', intro: 'Fresh stories with live, breaking, developing, or update signals.', articles: trending.breaking.slice(0, 6) },
       { key: 'clusters', title: 'Multi-source clusters', intro: 'Stories also reported by more than one source.', articles: trending.growing.slice(0, 6) },
       { key: 'fresh', title: 'Fresh updates', intro: 'Recently published stories with strong timestamp signals.', articles: trending.spikes.slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'data') {
+    return [
+      { key: 'api-latest', title: 'Latest data feed', intro: 'Fresh cached stories available to the public API and graph pipeline.', articles: articles.slice(0, 6) },
+      { key: 'graph-events', title: 'Story graph candidates', intro: 'Stories that can form timelines, event chains, topic clusters, and entity relationships.', articles: detectTrendSignals(articles).growing.slice(0, 6) },
+      { key: 'trend-detection', title: 'Trend detection candidates', intro: 'Fresh stories with breaking, developing, or rapid-update signals.', articles: detectTrendSignals(articles).spikes.slice(0, 6) },
+    ].filter((section) => section.articles.length);
+  }
+
+  if (route.type === 'archive') {
+    return [
+      { key: 'historical', title: 'Historical story archive', intro: 'Latest cached stories ready for archive search and timeline indexing.', articles: articles.slice(0, 8) },
+      { key: 'topic-archive', title: 'Topic archive', intro: 'Stories grouped by topic, entity, publisher, and country signals.', articles: filterByKeywords(articles, ['ai', 'market', 'climate', 'election', 'space', 'health']).slice(0, 6) },
+      { key: 'timeline-archive', title: 'Timeline archive', intro: 'Developing stories that can become event chains over time.', articles: detectTrendSignals(articles).breaking.slice(0, 6) },
     ].filter((section) => section.articles.length);
   }
 
@@ -2868,6 +2920,128 @@ function DiscoverReadinessPanel({ articles = [], route }) {
           <small>Lead source: {lead.source || 'Publisher'} · Published {formatFreshAge(lead.pubDate)} · Updated {latestTime ? formatDate(new Date(latestTime).toISOString()) : 'live'}</small>
         </div>
       )}
+    </section>
+  );
+}
+
+function classifyEntityLabel(label = '') {
+  const value = String(label);
+  if (/openai|google|microsoft|nvidia|apple|tesla|amazon|meta/i.test(value)) return 'company';
+  if (/india|united states|canada|australia|germany|france|japan|korea|brazil|united kingdom/i.test(value)) return 'country';
+  if (/united nations|european union|world health|federal reserve|nasa|isro/i.test(value)) return 'organization';
+  if (/election|summit|launch|war|cup|conference|hearing/i.test(value)) return 'event';
+  if (/iphone|android|chatgpt|gemini|windows|tesla/i.test(value)) return 'product';
+  return 'topic';
+}
+
+function graphEntitiesFromArticles(articles = []) {
+  return extractEntities(articles).slice(0, 16).map((entity) => ({
+    ...entity,
+    type: classifyEntityLabel(entity.label),
+  }));
+}
+
+function DataPlatformPanel({ articles = [] }) {
+  const publishers = sourceStats(articles).slice(0, 5);
+  const endpoints = [
+    ['/api/v1/latest', 'Latest news'],
+    ['/api/v1/categories', 'Categories'],
+    ['/api/v1/topics', 'Topics'],
+    ['/api/v1/entities', 'Entities'],
+    ['/api/v1/search?q=ai', 'Search'],
+    ['/api/v1/trends', 'Trends'],
+  ];
+  return (
+    <section className="dataPlatformPanel">
+      <div>
+        <span className="badge"><Database size={15} /> Public API v1</span>
+        <h3>Nuzenio is becoming a news data platform</h3>
+        <p>Public endpoints expose cached stories, topics, entities, search, trends, and graph relationships from the Nuzenio data layer.</p>
+      </div>
+      <div className="apiEndpointGrid">
+        {endpoints.map(([path, label]) => (
+          <a key={path} href={path}>
+            <b>{label}</b>
+            <span>{path}</span>
+          </a>
+        ))}
+      </div>
+      <div className="pipelineGrid">
+        {['Entity extraction', 'Deduplication', 'Topic classification', 'Trend detection', 'Timeline tracking', 'API quotas'].map((item) => (
+          <div key={item}><CheckCircle2 size={16} /> {item}</div>
+        ))}
+      </div>
+      <div className="sourceMetricCard">
+        <h4>Publisher coverage sample</h4>
+        {publishers.map((item) => <div className="sourceMetricRow" key={item.source}><span>{item.source}</span><b>{item.count} stories</b></div>)}
+      </div>
+    </section>
+  );
+}
+
+function KnowledgeGraphPanel({ articles = [] }) {
+  const entities = graphEntitiesFromArticles(articles);
+  const relationships = entities.slice(0, 8).map((entity, index) => {
+    const next = entities[(index + 1) % Math.max(entities.length, 1)];
+    return {
+      source: entity.label,
+      type: entity.type === 'company' ? 'Company -> Country' : entity.type === 'event' ? 'Event -> Organization' : 'Topic -> Entity',
+      target: next?.label || 'Nuzenio archive',
+    };
+  });
+  return (
+    <section className="knowledgeGraphPanel">
+      <div className="homeTopicHead">
+        <div>
+          <h3>News knowledge graph</h3>
+          <p>Entities, relationships, story clusters, timeline events, and source evidence extracted from live RSS metadata.</p>
+        </div>
+        <a href="/api/v1/entities">Entities API <ChevronRight size={14} /></a>
+      </div>
+      <div className="entityTypeGrid">
+        {['person', 'company', 'country', 'organization', 'product', 'event', 'topic'].map((type) => (
+          <div key={type}>
+            <b>{type}</b>
+            <span>{entities.filter((entity) => entity.type === type).length || 'Ready'}</span>
+          </div>
+        ))}
+      </div>
+      <div className="graphRelationshipGrid">
+        {relationships.map((item) => (
+          <div key={`${item.source}-${item.target}`}>
+            <span>{item.type}</span>
+            <b>{item.source}</b>
+            <small>{item.target}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NewsArchivePanel({ articles = [] }) {
+  const sources = sourceStats(articles).slice(0, 6);
+  const topics = extractTrendingTopics(articles).slice(0, 8);
+  return (
+    <section className="newsArchivePanel">
+      <div>
+        <span className="badge"><Clock size={15} /> Advanced archive search</span>
+        <h3>Search by entity, topic, country, publisher, and date range</h3>
+        <p>Archive pages use cached stories and future timeline tables so Nuzenio can keep historical story evolution without copying full publisher articles.</p>
+      </div>
+      <form className="archiveSearchGrid" action="/top-news">
+        <input name="q" placeholder="Entity or topic, e.g. OpenAI" />
+        <input name="country" placeholder="Country code, e.g. US" />
+        <input name="publisher" placeholder="Publisher, e.g. Reuters" />
+        <input name="from" type="date" aria-label="From date" />
+        <input name="to" type="date" aria-label="To date" />
+        <button className="primaryAction">Search archive</button>
+      </form>
+      <div className="archiveSignalGrid">
+        <div><b>Topic archive</b>{topics.map((topic) => <a key={topic.label} href={`/entity/${slugifyTitle(topic.label)}`}>{topic.label}</a>)}</div>
+        <div><b>Publisher archive</b>{sources.map((source) => <span key={source.source}>{source.source}</span>)}</div>
+        <div><b>Timeline archive</b>{articles.slice(0, 5).map((article) => <span key={article.id}>{formatFreshAge(article.pubDate)} · {article.source}</span>)}</div>
+      </div>
     </section>
   );
 }
@@ -4513,6 +4687,8 @@ function Footer({ copy, onPrivacySettings }) {
       <b>Nuzenio</b>
       <a href="/about.html">About</a>
       <a href="/sources.html">Sources</a>
+      <a href="/data-platform">Data Platform</a>
+      <a href="/archive">Archive</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
       <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
       <a href="/ai-policy.html">AI Policy</a>
@@ -4940,6 +5116,7 @@ function intelligenceRouteUrl(route) {
   else if (route.type === 'topic') url.pathname = `/topic/${route.slug}`;
   else if (route.type === 'hub') url.pathname = `/hub/${route.slug}`;
   else if (route.type === 'landing') url.pathname = `/${route.slug}`;
+  else if (route.type === 'data' || route.type === 'archive') url.pathname = `/${route.slug}`;
   else if (route.type === 'entity') url.pathname = `/entity/${route.slug}`;
   else if (route.type === 'publisher') url.pathname = `/publisher/${route.slug}`;
   else if (route.type === 'author') url.pathname = `/author/${route.slug}`;
@@ -4974,6 +5151,8 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'topic') return `${intelligenceRoute.label} Topic Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'hub') return `${intelligenceRoute.label} | Nuzenio`;
   if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
+  if (intelligenceRoute?.type === 'data') return 'News Data Platform, Public API & Knowledge Graph | Nuzenio';
+  if (intelligenceRoute?.type === 'archive') return 'News Archive, Timeline Search & Historical Stories | Nuzenio';
   if (intelligenceRoute?.type === 'entity') return `${intelligenceRoute.label} News Entity Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'publisher') return `${intelligenceRoute.label} Publisher Profile, Source Credibility & Latest News | Nuzenio`;
   if (intelligenceRoute?.type === 'author') return `${intelligenceRoute.label} Author Profile & Editorial Work | Nuzenio`;
@@ -5004,6 +5183,12 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (intelligenceRoute?.type === 'landing') {
     return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent} Includes source attribution, update timestamps, related stories, and Discover-ready mobile reading.`;
+  }
+  if (intelligenceRoute?.type === 'data') {
+    return 'Nuzenio enterprise-grade news data platform with public API v1, knowledge graph, story graph, entity relationships, trend detection, and API-management foundation.';
+  }
+  if (intelligenceRoute?.type === 'archive') {
+    return 'Nuzenio news archive for historical stories, topic archive, entity archive, publisher archive, timeline tracking, and advanced date-range search.';
   }
   if (intelligenceRoute?.type === 'entity') {
     return `Follow ${intelligenceRoute.label} across live news sources on Nuzenio with related stories, entities, countries, topics, and source transparency.`;
@@ -5148,6 +5333,8 @@ function siteNavigationSchema() {
     ['Video News', '/video'],
     ['Publisher Network', '/publisher/reuters'],
     ['Author Directory', '/author/nuzenio-news-desk'],
+    ['News Data Platform', '/data-platform'],
+    ['News Archive', '/archive'],
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,

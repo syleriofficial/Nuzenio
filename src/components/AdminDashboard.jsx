@@ -105,6 +105,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [followSignals, setFollowSignals] = useState({ topics: [], entities: [], sources: [], authors: [] });
   const [recommendationLogs, setRecommendationLogs] = useState([]);
   const [aiBriefs, setAiBriefs] = useState([]);
+  const [graphEntities, setGraphEntities] = useState([]);
+  const [storyClusters, setStoryClusters] = useState([]);
+  const [apiKeys, setApiKeys] = useState([]);
+  const [apiUsageLogs, setApiUsageLogs] = useState([]);
   const [correctionReports, setCorrectionReports] = useState([]);
   const [aiSettings, setAiSettings] = useState(defaultAiSettings);
   const [newsletters, setNewsletters] = useState([]);
@@ -153,6 +157,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const mostFollowedSources = useMemo(() => topEntries(groupCount(followSignals.sources, 'source'), 8), [followSignals]);
   const mostFollowedEntities = useMemo(() => topEntries(groupCount(followSignals.entities, 'entity'), 8), [followSignals]);
   const recommendationCategories = useMemo(() => topEntries(groupCount(recommendationLogs, 'category'), 8), [recommendationLogs]);
+  const entitiesByType = useMemo(() => topEntries(groupCount(graphEntities, 'entity_type'), 8), [graphEntities]);
+  const clustersByTopic = useMemo(() => topEntries(groupCount(storyClusters, 'topic'), 8), [storyClusters]);
+  const apiUsageByEndpoint = useMemo(() => topEntries(groupCount(apiUsageLogs, 'endpoint'), 8), [apiUsageLogs]);
 
   useEffect(() => {
     loadAdmin();
@@ -199,6 +206,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         followedAuthorResult,
         recommendationResult,
         aiBriefResult,
+        graphEntityResult,
+        storyClusterResult,
+        apiKeyResult,
+        apiUsageResult,
         correctionResult,
         aiSettingsResult,
         newsletterResult,
@@ -217,6 +228,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         followedAuthorCount,
         recommendationCount,
         aiBriefCount,
+        entityCount,
+        relationshipCount,
+        storyClusterCount,
+        storyTimelineCount,
+        apiKeyCount,
+        apiUsageCount,
       ] = await Promise.all([
         supabase.from('rss_sources').select('*').order('priority', { ascending: false }).order('updated_at', { ascending: false }),
         supabase.from('news_cache').select('id,article_id,title,link,source,category,country,published_at,updated_at').order('published_at', { ascending: false }).limit(250),
@@ -233,6 +250,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         supabase.from('followed_authors').select('author_slug,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('recommendation_logs').select('article_id,title,source,category,score,reason,algorithm,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('ai_briefs').select('brief_type,country,categories,status,created_at,sent_at').order('created_at', { ascending: false }).limit(120),
+        supabase.from('entities').select('slug,name,entity_type,country,confidence,updated_at').order('updated_at', { ascending: false }).limit(200),
+        supabase.from('story_clusters').select('cluster_id,title,topic,country,cluster_size,trending_score,updated_at').order('trending_score', { ascending: false }).limit(120),
+        supabase.from('api_keys').select('id,name,key_prefix,plan,quota_per_day,rate_limit_per_minute,enabled,last_used_at,created_at').order('created_at', { ascending: false }).limit(80),
+        supabase.from('api_usage_logs').select('api_key_prefix,endpoint,method,status_code,units,created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('correction_reports').select('*').order('created_at', { ascending: false }).limit(80),
         supabase.from('ai_settings').select('*').eq('key', 'global').maybeSingle(),
         supabase.from('newsletter_subscribers').select('email,status,language,frequency,country,created_at,confirmed_at,unsubscribed_at').order('created_at', { ascending: false }).limit(50),
@@ -251,6 +272,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         countRows('followed_authors'),
         countRows('recommendation_logs'),
         countRows('ai_briefs'),
+        countRows('entities'),
+        countRows('entity_relationships'),
+        countRows('story_clusters'),
+        countRows('story_timelines'),
+        countRows('api_keys'),
+        countRows('api_usage_logs'),
       ]);
 
       if (sourceResult.error) throw sourceResult.error;
@@ -263,6 +290,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       if (followedAuthorResult.error) throw followedAuthorResult.error;
       if (recommendationResult.error) throw recommendationResult.error;
       if (aiBriefResult.error) throw aiBriefResult.error;
+      if (graphEntityResult.error) throw graphEntityResult.error;
+      if (storyClusterResult.error) throw storyClusterResult.error;
+      if (apiKeyResult.error) throw apiKeyResult.error;
+      if (apiUsageResult.error) throw apiUsageResult.error;
       setSources(sourceResult.data || []);
       setCacheRows(cacheResult.data || []);
       setAnalytics(analyticsResult.data || []);
@@ -280,6 +311,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       });
       setRecommendationLogs(recommendationResult.data || []);
       setAiBriefs(aiBriefResult.data || []);
+      setGraphEntities(graphEntityResult.data || []);
+      setStoryClusters(storyClusterResult.data || []);
+      setApiKeys(apiKeyResult.data || []);
+      setApiUsageLogs(apiUsageResult.data || []);
       setCorrectionReports(correctionResult.data || []);
       if (aiSettingsResult.data) setAiSettings({ ...defaultAiSettings, ...aiSettingsResult.data });
       setNewsletters(newsletterResult.data || []);
@@ -299,6 +334,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         followedAuthorCount,
         recommendationCount,
         aiBriefCount,
+        entityCount,
+        relationshipCount,
+        storyClusterCount,
+        storyTimelineCount,
+        apiKeyCount,
+        apiUsageCount,
         correctionCount: correctionResult.data?.length || 0,
         publisherCount: publisherResult.data?.length || 0,
         journalistCount: journalistResult.data?.length || 0,
@@ -627,6 +668,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Edit3} label="Original CMS" value={`${overview.publishedOriginalCount || 0}/${overview.originalCount || 0}`} />
         <StatCard icon={Activity} label="Follows" value={(overview.followedTopicCount || 0) + (overview.followedEntityCount || 0) + (overview.followedSourceCount || 0) + (overview.followedAuthorCount || 0)} />
         <StatCard icon={BarChart3} label="AI briefs" value={overview.aiBriefCount || 0} />
+        <StatCard icon={Database} label="Graph entities" value={overview.entityCount || 0} />
+        <StatCard icon={Activity} label="API calls" value={overview.apiUsageCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
@@ -864,6 +907,30 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           {recommendationCategories.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
           <h4>Recent briefs</h4>
           {aiBriefs.slice(0, 8).map((brief) => <MetricRow key={`${brief.brief_type}-${brief.created_at}`} label={`${brief.brief_type} · ${brief.country}`} value={brief.status} />)}
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="Knowledge Graph">
+          <MetricRow label="Entities" value={overview.entityCount || 0} />
+          <MetricRow label="Relationships" value={overview.relationshipCount || 0} />
+          <MetricRow label="Story clusters" value={overview.storyClusterCount || 0} />
+          <MetricRow label="Timeline events" value={overview.storyTimelineCount || 0} />
+          <h4>Entities by type</h4>
+          {entitiesByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>Clusters by topic</h4>
+          {clustersByTopic.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+        </AdminPanel>
+
+        <AdminPanel title="API Management">
+          <MetricRow label="API keys" value={overview.apiKeyCount || 0} />
+          <MetricRow label="Usage logs" value={overview.apiUsageCount || 0} />
+          <MetricRow label="Enabled keys" value={apiKeys.filter((key) => key.enabled).length} />
+          <MetricRow label="Public API" value="/api/v1/latest" />
+          <h4>Usage by endpoint</h4>
+          {apiUsageByEndpoint.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
+          <h4>API keys</h4>
+          {apiKeys.slice(0, 8).map((key) => <MetricRow key={key.id} label={`${key.name} · ${key.plan}`} value={key.enabled ? 'enabled' : 'disabled'} />)}
         </AdminPanel>
       </section>
 

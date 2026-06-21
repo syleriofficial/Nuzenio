@@ -123,6 +123,11 @@
   [headers.values]
     Cache-Control = "public, max-age=900"
 
+[[headers]]
+  for = "/api/v1/*"
+  [headers.values]
+    Cache-Control = "public, max-age=120, stale-while-revalidate=300"
+
 [[redirects]]
   from = "/api/news"
   to = "/.netlify/functions/news"
@@ -146,6 +151,16 @@
 [[redirects]]
   from = "/api/newsletter-digest"
   to = "/.netlify/functions/newsletter-digest"
+  status = 200
+
+[[redirects]]
+  from = "/api/v1/*"
+  to = "/.netlify/functions/v1"
+  status = 200
+
+[[redirects]]
+  from = "/api/v1"
+  to = "/.netlify/functions/v1"
   status = 200
 
 [[redirects]]
