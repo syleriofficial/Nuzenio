@@ -235,6 +235,7 @@ const MEMORY_CACHE_TTL_MS = 10 * 60 * 1000;
 const MEMORY_STALE_TTL_MS = 60 * 60 * 1000;
 const SUPABASE_CACHE_TTL_MS = 15 * 60 * 1000;
 const SUPABASE_STALE_TTL_MS = 24 * 60 * 60 * 1000;
+const SUPABASE_REQUEST_TIMEOUT_MS = 4500;
 const memoryNewsCache = globalThis.__nuzenioNewsCache || (globalThis.__nuzenioNewsCache = new Map());
 
 function fetchText(url, redirects = 0, extraHeaders = {}) {
@@ -1082,7 +1083,7 @@ async function fetchYouTubeVideos({ category, country, language }) {
     const apiVideos = await fetchYouTubeApiVideos({ category, country, language });
     if (apiVideos?.length) return { articles: apiVideos, sourceType: 'youtube-data-api' };
   } catch {
-    // Keep the public video feed alive by falling back to live YouTube search parsing.
+    // Keep public media feeds alive by falling back to YouTube search parsing.
   }
 
   const countryCode = normalizeCountry(country);
@@ -1097,10 +1098,14 @@ async function fetchYouTubeVideos({ category, country, language }) {
       'User-Agent': 'Mozilla/5.0 Nuzenio/1.0 (+https://nuzenio.com)',
     });
     const articles = extractYouTubeVideos(html, category, countryCode, newsLanguage);
-    if (articles.length) return { articles, sourceType: 'youtube-live-search' };
+    if (articles.length) return { articles, sourceType: youtubeSearchSourceType(category) };
   }
 
-  return { articles: [], sourceType: 'youtube-live-search' };
+  return { articles: [], sourceType: youtubeSearchSourceType(category) };
+}
+
+function youtubeSearchSourceType(category) {
+  return category === 'video' ? 'youtube-video-search' : 'youtube-live-search';
 }
 
 function youtubeFallbackQueries(category, countryCode, newsLanguage) {
@@ -1440,15 +1445,23 @@ function supabaseConfig() {
 async function supabaseRequest(path, options = {}) {
   const config = supabaseConfig();
   if (!config.enabled) return null;
-  const response = await fetch(`${config.url}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: config.key,
-      Authorization: `Bearer ${config.key}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${config.url}/rest/v1/${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        apikey: config.key,
+        Authorization: `Bearer ${config.key}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(`Supabase news cache failed with ${response.status}${body ? `: ${body.slice(0, 160)}` : ''}`);
@@ -1700,28 +1713,17 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
     return localResult.articles;
   }
 
+  const urls = [
+    googleNewsUrl({ category, country, q, region, city, language }),
+    ...categorySearchQueries({ category, country, language }).map((query) => googleNewsSearchUrl({ country, language, q: query })),
+  ];
+  const settled = await Promise.allSettled(urls.map((url) => fetchText(url)));
   const batches = [];
   let lastError = null;
-  try {
-    const topicXml = await fetchText(googleNewsUrl({ category, country, q, region, city, language }));
-    batches.push(...parse(topicXml, category, country, language));
-  } catch (error) {
-    lastError = error;
-  }
-  let fresh = rankCategoryArticles(polishFeed(batches, { days: 14 }), category);
-  if (fresh.length >= 24) return fresh.slice(0, 60);
-
-  for (const query of categorySearchQueries({ category, country, language })) {
-    try {
-      const xml = await fetchText(googleNewsSearchUrl({ country, language, q: query }));
-      batches.push(...parse(xml, category, country, language));
-    } catch (error) {
-      lastError = error;
-      continue;
-    }
-    fresh = rankCategoryArticles(polishFeed(batches, { days: 14 }), category);
-    if (fresh.length >= 24) return fresh.slice(0, 60);
-  }
+  settled.forEach((result) => {
+    if (result.status === 'fulfilled') batches.push(...parse(result.value, category, country, language));
+    else lastError = result.reason;
+  });
 
   const finalArticles = rankCategoryArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS }), category).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
@@ -1744,21 +1746,29 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
         localMeta: localResult.localMeta,
       };
     }
-    googleArticles = await fetchGoogleNewsArticles({ category, country, region, city, language, q });
+    if (!q && category !== 'local') {
+      const [googleResult, publisherResult] = await Promise.allSettled([
+        fetchGoogleNewsArticles({ category, country, region, city, language, q }),
+        fetchApprovedPublisherArticles({ category, country, language }),
+      ]);
+      if (googleResult.status === 'fulfilled') {
+        googleArticles = googleResult.value;
+      } else {
+        googleError = googleResult.reason;
+      }
+      if (publisherResult.status === 'fulfilled') {
+        publisherArticles = publisherResult.value.articles;
+        if (!publisherArticles.length && publisherResult.value.errors.length) {
+          publisherError = new Error(publisherResult.value.errors.join('; '));
+        }
+      } else {
+        publisherError = publisherResult.reason;
+      }
+    } else {
+      googleArticles = await fetchGoogleNewsArticles({ category, country, region, city, language, q });
+    }
   } catch (error) {
     googleError = error;
-  }
-
-  if (!q && category !== 'local') {
-    try {
-      const publisherResult = await fetchApprovedPublisherArticles({ category, country, language });
-      publisherArticles = publisherResult.articles;
-      if (!publisherArticles.length && publisherResult.errors.length) {
-        publisherError = new Error(publisherResult.errors.join('; '));
-      }
-    } catch (error) {
-      publisherError = error;
-    }
   }
 
   const merged = rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {

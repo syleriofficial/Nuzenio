@@ -43,17 +43,10 @@
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
-      "name": "For You",
-      "short_name": "For You",
-      "description": "Open Nuzenio personalized mobile feed.",
+      "name": "Home",
+      "short_name": "Home",
+      "description": "Open Nuzenio home feed.",
       "url": "/",
-      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "Mobile App",
-      "short_name": "App",
-      "description": "Open Nuzenio mobile app readiness page.",
-      "url": "/mobile-app",
       "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],
@@ -78,7 +71,7 @@
       "sizes": "512x132",
       "type": "image/svg+xml",
       "form_factor": "narrow",
-      "label": "Nuzenio mobile news app"
+      "label": "Nuzenio mobile news experience"
     }
   ]
 }
