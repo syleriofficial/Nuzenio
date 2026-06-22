@@ -54,6 +54,14 @@ import {
   seoLandingPages,
   topicIntelligence,
 } from './constants/navigation.js';
+import {
+  countryNames,
+  countryOptionCodes,
+  languageCodes,
+  languages,
+  localPlacePresets,
+  regionalEditions,
+} from './constants/locale.js';
 import { productionOrigin } from './constants/site.js';
 import { parseConfiguredAffiliateLinks } from './utils/affiliate.js';
 import { formatDate, formatFreshAge, formatLastUpdated } from './utils/format.js';
@@ -68,201 +76,9 @@ const defaultAiSettings = {
   comparisonEnabled: true,
 };
 
-const countryNames = {
-  AE: 'United Arab Emirates',
-  AU: 'Australia',
-  BD: 'Bangladesh',
-  BR: 'Brazil',
-  CA: 'Canada',
-  DE: 'Germany',
-  ES: 'Spain',
-  FR: 'France',
-  GB: 'United Kingdom',
-  IN: 'India',
-  IT: 'Italy',
-  JP: 'Japan',
-  KR: 'South Korea',
-  NL: 'Netherlands',
-  PK: 'Pakistan',
-  RU: 'Russia',
-  SG: 'Singapore',
-  US: 'United States',
-  ZA: 'South Africa',
-};
-
-const countryOptions = [
-  'AE', 'AR', 'AT', 'AU', 'BD', 'BE', 'BR', 'CA', 'CH', 'CL', 'CN', 'CO', 'DE', 'DK', 'EG', 'ES', 'FI', 'FR',
-  'GB', 'GR', 'HK', 'ID', 'IE', 'IL', 'IN', 'IT', 'JP', 'KE', 'KR', 'LK', 'MX', 'MY', 'NG', 'NL', 'NO', 'NP',
-  'NZ', 'PH', 'PK', 'PL', 'PT', 'QA', 'RU', 'SA', 'SE', 'SG', 'TH', 'TR', 'TW', 'UA', 'US', 'VN', 'ZA',
-].map((code) => ({ code, label: countryLabel(code) })).sort((a, b) => a.label.localeCompare(b.label));
-
-const localPlacePresets = {
-  DEFAULT: [
-    ['New York', 'New York'],
-    ['England', 'London'],
-    ['Delhi', 'New Delhi'],
-    ['Ontario', 'Toronto'],
-    ['New South Wales', 'Sydney'],
-    ['Dubai', 'Dubai'],
-  ],
-  AE: [
-    ['Dubai', 'Dubai'],
-    ['Abu Dhabi', 'Abu Dhabi'],
-    ['Sharjah', 'Sharjah'],
-    ['Ajman', 'Ajman'],
-  ],
-  BD: [
-    ['Dhaka', 'Dhaka'],
-    ['Chattogram', 'Chattogram'],
-    ['Sylhet', 'Sylhet'],
-    ['Rajshahi', 'Rajshahi'],
-  ],
-  BR: [
-    ['Sao Paulo', 'Sao Paulo'],
-    ['Rio de Janeiro', 'Rio de Janeiro'],
-    ['Distrito Federal', 'Brasilia'],
-    ['Bahia', 'Salvador'],
-  ],
-  IN: [
-    ['Delhi', 'New Delhi'],
-    ['Maharashtra', 'Mumbai'],
-    ['Karnataka', 'Bengaluru'],
-    ['West Bengal', 'Kolkata'],
-    ['Tamil Nadu', 'Chennai'],
-    ['Telangana', 'Hyderabad'],
-  ],
-  DE: [
-    ['Berlin', 'Berlin'],
-    ['Bavaria', 'Munich'],
-    ['Hesse', 'Frankfurt'],
-    ['North Rhine-Westphalia', 'Cologne'],
-  ],
-  ES: [
-    ['Community of Madrid', 'Madrid'],
-    ['Catalonia', 'Barcelona'],
-    ['Andalusia', 'Seville'],
-    ['Valencian Community', 'Valencia'],
-  ],
-  FR: [
-    ['Ile-de-France', 'Paris'],
-    ["Provence-Alpes-Cote d'Azur", 'Marseille'],
-    ['Auvergne-Rhone-Alpes', 'Lyon'],
-    ['Occitanie', 'Toulouse'],
-  ],
-  US: [
-    ['New York', 'New York'],
-    ['California', 'Los Angeles'],
-    ['Illinois', 'Chicago'],
-    ['Texas', 'Houston'],
-    ['Florida', 'Miami'],
-    ['California', 'San Francisco'],
-  ],
-  GB: [
-    ['England', 'London'],
-    ['Scotland', 'Edinburgh'],
-    ['Wales', 'Cardiff'],
-    ['Northern Ireland', 'Belfast'],
-    ['England', 'Manchester'],
-  ],
-  CA: [
-    ['Ontario', 'Toronto'],
-    ['British Columbia', 'Vancouver'],
-    ['Quebec', 'Montreal'],
-    ['Alberta', 'Calgary'],
-    ['Ontario', 'Ottawa'],
-  ],
-  AU: [
-    ['New South Wales', 'Sydney'],
-    ['Victoria', 'Melbourne'],
-    ['Queensland', 'Brisbane'],
-    ['Western Australia', 'Perth'],
-  ],
-  IT: [
-    ['Lazio', 'Rome'],
-    ['Lombardy', 'Milan'],
-    ['Campania', 'Naples'],
-    ['Piedmont', 'Turin'],
-  ],
-  JP: [
-    ['Tokyo', 'Tokyo'],
-    ['Osaka', 'Osaka'],
-    ['Kanagawa', 'Yokohama'],
-    ['Aichi', 'Nagoya'],
-  ],
-  KR: [
-    ['Seoul', 'Seoul'],
-    ['Busan', 'Busan'],
-    ['Incheon', 'Incheon'],
-    ['Daegu', 'Daegu'],
-  ],
-  MX: [
-    ['Mexico City', 'Mexico City'],
-    ['Jalisco', 'Guadalajara'],
-    ['Nuevo Leon', 'Monterrey'],
-    ['Puebla', 'Puebla'],
-  ],
-  NL: [
-    ['North Holland', 'Amsterdam'],
-    ['South Holland', 'Rotterdam'],
-    ['South Holland', 'The Hague'],
-    ['Utrecht', 'Utrecht'],
-  ],
-  PK: [
-    ['Sindh', 'Karachi'],
-    ['Punjab', 'Lahore'],
-    ['Islamabad Capital Territory', 'Islamabad'],
-    ['Khyber Pakhtunkhwa', 'Peshawar'],
-  ],
-  RU: [
-    ['Moscow', 'Moscow'],
-    ['Saint Petersburg', 'Saint Petersburg'],
-    ['Novosibirsk Oblast', 'Novosibirsk'],
-    ['Sverdlovsk Oblast', 'Yekaterinburg'],
-  ],
-  SG: [
-    ['Central Region', 'Singapore'],
-    ['East Region', 'Tampines'],
-    ['North Region', 'Woodlands'],
-    ['West Region', 'Jurong West'],
-  ],
-  ZA: [
-    ['Gauteng', 'Johannesburg'],
-    ['Western Cape', 'Cape Town'],
-    ['Gauteng', 'Pretoria'],
-    ['KwaZulu-Natal', 'Durban'],
-  ],
-};
-
-const languages = [
-  { code: 'en', label: 'English', native: 'English', dir: 'ltr', region: 'Global' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी', dir: 'ltr', region: 'India' },
-  { code: 'es', label: 'Spanish', native: 'Español', dir: 'ltr', region: 'Latin America' },
-  { code: 'fr', label: 'French', native: 'Français', dir: 'ltr', region: 'Europe / Africa' },
-  { code: 'de', label: 'German', native: 'Deutsch', dir: 'ltr', region: 'Europe' },
-  { code: 'pt', label: 'Portuguese', native: 'Português', dir: 'ltr', region: 'Brazil / Portugal' },
-  { code: 'ar', label: 'Arabic', native: 'العربية', dir: 'rtl', region: 'Middle East' },
-  { code: 'ja', label: 'Japanese', native: '日本語', dir: 'ltr', region: 'Japan' },
-  { code: 'ko', label: 'Korean', native: '한국어', dir: 'ltr', region: 'South Korea' },
-  { code: 'zh', label: 'Chinese', native: '中文', dir: 'ltr', region: 'Greater China' },
-  { code: 'bn', label: 'Bengali', native: 'বাংলা', dir: 'ltr', region: 'Bangladesh / India' },
-  { code: 'ta', label: 'Tamil', native: 'தமிழ்', dir: 'ltr', region: 'India / Sri Lanka' },
-  { code: 'te', label: 'Telugu', native: 'తెలుగు', dir: 'ltr', region: 'India' },
-  { code: 'mr', label: 'Marathi', native: 'मराठी', dir: 'ltr', region: 'India' },
-  { code: 'ur', label: 'Urdu', native: 'اردو', dir: 'rtl', region: 'Pakistan / India' },
-];
-
-const languageCodes = new Set(languages.map((item) => item.code));
-
-const regionalEditions = [
-  { slug: 'india', label: 'India', countries: ['IN'], languages: ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'ur'] },
-  { slug: 'usa', label: 'USA', countries: ['US'], languages: ['en', 'es'] },
-  { slug: 'uk', label: 'UK', countries: ['GB'], languages: ['en'] },
-  { slug: 'canada', label: 'Canada', countries: ['CA'], languages: ['en', 'fr'] },
-  { slug: 'australia', label: 'Australia', countries: ['AU'], languages: ['en'] },
-  { slug: 'europe', label: 'Europe', countries: ['DE', 'FR', 'ES'], languages: ['en', 'fr', 'de', 'es', 'pt'] },
-  { slug: 'middle-east', label: 'Middle East', countries: ['AE'], languages: ['en', 'ar', 'ur'] },
-  { slug: 'asia-pacific', label: 'Asia-Pacific', countries: ['JP', 'KR', 'SG', 'AU'], languages: ['en', 'ja', 'ko', 'zh'] },
-];
+const countryOptions = countryOptionCodes
+  .map((code) => ({ code, label: countryLabel(code) }))
+  .sort((a, b) => a.label.localeCompare(b.label));
 
 const translations = {
   en: {
