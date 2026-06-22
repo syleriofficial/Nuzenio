@@ -6913,6 +6913,9 @@ body {
 .main > section {
   display: grid;
   gap: 14px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .heroGrid,
@@ -6920,12 +6923,17 @@ body {
   grid-template-columns: minmax(0, 1.18fr) minmax(292px, 0.82fr);
   gap: 14px;
   margin-top: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .leadCard {
   min-height: clamp(360px, 35vw, 500px);
   border-radius: var(--card-radius);
   box-shadow: 0 18px 52px rgba(15, 23, 42, 0.11);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .leadVisual img,
@@ -6938,6 +6946,7 @@ body {
   max-width: 680px;
   border-radius: 8px;
   padding: clamp(16px, 2vw, 22px);
+  width: min(680px, calc(100% - 28px));
 }
 
 .leadContent h2 {
@@ -6961,12 +6970,26 @@ body {
 
 .sideList {
   align-content: start;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .smallStory {
   grid-template-columns: 92px minmax(0, 1fr);
   min-height: 98px;
   padding: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.smallStory > div,
+.smallStory b,
+.smallStory span,
+.leadContent h2,
+.leadContent p {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .smallStory:hover,
@@ -6982,6 +7005,9 @@ body {
 
 .trustStrip {
   margin-top: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .trustStrip div {
@@ -7195,6 +7221,9 @@ body {
   .editorialHeroGrid,
   .newsBriefingPanel {
     grid-template-columns: 1fr;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .rightRail {
@@ -7226,6 +7255,8 @@ body {
 
   .leadContent {
     padding: 14px;
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
   }
 
   .leadContent h2 {
