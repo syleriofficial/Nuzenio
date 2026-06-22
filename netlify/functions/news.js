@@ -585,9 +585,36 @@ function decodeHtml(value = '') {
 function normalizeImageUrl(value = '') {
   const url = decodeHtml(value).trim();
   if (!url) return '';
-  if (url.startsWith('//')) return `https:${url}`;
-  if (url.startsWith('http://')) return `https://${url.slice(7)}`;
-  return /^https:\/\//i.test(url) ? url : '';
+  const httpsUrl = url.startsWith('//')
+    ? `https:${url}`
+    : url.startsWith('http://')
+      ? `https://${url.slice(7)}`
+      : url;
+  return /^https:\/\//i.test(httpsUrl) ? upgradePublisherImageUrl(httpsUrl) : '';
+}
+
+function upgradePublisherImageUrl(value = '') {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, '');
+
+    if (host.endsWith('guim.co.uk')) {
+      const width = Number(url.searchParams.get('width') || 0);
+      if (!width || width < 640) url.searchParams.set('width', '640');
+      if (!url.searchParams.has('quality')) url.searchParams.set('quality', '85');
+      if (!url.searchParams.has('auto')) url.searchParams.set('auto', 'format');
+      return url.toString();
+    }
+
+    if (host.endsWith('bbci.co.uk')) {
+      url.pathname = url.pathname.replace('/standard/240/', '/standard/976/');
+      return url.toString();
+    }
+
+    return value;
+  } catch {
+    return value;
+  }
 }
 
 function parse(xml, category, country, language = 'en', sourceConfig = {}) {
