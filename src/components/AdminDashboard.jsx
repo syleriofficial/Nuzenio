@@ -592,7 +592,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       else seen.add(key);
     });
     if (!duplicateIds.length) {
-      setNotice('No duplicate cached articles found in the latest sample.');
+      setNotice('No duplicate cached articles found in the latest cache view.');
       return;
     }
     const { error } = await supabase.from('news_cache').delete().in('id', duplicateIds);

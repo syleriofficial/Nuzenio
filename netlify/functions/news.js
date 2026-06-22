@@ -1250,12 +1250,18 @@ function localSearchQueries({ country, region, city }) {
   const nearby = [cityArea, stateRegion].filter(Boolean).join(' ');
   const statePlace = [stateRegion, countryLabel(countryCode)].filter(Boolean).join(' ');
   const base = place || countryLabel(countryCode);
+  const countryName = countryLabel(countryCode);
   return [
     `${base} local news when:1d`,
     `${base} breaking news latest updates when:1d`,
+    cityArea && stateRegion ? `${cityArea} ${stateRegion} news today when:3d` : '',
     nearby ? `${nearby} city news local updates when:3d` : `${base} latest local news when:3d`,
     cityArea ? `${cityArea} ${stateRegion} police weather traffic civic news when:7d` : `${base} local updates when:7d`,
+    statePlace ? `${statePlace} latest news today when:1d` : '',
+    statePlace ? `${statePlace} breaking news when:1d` : '',
+    statePlace ? `${statePlace} district local news when:3d` : '',
     statePlace ? `${statePlace} state news local headlines when:3d` : `${base} news when:7d`,
+    `${countryName} regional local news when:1d`,
   ].filter(Boolean);
 }
 
@@ -1584,7 +1590,10 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
       continue;
     }
     const fresh = rankLocalArticles(polishFeed(batches, { days: 10, perSourceLimit: 10 }), { country, region, city });
-    if (fresh.length >= 18) {
+    const meta = localFeedMetadata(fresh, { country, region, city, queries });
+    const hasHealthyCityFeed = meta.precision === 'city' && (meta.strongMatches >= 6 || meta.freshToday >= 8);
+    const hasHealthyRegionalFeed = meta.precision !== 'city' && fresh.length >= 24;
+    if (fresh.length >= 28 || (fresh.length >= 18 && (hasHealthyCityFeed || hasHealthyRegionalFeed))) {
       const articles = fresh.slice(0, 60);
       return {
         articles,

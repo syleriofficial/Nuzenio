@@ -3849,7 +3849,7 @@ function DataPlatformPanel({ articles = [] }) {
         ))}
       </div>
       <div className="sourceMetricCard">
-        <h4>Publisher coverage sample</h4>
+        <h4>Publisher coverage</h4>
         {publishers.map((item) => <div className="sourceMetricRow" key={item.source}><span>{item.source}</span><b>{item.count} stories</b></div>)}
       </div>
     </section>
