@@ -1400,14 +1400,22 @@ function localRelevanceScore(article, { country, region, city }) {
 }
 
 function rankLocalArticles(articles, context) {
+  const minimumScore = minimumLocalRelevanceScore(context);
   return articles
     .map((article, index) => ({
       article,
       index,
       score: localRelevanceScore(article, context),
     }))
+    .filter(({ score }) => score >= minimumScore)
     .sort((a, b) => (b.score - a.score) || (articleTime(b.article.pubDate) - articleTime(a.article.pubDate)) || (a.index - b.index))
     .map(({ article }) => article);
+}
+
+function minimumLocalRelevanceScore({ region, city } = {}) {
+  if (cleanRegion(city)) return 24;
+  if (cleanRegion(region)) return 18;
+  return 0;
 }
 
 function localFeedMetadata(articles, { country, region, city, queries = [] }) {
