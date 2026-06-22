@@ -102,6 +102,15 @@ function htmlDocument({ article, articleId, category, country, language }) {
   const publishedAt = article?.pubDate || new Date().toISOString();
   const modifiedAt = article?.updatedAt || publishedAt;
   const source = article?.source || 'RSS publisher';
+  const sourceUrl = article?.sourceUrl || article?.link || siteUrl;
+  const whatHappened = article?.whatHappened || article?.summary || description;
+  const whyItMatters = article?.whyItMatters || `Nuzenio tracks this story from ${source} with source attribution and a copyright-safe brief.`;
+  const keyFacts = [
+    article?.category ? `Category: ${article.category}` : '',
+    article?.country ? `Edition: ${article.country}` : '',
+    article?.clusterSize > 1 ? `Also reported by ${article.clusterSize - 1} more source${article.clusterSize > 2 ? 's' : ''}` : '',
+    article?.fetchedAt ? `Fetched: ${new Date(article.fetchedAt).toUTCString()}` : '',
+  ].filter(Boolean);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -168,14 +177,161 @@ function htmlDocument({ article, articleId, category, country, language }) {
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
   ${isFound ? `<script type="application/ld+json">${safeJsonScript(jsonLd)}</script>` : ''}
+  <style>
+    :root {
+      color: #111827;
+      background: #f8fafc;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    body {
+      margin: 0;
+      background: #f8fafc;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    .articleShell {
+      background: #fff;
+      border: 1px solid #dbeafe;
+      border-radius: 18px;
+      box-shadow: 0 22px 70px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+    .articleBody {
+      padding: clamp(22px, 4vw, 44px);
+    }
+    .brandRow {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      color: #1e40af;
+      font-weight: 900;
+      margin-bottom: 20px;
+    }
+    .sourcePill {
+      border: 1px solid #dbeafe;
+      border-radius: 999px;
+      color: #475569;
+      font-size: 0.9rem;
+      padding: 8px 12px;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 4.4rem);
+      letter-spacing: 0;
+      line-height: 0.98;
+      margin: 0 0 18px;
+    }
+    .dek {
+      color: #475569;
+      font-size: 1.15rem;
+      max-width: 780px;
+    }
+    .heroImage {
+      aspect-ratio: 16 / 9;
+      background: #eef2ff;
+      width: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .metaLine {
+      color: #64748b;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 26px;
+    }
+    .panel {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px;
+      background: #fff;
+    }
+    .panel b {
+      color: #0f172a;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .panel p, .panel li {
+      color: #475569;
+      margin: 0;
+    }
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    a {
+      color: #2563eb;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .button {
+      background: #2563eb;
+      border-radius: 12px;
+      color: #fff;
+      padding: 12px 16px;
+    }
+    .secondary {
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+    .notice {
+      color: #64748b;
+      font-size: 0.92rem;
+      margin-top: 18px;
+    }
+    @media (max-width: 720px) {
+      main { padding: 14px 10px 28px; }
+      .articleShell { border-radius: 14px; }
+      .articleBody { padding: 20px; }
+      .grid { grid-template-columns: 1fr; }
+      h1 { line-height: 1.04; }
+    }
+  </style>
 </head>
 <body>
   <main>
-    <h1>${escapeHtml(article?.title || 'This story has expired')}</h1>
-    ${isFound ? `<p><strong>Source:</strong> ${escapeHtml(source)} · <time datetime="${escapeHtml(publishedAt)}">${escapeHtml(new Date(publishedAt).toUTCString())}</time></p>` : ''}
-    <p>${escapeHtml(description)}</p>
-    ${isFound && article?.link ? `<p><a href="${escapeHtml(article.link)}" rel="nofollow noopener noreferrer">Read original publisher story</a></p>` : ''}
-    <p><a href="${escapeHtml(isFound ? app : `${siteUrl}/top-news`)}">${escapeHtml(isFound ? 'Open live Nuzenio coverage' : 'Browse latest Nuzenio headlines')}</a></p>
+    <article class="articleShell">
+      ${isFound ? `<img class="heroImage" src="${escapeHtml(image)}" alt="" loading="eager">` : ''}
+      <div class="articleBody">
+        <div class="brandRow">
+          <a href="${siteUrl}">Nuzenio</a>
+          <span class="sourcePill">${escapeHtml(isFound ? 'Source-attributed brief' : 'Expired RSS story')}</span>
+        </div>
+        <h1>${escapeHtml(article?.title || 'This story has expired')}</h1>
+        <p class="dek">${escapeHtml(description)}</p>
+        ${isFound ? `<div class="metaLine"><span>${escapeHtml(source)}</span><span>·</span><time datetime="${escapeHtml(publishedAt)}">${escapeHtml(new Date(publishedAt).toUTCString())}</time></div>` : ''}
+        ${isFound ? `<section class="grid" aria-label="Article context">
+          <div class="panel"><b>AI summary</b><p>${escapeHtml(description)}</p></div>
+          <div class="panel"><b>What happened</b><p>${escapeHtml(whatHappened)}</p></div>
+          <div class="panel"><b>Why it matters</b><p>${escapeHtml(whyItMatters)}</p></div>
+          <div class="panel"><b>Key facts</b><ul>${keyFacts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join('') || `<li>${escapeHtml(source)} is the original attributed source.</li>`}</ul></div>
+        </section>` : ''}
+        <div class="actions">
+          ${isFound && article?.link ? `<a class="button" href="${escapeHtml(article.link)}" rel="nofollow noopener noreferrer">Read original publisher story</a>` : ''}
+          <a class="${isFound ? 'secondary' : 'button'}" href="${escapeHtml(isFound ? app : `${siteUrl}/top-news`)}">${escapeHtml(isFound ? 'Open live Nuzenio coverage' : 'Browse latest Nuzenio headlines')}</a>
+          ${isFound ? `<a class="secondary" href="${escapeHtml(sourceUrl)}" rel="nofollow noopener noreferrer">Source attribution</a>` : ''}
+        </div>
+        <p class="notice">Nuzenio shows copyright-safe summaries and context. Full reporting stays with the original publisher.</p>
+      </div>
+    </article>
   </main>
 </body>
 </html>`;
