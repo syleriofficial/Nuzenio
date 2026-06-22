@@ -479,6 +479,55 @@ function diversifySources(articles, perSourceLimit = 12) {
   return [...primary, ...overflow];
 }
 
+const CATEGORY_RELEVANCE = {
+  tech: {
+    boost: /\b(ai|artificial intelligence|technology|tech|software|app|apps|startup|startups|cyber|security|privacy|data|cloud|chip|chips|semiconductor|robot|robots|phone|smartphone|iphone|android|google|apple|microsoft|openai|nvidia|meta|tesla|spacex)\b/i,
+    penalty: /\b(personality test|horoscope|astrology|recipe|movie review|celebrity gossip)\b/i,
+  },
+  entertainment: {
+    boost: /\b(entertainment|film|movie|cinema|box office|actor|actress|celebrity|bollywood|hollywood|ott|streaming|music|album|series|trailer|netflix|prime video|disney)\b/i,
+    penalty: /\b(police|arrest|fir|crime|assault|murder|killed|court|land dispute|attack)\b/i,
+  },
+  business: {
+    boost: /\b(business|market|markets|stock|stocks|economy|economic|company|companies|earnings|revenue|profit|bank|banking|finance|inflation|trade|investor|ipo)\b/i,
+    penalty: /\b(movie|sports|celebrity|recipe|weather)\b/i,
+  },
+  sports: {
+    boost: /\b(sport|sports|match|score|cricket|football|soccer|tennis|nba|fifa|olympic|world cup|goal|league|tournament|player|team)\b/i,
+    penalty: /\b(stock|market|movie|election|policy)\b/i,
+  },
+  health: {
+    boost: /\b(health|medical|medicine|disease|doctor|hospital|study|research|wellness|fitness|vaccine|virus|cancer|heart|brain|mental health)\b/i,
+    penalty: /\b(stock|market|movie|sports score)\b/i,
+  },
+  science: {
+    boost: /\b(science|space|nasa|research|study|scientist|discovery|climate|physics|astronomy|planet|moon|mars|quantum|biology|archaeology)\b/i,
+    penalty: /\b(stock|market|movie|celebrity)\b/i,
+  },
+  ai: {
+    boost: /\b(ai|artificial intelligence|machine learning|large language model|llm|openai|anthropic|google deepmind|chatgpt|nvidia|model|models|automation)\b/i,
+    penalty: /\b(movie|sports|celebrity|recipe)\b/i,
+  },
+};
+
+function categoryRelevanceScore(article, category) {
+  const rules = CATEGORY_RELEVANCE[category];
+  if (!rules) return 0;
+  const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''}`;
+  let score = 0;
+  if (rules.boost.test(text)) score += 35;
+  if (rules.penalty.test(text)) score -= 45;
+  return score;
+}
+
+function rankCategoryArticles(articles, category) {
+  if (!CATEGORY_RELEVANCE[category]) return articles;
+  return articles
+    .map((article, index) => ({ article, index, score: categoryRelevanceScore(article, category) }))
+    .sort((a, b) => (b.score - a.score) || (articleTime(b.article.pubDate) - articleTime(a.article.pubDate)) || (a.index - b.index))
+    .map(({ article }) => article);
+}
+
 function polishFeed(articles, { days = 14, perSourceLimit = 12 } = {}) {
   return diversifySources(sortByNewest(compactDuplicateArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
 }
@@ -1659,7 +1708,7 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
   } catch (error) {
     lastError = error;
   }
-  let fresh = polishFeed(batches, { days: 14 });
+  let fresh = rankCategoryArticles(polishFeed(batches, { days: 14 }), category);
   if (fresh.length >= 24) return fresh.slice(0, 60);
 
   for (const query of categorySearchQueries({ category, country, language })) {
@@ -1670,11 +1719,11 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
       lastError = error;
       continue;
     }
-    fresh = polishFeed(batches, { days: 14 });
+    fresh = rankCategoryArticles(polishFeed(batches, { days: 14 }), category);
     if (fresh.length >= 24) return fresh.slice(0, 60);
   }
 
-  const finalArticles = polishFeed(batches, { days: MAX_RSS_AGE_DAYS }).slice(0, 60);
+  const finalArticles = rankCategoryArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS }), category).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
 }
@@ -1712,10 +1761,10 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
     }
   }
 
-  const merged = polishFeed([...googleArticles, ...publisherArticles], {
+  const merged = rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {
     days: MAX_RSS_AGE_DAYS,
     perSourceLimit: 8,
-  }).slice(0, 60);
+  }), category).slice(0, 60);
 
   if (merged.length) {
     return {
