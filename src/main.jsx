@@ -4423,6 +4423,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const suggestedPlaces = allSuggestionPlaces
     .filter(([region, city]) => !citySearch || `${city} ${region}`.toLowerCase().includes(citySearch))
     .slice(0, 6);
+  const countryName = countryLabel(draft.country);
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
@@ -4525,6 +4526,20 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             <MapPin size={15} /> Manual location
           </span>
           <small>Type country, state, and city to get exact local news anywhere in the world.</small>
+        </div>
+        <div className="locationAccuracyGuide" aria-label="Local accuracy guide">
+          <span>
+            <b>Best accuracy</b>
+            Manual city + state
+          </span>
+          <span>
+            <b>{countryName}</b>
+            {allSuggestionPlaces.length} quick locations
+          </span>
+          <span>
+            <b>GPS fallback</b>
+            Use when city is unknown
+          </span>
         </div>
         <div className="locationControls">
           <label>
