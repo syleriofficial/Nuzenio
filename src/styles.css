@@ -7387,3 +7387,72 @@ body {
     padding: 8px 4px;
   }
 }
+
+/* Nuzenio V23: long-page performance polish */
+@supports (content-visibility: auto) {
+  .homeTopicSection,
+  .mustReadBand,
+  .personalizedSection,
+  .trendSignalGrid,
+  .discoverReadinessPanel,
+  .dataPlatformPanel,
+  .knowledgeGraphPanel,
+  .newsArchivePanel,
+  .mobileAppPanel,
+  .commandCenter,
+  .publisherProfilePanel,
+  .authorProfilePanel,
+  .sourceIntelligencePanel,
+  .originalJournalismPanel,
+  .editorialTransparencyPanel,
+  .internalLinkGraph,
+  .feedGrid > .articleCard,
+  .homeSectionGrid > .articleCard,
+  .videoGrid > .videoCard,
+  .rightRail > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
+  }
+
+  .rightRail > * {
+    contain-intrinsic-size: auto 220px;
+  }
+
+  .feedGrid > .articleCard,
+  .homeSectionGrid > .articleCard,
+  .videoGrid > .videoCard {
+    contain-intrinsic-size: auto 430px;
+  }
+}
+
+.articleThumb,
+.mustReadLeadVisual,
+.miniThumb,
+.videoThumbButton {
+  contain: paint;
+}
+
+.articleThumb img,
+.mustReadLeadVisual img,
+.miniThumb img,
+.videoThumbButton img,
+.heroImage,
+.leadVisual img {
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breakingTrack {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+    transform: none;
+  }
+
+  .articleCard,
+  .quickSectionCard,
+  .railCard,
+  .leadCard,
+  .smallStory {
+    transition: none;
+  }
+}
