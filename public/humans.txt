@@ -3,6 +3,7 @@
 Site: https://nuzenio.com
 Name: Nuzenio
 Description: Professional multi-language news platform for live RSS headlines, local news, video news, live news channels, and AI-powered context.
+Editorial Model: Source-attributed aggregation, short summaries, original publisher links, and clearly labeled AI context.
 
 /* Contact */
 
@@ -12,6 +13,8 @@ Corrections: https://nuzenio.com/corrections.html
 Editorial Policy: https://nuzenio.com/editorial-policy.html
 AI Policy: https://nuzenio.com/ai-policy.html
 Privacy Policy: https://nuzenio.com/privacy.html
+Source Policy: https://nuzenio.com/sources.html
+Affiliate Disclosure: https://nuzenio.com/affiliate-disclosure.html
 
 /* Technology */
 
@@ -21,9 +24,13 @@ Functions: Netlify Functions
 Auth/Data: Supabase-ready structure
 Analytics: Google Analytics with consent controls
 Advertising: Google AdSense-ready structure
+Sitemaps: Standard, language, and news sitemaps
+PWA: Installable app shell with offline fallback
 
 /* Standards */
 
 Language: English plus Hindi, Spanish, French, German, Portuguese, Arabic, Japanese, Korean, Chinese, Bengali, Tamil, Telugu, Marathi, and Urdu
 Source Model: Publisher-attributed RSS and approved playable news sources
-Last Updated: 2026-06-19
+Copyright Model: Nuzenio does not copy full publisher articles without a license; readers are sent to original publishers for complete reports.
+Commercial Model: Ads, affiliate links, and sponsored content must remain labeled and separated from editorial RSS coverage.
+Last Updated: 2026-06-23

@@ -34,7 +34,7 @@ npx cap open ios
 
 Before app-store submission:
 
-1. Replace placeholder App Store id `0000000000` in `public/site.webmanifest`.
+1. Add the official Apple App Store id to `public/site.webmanifest` only after Apple assigns the listing id.
 2. Publish Play Store package `com.nuzenio.app`.
 3. Set `prefer_related_applications` to `true` only after both store listings are live.
 4. Configure Supabase Google, Apple, and email auth redirect URLs for mobile deep links.
