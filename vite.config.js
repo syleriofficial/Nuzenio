@@ -3,6 +3,11 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   build: {
+    modulePreload: {
+      resolveDependencies(_filename, deps) {
+        return deps.filter((dep) => !dep.includes('supabase-vendor'));
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {

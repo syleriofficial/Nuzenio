@@ -1,6 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createClient } from '@supabase/supabase-js';
 import {
   ArrowLeft,
   ArrowRight,
@@ -36,21 +35,13 @@ import './styles.css';
 import { AdSlot } from './components/AdSlot.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { fetchNewsJson } from './services/newsApi.js';
+import { getSupabaseClient, isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from './services/supabaseClient.js';
 import { productionOrigin } from './constants/site.js';
 import { parseConfiguredAffiliateLinks } from './utils/affiliate.js';
 import { formatDate, formatFreshAge, formatLastUpdated } from './utils/format.js';
 import { readLocal, writeLocal } from './utils/storage.js';
 
-const defaultSupabaseUrl = 'https://ujmhbyrqpnjrayhoukko.supabase.co';
-const defaultSupabasePublishableKey = 'sb_publishable_zCDPDU6zUkABJo9GuYhEKg_U0KUcK7Z';
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || defaultSupabaseUrl;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-  || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  || defaultSupabasePublishableKey;
 const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
-const supabase =
-  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
 const defaultAiSettings = {
   enabled: true,
@@ -939,6 +930,7 @@ function App() {
   const [followedSources, setFollowedSources] = useState(() => readLocal('nuzenio_followed_sources', []));
   const [followedAuthors, setFollowedAuthors] = useState(() => readLocal('nuzenio_followed_authors', []));
   const [selected, setSelected] = useState(null);
+  const [supabase, setSupabase] = useState(null);
   const [user, setUser] = useState(null);
   const [authNotice, setAuthNotice] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
@@ -958,6 +950,26 @@ function App() {
   const homeSectionsRequestId = useRef(0);
 
   useDocumentLanguage(language);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return undefined;
+    let isActive = true;
+    const schedule = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 900));
+    const cancel = window.cancelIdleCallback || window.clearTimeout;
+    const handle = schedule(() => {
+      getSupabaseClient()
+        .then((client) => {
+          if (isActive) setSupabase(client);
+        })
+        .catch(() => {
+          if (isActive) setSupabase(null);
+        });
+    });
+    return () => {
+      isActive = false;
+      cancel(handle);
+    };
+  }, []);
 
   useEffect(() => {
     updateGoogleConsent(analyticsConsent);
@@ -1076,7 +1088,7 @@ function App() {
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   async function loadAuthProviders() {
     try {
