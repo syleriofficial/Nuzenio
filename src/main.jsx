@@ -2422,7 +2422,6 @@ function Home({
     <main id="main-content" className="main" tabIndex="-1">
       <section>
         <LocationBanner copy={copy} location={location} localMeta={localMeta} setLocation={setLocation} status={status} />
-        <GlobalLanguagePanel language={language} location={location} articles={articles} />
         {category === 'local' && (
           <LocalIntelligenceStrip
             articles={articles}
@@ -2432,7 +2431,7 @@ function Home({
           />
         )}
 
-        <div className="heroGrid">
+        <div className={isRootHome ? 'heroGrid editorialHeroGrid' : 'heroGrid'}>
           <a
             className="leadCard"
             href={lead ? articleHref(lead) : '#'}
@@ -2453,8 +2452,8 @@ function Home({
               />
             </div>
             <div className="leadContent">
-              <div className="badge">
-                <ShieldCheck size={15} /> Source attributed
+              <div className="badge leadBadge">
+                <ShieldCheck size={15} /> {isRootHome ? 'Top Story' : 'Source attributed'}
               </div>
               <h2>{displayTitle(lead) || 'Loading live lead story...'}</h2>
               <p>{displaySummary(lead) || status}</p>
