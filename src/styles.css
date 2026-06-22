@@ -5864,7 +5864,7 @@ textarea:focus-visible {
 }
 
 .topbar {
-  min-height: 74px;
+  min-height: 68px;
   padding-inline: clamp(18px, 4vw, 64px);
 }
 
@@ -5873,7 +5873,7 @@ textarea:focus-visible {
 }
 
 .brandLogo {
-  width: 156px;
+  width: 148px;
 }
 
 .searchBox,
@@ -5930,9 +5930,9 @@ textarea:focus-visible {
 }
 
 .main {
-  grid-template-columns: minmax(0, 1fr) minmax(292px, 340px);
-  gap: clamp(18px, 2vw, 28px);
-  width: min(1500px, calc(100% - clamp(28px, 6vw, 96px)));
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 318px);
+  gap: clamp(16px, 1.8vw, 24px);
+  width: min(1560px, calc(100% - clamp(24px, 5vw, 80px)));
   margin-inline: auto;
 }
 
@@ -5974,7 +5974,7 @@ textarea:focus-visible {
 }
 
 .leadCard {
-  min-height: clamp(470px, 52vw, 620px);
+  min-height: clamp(420px, 45vw, 560px);
   border: 0;
   box-shadow: 0 30px 90px rgba(15, 23, 42, 0.16);
 }
@@ -5985,8 +5985,8 @@ textarea:focus-visible {
 }
 
 .leadContent {
-  inset-inline: clamp(18px, 3vw, 34px);
-  bottom: clamp(18px, 3vw, 34px);
+  inset-inline: clamp(16px, 2.4vw, 28px);
+  bottom: clamp(16px, 2.4vw, 28px);
   max-width: 820px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.9);
@@ -5996,17 +5996,17 @@ textarea:focus-visible {
 
 .leadContent h2 {
   max-width: 780px;
-  margin-block: 12px;
+  margin-block: 10px;
   color: var(--ink);
-  font-size: clamp(34px, 4.6vw, 58px);
+  font-size: clamp(30px, 3.8vw, 48px);
   letter-spacing: 0;
-  line-height: 0.98;
+  line-height: 1.02;
 }
 
 .leadContent p {
   max-width: 720px;
   color: #344054;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 760;
 }
 
@@ -6018,13 +6018,13 @@ textarea:focus-visible {
 }
 
 .sideList {
-  gap: 14px;
+  gap: 12px;
 }
 
 .smallStory {
-  grid-template-columns: 96px 1fr;
-  min-height: 112px;
-  padding: 12px;
+  grid-template-columns: 84px 1fr;
+  min-height: 100px;
+  padding: 10px;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
@@ -6038,7 +6038,7 @@ textarea:focus-visible {
 }
 
 .miniThumb {
-  height: 86px;
+  height: 76px;
 }
 
 .newsBriefingPanel {
@@ -6080,12 +6080,12 @@ textarea:focus-visible {
 .quickSectionGrid,
 .homeSectionGrid,
 .feedGrid {
-  gap: 16px;
+  gap: 14px;
 }
 
 .quickSectionCard {
-  min-height: 172px;
-  padding: 18px;
+  min-height: 150px;
+  padding: 16px;
 }
 
 .quickSectionCard > span {
@@ -6110,17 +6110,17 @@ textarea:focus-visible {
 .articleCard .trustRow,
 .articleCard .cardActions,
 .articleCard .sourceAction {
-  margin-inline: 16px;
+  margin-inline: 14px;
 }
 
 .articleCard .cardTop {
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .articleCard .headline {
   color: var(--ink);
-  font-size: clamp(20px, 2vw, 25px);
-  line-height: 1.08;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
@@ -6130,12 +6130,12 @@ textarea:focus-visible {
 }
 
 .articleCard .sourceAction {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .homeTopicSection,
 .mustReadBand {
-  padding: 18px;
+  padding: 16px;
 }
 
 .mustReadBand {
@@ -6242,7 +6242,7 @@ textarea:focus-visible {
   }
 
   .leadCard {
-    min-height: 520px;
+    min-height: 460px;
   }
 
   .leadContent {
@@ -6252,7 +6252,7 @@ textarea:focus-visible {
   }
 
   .leadContent h2 {
-    font-size: 31px;
+    font-size: 28px;
     line-height: 1.02;
   }
 
