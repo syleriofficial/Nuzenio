@@ -10,7 +10,7 @@ export function AdSlot({ compact = false, label, name, slots = null }) {
   return (
     <aside className={`adSlot ${compact ? 'sideAd' : ''}`} data-ad-slot={name} aria-label={label}>
       <span>{label}</span>
-      <small>{configuredSlot?.format || 'Advertisement space'} · Scripts disabled until approved</small>
+      <small>{configuredSlot?.format || 'Advertisement space'} · Policy-safe reserved inventory</small>
     </aside>
   );
 }

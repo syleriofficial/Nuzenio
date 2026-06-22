@@ -12,10 +12,6 @@
   "theme_color": "#2563eb",
   "launch_handler": { "client_mode": "navigate-existing" },
   "prefer_related_applications": false,
-  "related_applications": [
-    { "platform": "play", "id": "com.nuzenio.app", "url": "https://play.google.com/store/apps/details?id=com.nuzenio.app" },
-    { "platform": "itunes", "id": "0000000000", "url": "https://apps.apple.com/app/nuzenio/id0000000000" }
-  ],
   "categories": ["news", "magazines", "productivity", "utilities"],
   "shortcuts": [
     {
