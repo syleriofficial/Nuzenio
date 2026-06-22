@@ -18,11 +18,12 @@ const categories = [
   ['science', '0.75'],
 ];
 
+const includeAdvancedIntelligencePages = false;
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
-const intelligenceCountries = ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'];
-const intelligenceTopics = ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'];
+const intelligenceCountries = includeAdvancedIntelligencePages ? ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'] : [];
+const intelligenceTopics = includeAdvancedIntelligencePages ? ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'] : [];
 const seoLandingPages = ['latest-news', 'breaking-news', 'world-news', 'technology-news', 'business-news', 'sports-news', 'ai-news', 'science-news', 'health-news'];
-const dataPlatformPages = [
+const dataPlatformPages = includeAdvancedIntelligencePages ? [
   'ecosystem',
   'publisher-portal',
   'journalist-portal',
@@ -38,12 +39,12 @@ const dataPlatformPages = [
   'archive',
   'mobile-app',
   'intelligence-dashboard',
-];
-const evergreenHubs = ['ai', 'space', 'climate', 'economy', 'startup'];
-const hubAliases = ['ai-hub', 'space-hub', 'climate-hub', 'economy-hub', 'startup-hub'];
-const intelligenceEntities = ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states', 'anthropic', 'samsung', 'spacex', 'bitcoin', 'world-bank', 'imf', 'netflix', 'premier-league', 'ipl', 'isro', 'climate-change'];
-const publisherPages = ['nuzenio', 'reuters', 'associated-press', 'bbc-news', 'the-guardian', 'al-jazeera', 'the-hindu', 'ndtv', 'nikkei-asia', 'cbc-news', 'abc-news-au'];
-const authorPages = ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact-check-desk', 'nuzenio-research-desk'];
+] : [];
+const evergreenHubs = includeAdvancedIntelligencePages ? ['ai', 'space', 'climate', 'economy', 'startup'] : [];
+const hubAliases = includeAdvancedIntelligencePages ? ['ai-hub', 'space-hub', 'climate-hub', 'economy-hub', 'startup-hub'] : [];
+const intelligenceEntities = includeAdvancedIntelligencePages ? ['openai', 'google', 'microsoft', 'nvidia', 'apple', 'tesla', 'amazon', 'meta', 'united-nations', 'world-health-organization', 'federal-reserve', 'european-union', 'nasa', 'india', 'united-states', 'anthropic', 'samsung', 'spacex', 'bitcoin', 'world-bank', 'imf', 'netflix', 'premier-league', 'ipl', 'isro', 'climate-change'] : [];
+const publisherPages = includeAdvancedIntelligencePages ? ['nuzenio', 'reuters', 'associated-press', 'bbc-news', 'the-guardian', 'al-jazeera', 'the-hindu', 'ndtv', 'nikkei-asia', 'cbc-news', 'abc-news-au'] : [];
+const authorPages = includeAdvancedIntelligencePages ? ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact-check-desk', 'nuzenio-research-desk'] : [];
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const localPlaces = [

@@ -799,6 +799,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     );
   }
 
+  const showAdvancedRoadmapPanels = false;
+
   return (
     <AdminShell onBack={onBack}>
       <section className="adminHero">
@@ -820,24 +822,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={ShieldCheck} label="Corrections" value={overview.correctionCount || 0} />
         <StatCard icon={BarChart3} label="Digest logs" value={overview.digestLogCount || 0} />
         <StatCard icon={Globe2} label="Publishers" value={overview.publisherCount || 0} />
-        <StatCard icon={Edit3} label="Original CMS" value={`${overview.publishedOriginalCount || 0}/${overview.originalCount || 0}`} />
-        <StatCard icon={Activity} label="Follows" value={(overview.followedTopicCount || 0) + (overview.followedEntityCount || 0) + (overview.followedSourceCount || 0) + (overview.followedAuthorCount || 0)} />
-        <StatCard icon={BarChart3} label="AI briefs" value={overview.aiBriefCount || 0} />
-        <StatCard icon={Database} label="Graph entities" value={overview.entityCount || 0} />
-        <StatCard icon={Activity} label="API calls" value={overview.apiUsageCount || 0} />
-        <StatCard icon={Activity} label="Trends" value={overview.trendCount || 0} />
-        <StatCard icon={BarChart3} label="Sentiment" value={overview.sentimentCount || 0} />
-        <StatCard icon={Megaphone} label="Alerts" value={overview.alertCount || 0} />
-        <StatCard icon={Globe2} label="Publisher portal" value={overview.publisherAccountCount || 0} />
-        <StatCard icon={Edit3} label="Journalist portal" value={overview.journalistAccountCount || 0} />
-        <StatCard icon={Database} label="Research reports" value={overview.researchReportCount || 0} />
-        <StatCard icon={BriefcaseBusiness} label="Enterprise leads" value={overview.enterpriseAccountCount || 0} />
-        <StatCard icon={Activity} label="Integrations" value={overview.integrationCount || 0} />
-        <StatCard icon={Sparkles} label="AI research" value={overview.aiResearchCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="V20 Publisher & Journalist Portal">
           <MetricRow label="Publisher accounts" value={overview.publisherAccountCount || 0} />
           <MetricRow label="Feed submissions" value={overview.feedSubmissionCount || 0} />
@@ -871,9 +859,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <h4>Integrations</h4>
           {integrationsByType.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}
         </AdminPanel>
-      </section>
+      </section>}
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="News Intelligence Command Center">
           <MetricRow label="Active trends" value={overview.trendCount || 0} />
           <MetricRow label="Trend snapshots" value={trendSnapshots.length} />
@@ -911,9 +899,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             ))}
           </AdminTable>
         </AdminPanel>
-      </section>
+      </section>}
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="Publisher Intelligence Metrics">
           <MetricRow label="Publisher metric rows" value={overview.publisherMetricCount || 0} />
           <MetricRow label="Measured publishers" value={new Set(publisherMetrics.map((item) => item.publisher_slug)).size} />
@@ -942,7 +930,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           {sharedDashboards.slice(0, 6).map((item) => <MetricRow key={item.id} label={item.name} value={item.access_level} />)}
           {savedReports.slice(0, 4).map((item) => <MetricRow key={item.id} label={item.title} value={item.report_type} />)}
         </AdminPanel>
-      </section>
+      </section>}
 
       <section className="adminGrid twoColumn">
         <AdminPanel title="Articles by category">{articlesByCategory.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}</AdminPanel>
@@ -1003,7 +991,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         </AdminTable>
       </AdminPanel>
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="Publisher Network">
           <MetricRow label="Publisher profiles" value={overview.publisherCount || 0} />
           <MetricRow label="Journalist profiles" value={overview.journalistCount || 0} />
@@ -1036,9 +1024,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             ))}
           </AdminTable>
         </AdminPanel>
-      </section>
+      </section>}
 
-      <AdminPanel title="Editorial CMS">
+      {showAdvancedRoadmapPanels && <AdminPanel title="Editorial CMS">
         <section className="adminGrid twoColumn">
           <div>
             <h4>Create original article</h4>
@@ -1086,7 +1074,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             </tr>
           ))}
         </AdminTable>
-      </AdminPanel>
+      </AdminPanel>}
 
       <AdminPanel title="Correction Reports">
         <AdminTable headers={['Story', 'Source', 'Issue', 'Status', 'Time', 'Actions']}>
@@ -1153,7 +1141,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         </AdminPanel>
       </section>
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="AI Personalization Analytics">
           <MetricRow label="User interests" value={overview.interestCount || 0} />
           <MetricRow label="Followed topics" value={overview.followedTopicCount || 0} />
@@ -1179,9 +1167,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <h4>Recent briefs</h4>
           {aiBriefs.slice(0, 8).map((brief) => <MetricRow key={`${brief.brief_type}-${brief.created_at}`} label={`${brief.brief_type} · ${brief.country}`} value={brief.status} />)}
         </AdminPanel>
-      </section>
+      </section>}
 
-      <section className="adminGrid twoColumn">
+      {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="Knowledge Graph">
           <MetricRow label="Entities" value={overview.entityCount || 0} />
           <MetricRow label="Relationships" value={overview.relationshipCount || 0} />
@@ -1203,7 +1191,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <h4>API keys</h4>
           {apiKeys.slice(0, 8).map((key) => <MetricRow key={key.id} label={`${key.name} · ${key.plan}`} value={key.enabled ? 'enabled' : 'disabled'} />)}
         </AdminPanel>
-      </section>
+      </section>}
 
       <section className="adminGrid twoColumn">
         <AdminPanel title="User Management">

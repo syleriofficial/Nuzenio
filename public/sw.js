@@ -1,11 +1,10 @@
-const CACHE_NAME = 'nuzenio-app-v15';
+const CACHE_NAME = 'nuzenio-app-v16';
 const APP_SHELL = [
   '/',
   '/offline.html',
   '/logo.svg',
   '/icon.svg',
   '/site.webmanifest',
-  '/mobile-app',
 ];
 const API_CACHE_PATHS = ['/api/news', '/api/v1/latest', '/api/v1/recommendations'];
 

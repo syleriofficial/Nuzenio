@@ -291,84 +291,8 @@ const entitySeeds = [
   'United States',
 ];
 
-const dataPlatformPages = [
-  {
-    slug: 'ecosystem',
-    label: 'Global News Ecosystem',
-    category: 'top',
-    query: 'global news intelligence research data ecosystem publishers journalists enterprise integrations',
-    intent: 'Nuzenio ecosystem for publisher partners, journalists, research reports, API marketplace, enterprise feeds, integrations, and AI research.',
-  },
-  {
-    slug: 'publisher-portal',
-    label: 'Publisher Portal',
-    category: 'top',
-    query: 'publisher RSS feeds verification analytics news source network',
-    intent: 'Publisher accounts, RSS feed submission, verification workflow, analytics, and trusted source network controls.',
-  },
-  {
-    slug: 'journalist-portal',
-    label: 'Journalist Portal',
-    category: 'top',
-    query: 'journalist author profile verification publishing tools audience analytics',
-    intent: 'Author profiles, verification badges, publishing tools, audience analytics, and editorial identity foundation.',
-  },
-  {
-    slug: 'research-hub',
-    label: 'Research Hub',
-    category: 'science',
-    query: 'research reports historical archives topic intelligence data downloads',
-    intent: 'Deep research reports, historical archives, topic intelligence, timeline data, and export-ready downloads.',
-  },
-  {
-    slug: 'api-marketplace',
-    label: 'API Marketplace',
-    category: 'business',
-    query: 'news API trends API entity API intelligence API marketplace',
-    intent: 'Marketplace for News API, Trends API, Entity API, Intelligence API, quotas, plans, and developer access.',
-  },
-  {
-    slug: 'enterprise',
-    label: 'Enterprise Platform',
-    category: 'business',
-    query: 'enterprise news intelligence custom feeds organization dashboards alerts teams',
-    intent: 'Custom intelligence feeds, organization dashboards, alerts, team collaboration, exports, and enterprise controls.',
-  },
-  {
-    slug: 'ai-research-assistant',
-    label: 'AI Research Assistant',
-    category: 'ai',
-    query: 'AI research assistant source comparison timeline generation topic summaries',
-    intent: 'Ask questions about news, generate timelines, compare sources, and summarize topics with attribution-first AI.',
-  },
-  {
-    slug: 'knowledge-graph',
-    label: 'Global Knowledge Graph',
-    category: 'top',
-    query: 'news entities relationships events timelines knowledge graph',
-    intent: 'News entities, relationships, events, timelines, story graph, and public intelligence data structure.',
-  },
-  {
-    slug: 'marketplace',
-    label: 'Nuzenio Marketplace',
-    category: 'business',
-    query: 'research reports premium datasets industry intelligence partner integrations marketplace',
-    intent: 'Marketplace for research reports, premium datasets, industry intelligence, API plans, and partner integrations.',
-  },
-  {
-    slug: 'integrations',
-    label: 'Ecosystem Integrations',
-    category: 'tech',
-    query: 'Slack Teams email webhooks CRM news alerts integrations',
-    intent: 'Slack, Teams, email, webhook, and CRM integrations for alerts, reports, and organization workflows.',
-  },
-  {
-    slug: 'brand-infrastructure',
-    label: 'Global Brand Infrastructure',
-    category: 'top',
-    query: 'editorial network regional editions enterprise sales strategic partnerships',
-    intent: 'Editorial network, regional editions, enterprise sales, strategic partnerships, and global brand operating system.',
-  },
+const ENABLE_ADVANCED_INTELLIGENCE_ROUTES = false;
+const dataPlatformPages = ENABLE_ADVANCED_INTELLIGENCE_ROUTES ? [
   {
     slug: 'data-platform',
     label: 'News Data Platform',
@@ -376,28 +300,7 @@ const dataPlatformPages = [
     query: 'global news data intelligence entities trends',
     intent: 'Nuzenio public API, knowledge graph, story graph, archive, and enterprise news intelligence infrastructure.',
   },
-  {
-    slug: 'archive',
-    label: 'News Archive',
-    category: 'top',
-    query: 'news archive historical stories timeline topics entities',
-    intent: 'Historical story archive with topic, entity, publisher, country, and timeline discovery.',
-  },
-  {
-    slug: 'mobile-app',
-    label: 'Mobile Apps',
-    category: 'top',
-    query: 'mobile news app android ios iphone ipad breaking alerts offline reading',
-    intent: 'Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, and app-store readiness.',
-  },
-  {
-    slug: 'intelligence-dashboard',
-    label: 'News Intelligence Dashboard',
-    category: 'top',
-    query: 'global news command center trends sentiment entities publishers alerts',
-    intent: 'Bloomberg and Google Trends style command center for trends, entities, sentiment, publishers, alerts, exports, and enterprise dashboards.',
-  },
-];
+] : [];
 
 const countryNames = {
   AE: 'United Arab Emirates',
@@ -825,35 +728,42 @@ function readIntelligenceRoute(path = normalizedPathname()) {
   }
   const hubAlias = evergreenHubs.find((item) => item.aliases?.includes(cleanPath));
   if (hubAlias) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     return { type: 'hub', ...hubAlias };
   }
   const hubMatch = path.match(/^\/hub\/([^/]+)$/);
   if (hubMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const hub = evergreenHubs.find((item) => item.slug === hubMatch[1].toLowerCase());
     return hub ? { type: 'hub', ...hub } : null;
   }
   const countryMatch = path.match(/^\/country\/([^/]+)$/);
   if (countryMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const country = intelligenceCountries.find((item) => item.slug === countryMatch[1].toLowerCase());
     return country ? { type: 'country', slug: country.slug, country: country.code, label: country.label } : null;
   }
   const topicMatch = path.match(/^\/topic\/([^/]+)$/);
   if (topicMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const topic = topicIntelligence.find((item) => item.slug === topicMatch[1].toLowerCase());
     return topic ? { type: 'topic', ...topic } : null;
   }
   const entityMatch = path.match(/^\/entity\/([^/]+)$/);
   if (entityMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const slug = entityMatch[1].toLowerCase();
     return { type: 'entity', slug, label: titleFromSlug(slug), query: titleFromSlug(slug) };
   }
   const publisherMatch = path.match(/^\/publisher\/([^/]+)$/);
   if (publisherMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const publisher = publisherDirectory.find((item) => item.slug === publisherMatch[1].toLowerCase());
     return publisher ? { type: 'publisher', label: publisher.name, query: publisher.name, ...publisher } : null;
   }
   const authorMatch = path.match(/^\/author\/([^/]+)$/);
   if (authorMatch) {
+    if (!ENABLE_ADVANCED_INTELLIGENCE_ROUTES) return null;
     const author = authorDirectory.find((item) => item.slug === authorMatch[1].toLowerCase());
     return author ? { type: 'author', label: author.name, query: author.name, ...author } : null;
   }
@@ -5273,9 +5183,9 @@ function AISummaryBox({ copy }) {
 
 function TopicRail() {
   const topics = [
-    { label: 'India Intelligence', icon: Globe2, path: '/country/in' },
-    { label: 'US Intelligence', icon: Globe2, path: '/country/us' },
-    { label: 'AI Intelligence', icon: Sparkles, path: '/topic/ai' },
+    { label: 'Local News', icon: Globe2, path: categoryRoutes.local },
+    { label: 'World', icon: Globe2, path: categoryRoutes.world },
+    { label: 'AI', icon: Sparkles, path: categoryRoutes.ai },
     { label: 'Business', icon: BriefcaseBusiness, path: categoryRoutes.business },
     { label: 'Technology', icon: Zap, path: categoryRoutes.tech },
     { label: 'Sports', icon: Trophy, path: categoryRoutes.sports },
@@ -6165,9 +6075,6 @@ function Footer({ copy, onPrivacySettings }) {
       <b>Nuzenio</b>
       <a href="/about.html">About</a>
       <a href="/sources.html">Sources</a>
-      <a href="/data-platform">Data Platform</a>
-      <a href="/archive">Archive</a>
-      <a href="/mobile-app">Mobile App</a>
       <a href="/editorial-policy.html">Editorial Policy</a>
       <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
       <a href="/ai-policy.html">AI Policy</a>
@@ -6937,11 +6844,6 @@ function siteNavigationSchema() {
     ['Science News', '/science'],
     ['Live News', '/live'],
     ['Video News', '/video'],
-    ['Publisher Network', '/publisher/reuters'],
-    ['Author Directory', '/author/nuzenio-news-desk'],
-    ['News Data Platform', '/data-platform'],
-    ['News Archive', '/archive'],
-    ['Mobile Apps', '/mobile-app'],
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,
