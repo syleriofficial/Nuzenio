@@ -808,6 +808,7 @@ function isRecordedNewsVideoResult(nearby = '', title = '', channel = '', publis
     && !isLiveTitleSignal(title, channel)
     && !isShortsSignal(nearby, title)
     && !isOldYouTubePublished(published)
+    && !hasStaleExplicitVideoDate(title)
     && !isRecordedOrReplayVideo(nearby, title, channel, published);
 }
 
@@ -836,6 +837,37 @@ function isOldYouTubePublished(published = '') {
   return /\b(month|months|year|years)\s+ago\b/i.test(published)
     || /\b(mois|mes|meses|monat|monate|jahr|jahre|anno|anni|ano|anos)\b/i.test(published)
     || /(महीने|माह|साल|বছর|মাস|மாத|ஆண்டு|నెల|సంవత్సరం|ತಿಂಗಳು|ವರ್ಷ|മാസം|വർഷം|ਮਹੀਨੇ|ਸਾਲ|مہینے|سال|شهر|أشهر|سنة|سنوات|ヶ月前|年前|개월 전|년 전|个月前|年前)/i.test(published);
+}
+
+function hasStaleExplicitVideoDate(title = '') {
+  const monthMatch = String(title || '').match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+([0-3]?\d)(?:,\s*(20\d{2}))?\b/i,
+  );
+  if (!monthMatch) return false;
+
+  const monthIndex = {
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
+  }[monthMatch[1].slice(0, 3).toLowerCase()];
+  if (monthIndex === undefined) return false;
+
+  const now = new Date();
+  const year = Number(monthMatch[3] || now.getUTCFullYear());
+  const date = new Date(Date.UTC(year, monthIndex, Number(monthMatch[2]), 23, 59, 59));
+  if (Number.isNaN(date.getTime()) || date > now) return false;
+
+  const ageDays = (now.getTime() - date.getTime()) / 86400000;
+  return ageDays > 14;
 }
 
 function hasNewsChannelSignal(title = '', channel = '') {
