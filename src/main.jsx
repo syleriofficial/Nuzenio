@@ -34,6 +34,7 @@ import {
 import './styles.css';
 import { AdSlot } from './components/AdSlot.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
+import { trackEvent, trackPageView, updateGoogleConsent } from './services/analytics.js';
 import { fetchNewsJson } from './services/newsApi.js';
 import { getSupabaseClient, isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from './services/supabaseClient.js';
 import { productionOrigin } from './constants/site.js';
@@ -6582,52 +6583,6 @@ function updatePageSeo(article, context) {
   setAlternateLinks(article ? null : context);
   setJsonLd(article, canonicalUrl, { context, description, image, title });
   trackPageView(canonicalUrl, title);
-}
-
-function trackPageView(url, title) {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', 'page_view', {
-      page_location: url,
-      page_title: title,
-      send_to: 'G-7TQQHY9XDV',
-    });
-  }
-  recordAnalyticsEvent('page_view', { page_location: url, page_title: title });
-}
-
-function trackEvent(name, params = {}) {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', name, {
-      send_to: 'G-7TQQHY9XDV',
-      ...params,
-    });
-  }
-  recordAnalyticsEvent(name, params);
-}
-
-function recordAnalyticsEvent(name, params = {}) {
-  void getSupabaseClient()
-    .then((client) => {
-      if (!client) return null;
-      return client.from('analytics_events').insert({
-        event_name: name,
-        article_id: params.item_id || params.article_id || null,
-        category: params.category || params.content_type || null,
-        metadata: params,
-      });
-    })
-    .catch(() => {});
-}
-
-function updateGoogleConsent(consent) {
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
-  const granted = consent === 'granted';
-  window.gtag('consent', 'update', {
-    analytics_storage: granted ? 'granted' : 'denied',
-    ad_storage: granted ? 'granted' : 'denied',
-    ad_user_data: granted ? 'granted' : 'denied',
-    ad_personalization: granted ? 'granted' : 'denied',
-  });
 }
 
 function contextUrlForSeo(context) {
