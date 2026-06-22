@@ -1825,6 +1825,13 @@ function Header({
             ))}
           </select>
         </label>
+        <button
+          className={`adminTopLink ${screen === 'admin' ? 'active' : ''}`}
+          onClick={navigateAdmin}
+          type="button"
+        >
+          Admin
+        </button>
         {user ? (
           <button className="loginBtn" onClick={logout}>
             <LogOut size={17} /> {copy.logout}
@@ -1878,16 +1885,6 @@ function Header({
           }}
         >
           {copy.categories.live}
-        </a>
-        <a
-          href="/admin"
-          className={screen === 'admin' ? 'active' : ''}
-          onClick={(event) => {
-            event.preventDefault();
-            navigateAdmin();
-          }}
-        >
-          Admin
         </a>
         <a
           href={categoryRoutes.video}
