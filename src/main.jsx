@@ -6169,6 +6169,8 @@ function pageJsonLd(url, { context, description, image, title }) {
 function articleJsonLd(article, url, { context, description, image, title }) {
   const organizationId = `${productionOrigin}/#organization`;
   const websiteId = `${productionOrigin}/#website`;
+  const sourceName = article.source || 'RSS publisher';
+  const articleCountry = article.country || context.location?.country || 'IN';
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -6193,13 +6195,19 @@ function articleJsonLd(article, url, { context, description, image, title }) {
         datePublished: article.pubDate || undefined,
         dateModified: article.pubDate || undefined,
         image,
+        thumbnailUrl: image,
         url,
         mainEntityOfPage: url,
         isPartOf: { '@id': websiteId },
         publisher: { '@id': organizationId },
         author: {
           '@type': 'Organization',
-          name: article.source || 'RSS publisher',
+          name: sourceName,
+        },
+        sourceOrganization: {
+          '@type': 'Organization',
+          name: sourceName,
+          url: article.link || undefined,
         },
         editor: {
           '@type': 'Organization',
@@ -6208,8 +6216,19 @@ function articleJsonLd(article, url, { context, description, image, title }) {
         },
         articleSection: article.category || context.category || 'top',
         inLanguage: context.language.code,
+        isAccessibleForFree: true,
         isBasedOn: article.link,
-        citation: article.source,
+        citation: article.link || sourceName,
+        copyrightHolder: {
+          '@type': 'Organization',
+          name: sourceName,
+        },
+        copyrightNotice: 'Nuzenio displays RSS metadata, short summaries, and source attribution. Full publisher rights remain with the original source.',
+        about: [
+          article.category || context.category || 'top',
+          countryLabel(articleCountry),
+          sourceName,
+        ],
       },
       breadcrumbSchema(context, url, title, article),
     ],
@@ -6252,9 +6271,16 @@ function itemListSchema(articles, context) {
         description: displaySummary(article),
         datePublished: article.pubDate || undefined,
         image: seoImage(article),
+        thumbnailUrl: seoImage(article),
+        isAccessibleForFree: true,
         publisher: {
           '@type': 'Organization',
           name: article.source || 'RSS publisher',
+        },
+        sourceOrganization: {
+          '@type': 'Organization',
+          name: article.source || 'RSS publisher',
+          url: article.link || undefined,
         },
       },
     };
