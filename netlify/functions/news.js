@@ -12,6 +12,229 @@ const TOPICS = {
 
 const SUPPORTED_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur']);
 
+const DEFAULT_RSS_SOURCES = [
+  {
+    id: 'bbc-world',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+    homepage: 'https://www.bbc.com/news',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'world',
+    priority: 95,
+  },
+  {
+    id: 'bbc-top',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/rss.xml',
+    homepage: 'https://www.bbc.com/news',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'news',
+    priority: 92,
+  },
+  {
+    id: 'bbc-business',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/business/rss.xml',
+    homepage: 'https://www.bbc.com/news/business',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'business',
+    priority: 90,
+  },
+  {
+    id: 'bbc-health',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/health/rss.xml',
+    homepage: 'https://www.bbc.com/news/health',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'health',
+    priority: 90,
+  },
+  {
+    id: 'bbc-science',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
+    homepage: 'https://www.bbc.com/news/science_and_environment',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'science',
+    priority: 90,
+  },
+  {
+    id: 'bbc-entertainment',
+    name: 'BBC News',
+    rssUrl: 'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml',
+    homepage: 'https://www.bbc.com/news/entertainment_and_arts',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'entertainment',
+    priority: 90,
+  },
+  {
+    id: 'bbc-sport',
+    name: 'BBC Sport',
+    rssUrl: 'https://feeds.bbci.co.uk/sport/rss.xml',
+    homepage: 'https://www.bbc.com/sport',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'sports',
+    priority: 92,
+  },
+  {
+    id: 'guardian-world',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/world/rss',
+    homepage: 'https://www.theguardian.com/world',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'world',
+    priority: 90,
+  },
+  {
+    id: 'guardian-tech',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/technology/rss',
+    homepage: 'https://www.theguardian.com/technology',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'tech',
+    priority: 86,
+  },
+  {
+    id: 'guardian-business',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/business/rss',
+    homepage: 'https://www.theguardian.com/business',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'business',
+    priority: 86,
+  },
+  {
+    id: 'guardian-sport',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/sport/rss',
+    homepage: 'https://www.theguardian.com/sport',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'sports',
+    priority: 86,
+  },
+  {
+    id: 'guardian-science',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/science/rss',
+    homepage: 'https://www.theguardian.com/science',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'science',
+    priority: 86,
+  },
+  {
+    id: 'guardian-health',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/society/health/rss',
+    homepage: 'https://www.theguardian.com/society/health',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'health',
+    priority: 84,
+  },
+  {
+    id: 'guardian-culture',
+    name: 'The Guardian',
+    rssUrl: 'https://www.theguardian.com/culture/rss',
+    homepage: 'https://www.theguardian.com/culture',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'entertainment',
+    priority: 84,
+  },
+  {
+    id: 'aljazeera-all',
+    name: 'Al Jazeera',
+    rssUrl: 'https://www.aljazeera.com/xml/rss/all.xml',
+    homepage: 'https://www.aljazeera.com',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'news',
+    priority: 88,
+  },
+  {
+    id: 'ap-top',
+    name: 'AP News',
+    rssUrl: 'https://apnews.com/hub/ap-top-news?output=rss',
+    homepage: 'https://apnews.com',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'news',
+    priority: 94,
+  },
+  {
+    id: 'techcrunch',
+    name: 'TechCrunch',
+    rssUrl: 'https://techcrunch.com/feed/',
+    homepage: 'https://techcrunch.com',
+    country: 'GLOBAL',
+    language: 'en',
+    category: 'tech',
+    priority: 84,
+  },
+  {
+    id: 'the-hindu-national',
+    name: 'The Hindu',
+    rssUrl: 'https://www.thehindu.com/news/national/feeder/default.rss',
+    homepage: 'https://www.thehindu.com',
+    country: 'IN',
+    language: 'en',
+    category: 'news',
+    priority: 90,
+  },
+  {
+    id: 'the-hindu-business',
+    name: 'The Hindu BusinessLine',
+    rssUrl: 'https://www.thehindubusinessline.com/feeder/default.rss',
+    homepage: 'https://www.thehindubusinessline.com',
+    country: 'IN',
+    language: 'en',
+    category: 'business',
+    priority: 84,
+  },
+  {
+    id: 'ndtv-latest',
+    name: 'NDTV',
+    rssUrl: 'https://feeds.feedburner.com/ndtvnews-latest',
+    homepage: 'https://www.ndtv.com',
+    country: 'IN',
+    language: 'en',
+    category: 'news',
+    priority: 86,
+  },
+  {
+    id: 'ndtv-world',
+    name: 'NDTV',
+    rssUrl: 'https://feeds.feedburner.com/ndtvnews-world-news',
+    homepage: 'https://www.ndtv.com/world-news',
+    country: 'IN',
+    language: 'en',
+    category: 'world',
+    priority: 82,
+  },
+  {
+    id: 'ndtv-tech',
+    name: 'Gadgets 360',
+    rssUrl: 'https://feeds.feedburner.com/gadgets360-latest',
+    homepage: 'https://www.gadgets360.com',
+    country: 'IN',
+    language: 'en',
+    category: 'tech',
+    priority: 82,
+  },
+];
+
 const CATEGORY_SEARCH_TERMS = {
   top: {
     ar: 'أهم الأخبار العاجلة اليوم',
@@ -454,6 +677,10 @@ function compactDuplicateArticles(articles) {
       primary.alsoReportedBy = alsoReportedBy.slice(0, 6);
       primary.clusterSize = 1 + primary.alsoReportedBy.length;
       primary.trustScore = Math.min(99, Math.max(primary.trustScore || 90, article.trustScore || 90) + Math.min(4, primary.clusterSize - 1));
+      if (shouldUpgradeArticleImage(primary, article)) {
+        primary.image = article.image;
+        primary.imageKind = article.imageKind;
+      }
       keys.forEach((key) => seen.set(key, primary));
       continue;
     }
@@ -464,13 +691,19 @@ function compactDuplicateArticles(articles) {
   return compacted;
 }
 
+function shouldUpgradeArticleImage(primary = {}, candidate = {}) {
+  return primary.imageKind !== 'photo'
+    && candidate.imageKind === 'photo'
+    && /^https:\/\//i.test(candidate.image || '');
+}
+
 function diversifySources(articles, perSourceLimit = 12) {
   const counts = new Map();
   const primary = [];
   const overflow = [];
 
   for (const article of articles) {
-    const source = normalizeSourceKey(article.source);
+    const source = articleSourceGroupKey(article);
     const count = counts.get(source) || 0;
     counts.set(source, count + 1);
     if (count < perSourceLimit) primary.push(article);
@@ -478,6 +711,49 @@ function diversifySources(articles, perSourceLimit = 12) {
   }
 
   return [...primary, ...overflow];
+}
+
+function interleaveSources(articles, perSourceLimit = 12) {
+  const groups = [];
+  const indexBySource = new Map();
+
+  for (const article of articles) {
+    const source = articleSourceGroupKey(article);
+    if (!indexBySource.has(source)) {
+      indexBySource.set(source, groups.length);
+      groups.push({ source, items: [] });
+    }
+    groups[indexBySource.get(source)].items.push(article);
+  }
+
+  const counts = new Map();
+  const primary = [];
+  const overflow = [];
+  let hasItems = true;
+
+  while (hasItems) {
+    hasItems = false;
+    for (const group of groups) {
+      const article = group.items.shift();
+      if (!article) continue;
+      hasItems = true;
+      const count = counts.get(group.source) || 0;
+      if (count < perSourceLimit) {
+        primary.push(article);
+        counts.set(group.source, count + 1);
+      } else {
+        overflow.push(article);
+      }
+    }
+  }
+
+  return [...primary, ...overflow];
+}
+
+function articleSourceGroupKey(article = {}) {
+  const rssSource = normalizeSourceKey(article.rssSourceName);
+  if (rssSource === 'google news rss') return 'google-news-rss';
+  return normalizeSourceKey(article.rssSourceName || article.source);
 }
 
 const CATEGORY_RELEVANCE = {
@@ -513,16 +789,16 @@ const CATEGORY_RELEVANCE = {
 
 function categoryRelevanceScore(article, category) {
   const rules = CATEGORY_RELEVANCE[category];
-  if (!rules) return 0;
+  let score = article.imageKind === 'photo' ? 9 : 0;
+  if (article.rssSourceName && article.rssSourceName !== 'Google News RSS') score += 4;
+  if (!rules) return score;
   const text = `${article.title || ''} ${article.summary || ''} ${article.source || ''}`;
-  let score = 0;
   if (rules.boost.test(text)) score += 35;
   if (rules.penalty.test(text)) score -= 45;
   return score;
 }
 
 function rankCategoryArticles(articles, category) {
-  if (!CATEGORY_RELEVANCE[category]) return articles;
   return articles
     .map((article, index) => ({ article, index, score: categoryRelevanceScore(article, category) }))
     .sort((a, b) => (b.score - a.score) || (articleTime(b.article.pubDate) - articleTime(a.article.pubDate)) || (a.index - b.index))
@@ -596,11 +872,11 @@ function approvedLiveSources({ country, language }) {
 function approvedRssSources({ category, country, language }) {
   const countryCode = normalizeCountry(country);
   const newsLanguage = normalizeLanguage(language);
-  return parseApprovedLiveSources()
+  return mergeApprovedSourceConfigs(DEFAULT_RSS_SOURCES, parseApprovedLiveSources())
     .filter((source) => source && source.enabled !== false && source.active !== false)
     .filter((source) => {
       const type = String(source.type || source.kind || source.provider || '').toLowerCase();
-      return type === 'rss' || Boolean(source.rssUrl || source.feedUrl);
+      return type === 'rss' || !type || Boolean(source.rssUrl || source.feedUrl);
     })
     .map((source, index) => normalizeApprovedRssSource(source, { index }))
     .filter(Boolean)
@@ -618,6 +894,25 @@ function approvedRssSources({ category, country, language }) {
     })
     .sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name))
     .slice(0, 10);
+}
+
+function mergeApprovedSourceConfigs(defaultSources = [], configuredSources = []) {
+  const seen = new Set();
+  const merged = [];
+  for (const source of [...configuredSources, ...defaultSources]) {
+    const key = sourceConfigKey(source);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    merged.push(source);
+  }
+  return merged;
+}
+
+function sourceConfigKey(source = {}) {
+  const urlKey = safeHttpsUrl(source.rssUrl || source.feedUrl || source.url);
+  if (urlKey) return `url:${urlKey}`;
+  const idKey = clean(source.id || source.name || source.source || '').toLowerCase();
+  return idKey ? `id:${idKey}` : '';
 }
 
 function normalizeApprovedRssSource(source, { index }) {
@@ -1737,7 +2032,7 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
   });
 
   return {
-    articles: polishFeed(articles, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 8 }).slice(0, 60),
+    articles: polishFeed(articles, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 6 }).slice(0, 60),
     sourceType: errors.length && articles.length ? 'publisher-rss-partial' : 'publisher-rss',
     errors,
   };
@@ -1765,7 +2060,10 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
     else lastError = result.reason;
   });
 
-  const finalArticles = rankCategoryArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS }), category).slice(0, 60);
+  const finalArticles = interleaveSources(
+    rankCategoryArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS }), category),
+    12,
+  ).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return finalArticles;
 }
@@ -1811,10 +2109,13 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
     googleError = error;
   }
 
-  const merged = rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {
-    days: MAX_RSS_AGE_DAYS,
-    perSourceLimit: 8,
-  }), category).slice(0, 60);
+  const merged = interleaveSources(
+    rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {
+      days: MAX_RSS_AGE_DAYS,
+      perSourceLimit: 12,
+    }), category),
+    12,
+  ).slice(0, 60);
 
   if (merged.length) {
     return {
