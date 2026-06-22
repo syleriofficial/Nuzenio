@@ -6525,6 +6525,10 @@ body {
 
 .homeSectionStack {
   gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sectionHead {
@@ -6862,10 +6866,19 @@ body {
 
 html {
   background: #f7f8fa;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   font-feature-settings: "kern" 1, "liga" 1;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.appShell {
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .topbar {
@@ -6897,6 +6910,10 @@ body {
 
 .breaking b {
   padding: 10px 14px;
+}
+
+.breakingViewport {
+  contain: paint;
 }
 
 .breakingHeadlineText {
@@ -7040,6 +7057,15 @@ body {
 
 .sectionHead {
   margin-top: 10px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sectionHead > *,
+.sectionStatus {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sectionHead h2 {
@@ -7049,12 +7075,48 @@ body {
 .homeTopicSection,
 .mustReadBand {
   padding: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .homeSectionGrid,
 .feedGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mustReadHead,
+.mustReadGrid,
+.mustReadLead,
+.mustReadList,
+.mustReadItem {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mustReadHead {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.mustReadGrid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+}
+
+.mustReadLead {
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.mustReadLeadBody,
+.mustReadLeadBody .headline,
+.mustReadLeadBody p,
+.mustReadItem b,
+.mustReadItem span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .articleCard {
@@ -7269,10 +7331,17 @@ body {
   }
 
   .quickSectionGrid,
+  .mustReadGrid,
+  .mustReadLead,
   .homeSectionGrid,
   .feedGrid,
   .rightRail {
     grid-template-columns: 1fr;
+  }
+
+  .mustReadHead {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .articleCard .cardTop,
