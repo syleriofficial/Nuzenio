@@ -2818,6 +2818,7 @@ function PersonalizedHomeFeed({
 function FollowIntelligencePanel({ followedAuthors = [], followedEntities = [], followedSources = [], followedTopics = [], location, toggleFollow }) {
   const topicSeeds = ['AI', 'Business', 'Technology', 'World', 'Markets', 'Science', 'Health', 'Sports'];
   const companySeeds = ['OpenAI', 'Google', 'Microsoft', 'Nvidia', 'Apple'];
+  const countrySeeds = uniqueTextValues([countryLabel(location.country), 'United States', 'United Kingdom', 'India']);
   const sourceSeeds = ['Reuters', 'Associated Press', 'BBC News', 'The Hindu', 'NDTV'];
   const authorSeeds = authorDirectory.slice(0, 4);
   return (
@@ -2828,11 +2829,21 @@ function FollowIntelligencePanel({ followedAuthors = [], followedEntities = [], 
       </div>
       <FollowChipGroup title="Topics" items={topicSeeds} followed={followedTopics} kind="topic" toggleFollow={toggleFollow} />
       <FollowChipGroup title="Companies" items={companySeeds} followed={followedEntities} kind="entity" toggleFollow={toggleFollow} />
-      <FollowChipGroup title="Countries" items={[countryLabel(location.country), 'United States', 'United Kingdom', 'India']} followed={followedEntities} kind="entity" toggleFollow={toggleFollow} />
+      <FollowChipGroup title="Countries" items={countrySeeds} followed={followedEntities} kind="entity" toggleFollow={toggleFollow} />
       <FollowChipGroup title="Sources" items={sourceSeeds} followed={followedSources} kind="source" toggleFollow={toggleFollow} />
       <FollowChipGroup title="Journalists" items={authorSeeds.map((author) => author.slug)} labels={Object.fromEntries(authorSeeds.map((author) => [author.slug, author.name]))} followed={followedAuthors} kind="author" toggleFollow={toggleFollow} />
     </div>
   );
+}
+
+function uniqueTextValues(values = []) {
+  const seen = new Set();
+  return values.filter((value) => {
+    const key = String(value || '').trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function FollowChipGroup({ followed = [], items = [], kind, labels = {}, title, toggleFollow }) {
