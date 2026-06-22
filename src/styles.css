@@ -3164,10 +3164,64 @@ button {
   text-decoration: none;
 }
 
+.homeTopicActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.trendRailControls {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.trendRailControls button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.trendRailControls button:hover,
+.trendRailControls button:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.14);
+  transform: translateY(-1px);
+}
+
 .homeSectionGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+.trendingNowRail {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  padding: 2px 2px 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trendingNowRail > * {
+  flex: 0 0 min(360px, calc((100% - 28px) / 3));
+  scroll-snap-align: start;
+}
+
+@media (max-width: 900px) {
+  .trendingNowRail > * {
+    flex-basis: min(340px, calc((100% - 14px) / 2));
+  }
 }
 
 .personalizedHub {
@@ -5343,6 +5397,20 @@ button {
 
   .homeTopicHead {
     flex-direction: column;
+  }
+
+  .homeTopicActions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .trendingNowRail {
+    margin-inline: -2px;
+    padding-bottom: 12px;
+  }
+
+  .trendingNowRail > * {
+    flex-basis: min(86vw, 330px);
   }
 
   .videoHero {

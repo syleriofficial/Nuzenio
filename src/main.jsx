@@ -2,6 +2,8 @@ import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'rea
 import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import {
+  ArrowLeft,
+  ArrowRight,
   Bookmark,
   BriefcaseBusiness,
   CheckCircle2,
@@ -3240,33 +3242,68 @@ function HomeSectionStack({
         toggleSave={toggleSave}
       />
       {sections.map((section) => (
-        <section className="homeTopicSection" key={section.key}>
-          <div className="homeTopicHead">
-            <div>
-              <h3>{section.title}</h3>
-              <p>{section.intro}</p>
-            </div>
-            <a href={section.href}>
-              View all <ChevronRight size={14} />
-            </a>
-          </div>
-          <div className="homeSectionGrid">
-            {section.articles.map((article) => (
-              <ArticleCard
-                key={`${section.key}-${article.id}`}
-                article={article}
-                copy={copy}
-                openArticle={openArticle}
-                savedIds={savedIds}
-                toggleSave={toggleSave}
-              />
-            ))}
-          </div>
-        </section>
+        <HomeTopicSection
+          key={section.key}
+          section={section}
+          copy={copy}
+          openArticle={openArticle}
+          savedIds={savedIds}
+          toggleSave={toggleSave}
+        />
       ))}
       {isLoadingNews && articles.length === 0 && <LoadingCards count={6} />}
       {!isLoadingNews && articles.length === 0 && <div className="empty">{copy.emptyFeed}</div>}
     </div>
+  );
+}
+
+function HomeTopicSection({ copy, openArticle, savedIds, section, toggleSave }) {
+  const railRef = useRef(null);
+  const isTrending = section.key === 'trending';
+  const scrollTrending = (direction) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const firstCard = rail.querySelector('.articleCard');
+    const cardWidth = firstCard?.getBoundingClientRect().width || rail.clientWidth * 0.82;
+    rail.scrollBy({ left: direction * (cardWidth + 14), behavior: 'smooth' });
+  };
+
+  return (
+    <section className={isTrending ? 'homeTopicSection trendingNowSection' : 'homeTopicSection'}>
+      <div className="homeTopicHead">
+        <div>
+          <h3>{section.title}</h3>
+          <p>{section.intro}</p>
+        </div>
+        <div className="homeTopicActions">
+          {isTrending && (
+            <div className="trendRailControls" aria-label="Move Trending Now stories">
+              <button type="button" onClick={() => scrollTrending(-1)} aria-label="Previous trending stories">
+                <ArrowLeft size={16} />
+              </button>
+              <button type="button" onClick={() => scrollTrending(1)} aria-label="Next trending stories">
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+          <a href={section.href}>
+            View all <ChevronRight size={14} />
+          </a>
+        </div>
+      </div>
+      <div ref={isTrending ? railRef : undefined} className={isTrending ? 'homeSectionGrid trendingNowRail' : 'homeSectionGrid'}>
+        {section.articles.map((article) => (
+          <ArticleCard
+            key={`${section.key}-${article.id}`}
+            article={article}
+            copy={copy}
+            openArticle={openArticle}
+            savedIds={savedIds}
+            toggleSave={toggleSave}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -4626,13 +4663,14 @@ function buildHomeSections(articles, homeSectionFeeds = {}) {
       const matched = section.key === 'top'
         ? articles.slice(0, 6)
         : section.key === 'trending'
-          ? articles.slice(1, 7)
+          ? articles.slice(1, 11)
           : homeSectionFeeds[section.key]?.length
             ? homeSectionFeeds[section.key]
             : articles.filter((article) => articleMatchesHomeSection(article, section.match));
+      const limit = section.key === 'trending' ? 8 : 3;
       return {
         ...section,
-        articles: uniqueArticles(matched.length ? matched : fallback.slice(index % 3, index % 3 + 3)).slice(0, 3),
+        articles: uniqueArticles(matched.length ? matched : fallback.slice(index % 3, index % 3 + 3)).slice(0, limit),
       };
     })
     .filter((section) => section.articles.length > 0);
