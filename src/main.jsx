@@ -978,7 +978,7 @@ function App() {
   useEffect(() => {
     loadMonetization();
     loadAiSettings();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (!['manual', 'link'].includes(location.source)) {
@@ -1864,6 +1864,7 @@ function App() {
           adSlots={adSlots}
           affiliateLinks={affiliateLinks}
           sponsoredBlocks={sponsoredBlocks}
+          supabase={supabase}
           isRootHome={isRootHome}
           isLoadingHomeSections={isLoadingHomeSections}
           language={language}
@@ -1905,6 +1906,7 @@ function App() {
           adSlots={adSlots}
           aiSettings={aiSettings}
           sponsoredBlocks={sponsoredBlocks}
+          supabase={supabase}
         />
       )}
       {!analyticsConsent && (
@@ -2338,6 +2340,7 @@ function Home({
   sideStories,
   sponsoredBlocks,
   status,
+  supabase,
   toggleFollow,
   toggleSave,
   user,
@@ -2423,7 +2426,7 @@ function Home({
           <AffiliateRail links={affiliateLinks} context={category} />
           <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="sidebar" />
           <Newsletter copy={copy} language={language} location={location} />
-          <RetentionPanel location={location} user={user} />
+          <RetentionPanel location={location} supabase={supabase} user={user} />
           <AdSlot slots={adSlots} name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
         </aside>
       </main>
@@ -2514,6 +2517,7 @@ function Home({
             location={location}
             openArticle={openArticle}
             savedIds={savedIds}
+            supabase={supabase}
             toggleFollow={toggleFollow}
             toggleSave={toggleSave}
             user={user}
@@ -2607,7 +2611,7 @@ function Home({
           <AffiliateRail links={affiliateLinks} context={category} />
           <SponsoredBlock blocks={sponsoredBlocks} context={category} placement="sidebar" />
           <Newsletter copy={copy} language={language} location={location} />
-          <RetentionPanel location={location} user={user} />
+          <RetentionPanel location={location} supabase={supabase} user={user} />
           <AdSlot slots={adSlots} name="sidebar-rectangle" label="Sidebar advertising inventory" compact />
       </aside>
     </main>
@@ -2739,6 +2743,7 @@ function PersonalizedHomeFeed({
   location,
   openArticle,
   savedIds,
+  supabase,
   toggleFollow,
   toggleSave,
   user,
@@ -5598,7 +5603,7 @@ function SourceTransparency({ article, isVideo }) {
   );
 }
 
-function CorrectionPanel({ article }) {
+function CorrectionPanel({ article, supabase }) {
   const [details, setDetails] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -5744,7 +5749,7 @@ function Newsletter({ copy, language, location }) {
   );
 }
 
-function RetentionPanel({ location, user }) {
+function RetentionPanel({ location, supabase, user }) {
   const defaultCategories = ['top', 'local', 'business', 'tech', 'sports'];
   const [notificationPermission, setNotificationPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
   const [preferences, setPreferences] = useState({
@@ -5896,7 +5901,7 @@ function RetentionPanel({ location, user }) {
   );
 }
 
-function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, copy, language, onClose, openArticle, savedIds, sponsoredBlocks, toggleSave }) {
+function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, copy, language, onClose, openArticle, savedIds, sponsoredBlocks, supabase, toggleSave }) {
   const facts = buildKeyFacts(article);
   const timeline = buildTimeline(article);
   const faqs = buildFaq(article);
@@ -6046,7 +6051,7 @@ function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, 
           </p>
         </div>
         <SourceTransparency article={article} isVideo={isVideo} />
-        <CorrectionPanel article={article} />
+        <CorrectionPanel article={article} supabase={supabase} />
         <AdSlot slots={adSlots} name="article-inline" label="Article advertising inventory" />
         <SponsoredBlock blocks={sponsoredBlocks} context={article.category} placement="article" />
         <AffiliateRail links={affiliateLinks} context={article.category} compact />
@@ -6601,13 +6606,17 @@ function trackEvent(name, params = {}) {
 }
 
 function recordAnalyticsEvent(name, params = {}) {
-  if (!supabase) return;
-  supabase.from('analytics_events').insert({
-    event_name: name,
-    article_id: params.item_id || params.article_id || null,
-    category: params.category || params.content_type || null,
-    metadata: params,
-  }).then(() => {});
+  void getSupabaseClient()
+    .then((client) => {
+      if (!client) return null;
+      return client.from('analytics_events').insert({
+        event_name: name,
+        article_id: params.item_id || params.article_id || null,
+        category: params.category || params.content_type || null,
+        metadata: params,
+      });
+    })
+    .catch(() => {});
 }
 
 function updateGoogleConsent(consent) {

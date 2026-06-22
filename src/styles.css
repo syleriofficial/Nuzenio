@@ -7456,3 +7456,308 @@ body {
     transition: none;
   }
 }
+
+/* Nuzenio V24: premium density and proportion polish */
+:root {
+  --page-max: 1288px;
+  --rail-width: 292px;
+  --density-gap: 12px;
+}
+
+body {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7f9fc 320px),
+    #f7f9fc;
+  text-rendering: optimizeLegibility;
+}
+
+.topbar {
+  min-height: 64px;
+  padding-inline: max(16px, calc((100vw - var(--page-max)) / 2));
+}
+
+.brand {
+  min-width: 176px;
+}
+
+.brandLogo {
+  width: 148px;
+}
+
+.searchBox {
+  min-height: 40px;
+  padding: 8px 11px;
+}
+
+.searchSubmit,
+.iconBtn,
+.loginBtn,
+.languageSwitcher {
+  height: 40px;
+  min-height: 40px;
+}
+
+.newsNav {
+  gap: 6px;
+  min-height: 44px;
+}
+
+.newsNav a {
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.main {
+  gap: var(--density-gap);
+  padding-top: 12px;
+}
+
+.main > section {
+  gap: var(--density-gap);
+}
+
+.header .breaking,
+.breaking {
+  margin-top: 10px;
+}
+
+.breaking b {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.breakingHeadlineText {
+  font-size: 13px;
+}
+
+.leadCard {
+  min-height: clamp(320px, 31vw, 430px);
+}
+
+.leadContent {
+  padding: 16px;
+}
+
+.leadContent h2 {
+  font-size: clamp(28px, 3vw, 42px);
+}
+
+.leadContent p {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.smallStory {
+  grid-template-columns: 82px minmax(0, 1fr);
+  min-height: 88px;
+}
+
+.miniThumb {
+  height: 74px;
+}
+
+.smallStory b {
+  font-size: 14px;
+  line-height: 1.22;
+}
+
+.newsBriefingPanel,
+.homeTopicSection,
+.mustReadBand,
+.railCard,
+.articleCard {
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+}
+
+.newsBriefingPanel {
+  padding: 14px;
+}
+
+.trustStrip,
+.quickSectionGrid,
+.homeSectionGrid,
+.feedGrid {
+  gap: var(--density-gap);
+}
+
+.sectionHead {
+  margin-top: 6px;
+}
+
+.sectionHead h2 {
+  font-size: clamp(22px, 2vw, 30px);
+}
+
+.sectionHead p {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.homeTopicSection,
+.mustReadBand {
+  padding: 14px;
+}
+
+.homeSectionGrid,
+.feedGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.articleCard {
+  border-color: rgba(15, 23, 42, 0.09);
+}
+
+.articleThumb {
+  aspect-ratio: 16 / 9;
+}
+
+.articleCard .cardTop,
+.articleCard .publisherLine,
+.articleCard .sourceQualityLabels,
+.articleCard .headline,
+.articleCard p,
+.articleCard .trustRow,
+.articleCard .cardActions,
+.articleCard .sourceAction {
+  margin-inline: 13px;
+}
+
+.articleCard .cardTop {
+  margin-top: 10px;
+}
+
+.articleCard .headline {
+  font-size: 16px;
+  line-height: 1.22;
+}
+
+.articleCard p {
+  min-height: 56px;
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.publisherLine,
+.sourceQualityLabels,
+.trustRow {
+  font-size: 11px;
+}
+
+.cardActions button,
+.sourceAction {
+  min-height: 36px;
+}
+
+.rightRail {
+  top: 76px;
+  max-height: calc(100vh - 90px);
+}
+
+.rightRail .railCard {
+  padding: 13px;
+}
+
+.rightRail .railCard h3 {
+  font-size: 15px;
+}
+
+.trend {
+  padding-block: 8px;
+}
+
+.trend span {
+  font-size: 12px;
+}
+
+.topicRail a,
+.affiliateLink {
+  min-height: 34px;
+  padding: 8px 9px;
+}
+
+.videoHero {
+  min-height: 220px;
+}
+
+.videoHero h2 {
+  font-size: clamp(28px, 3vw, 42px);
+}
+
+.locationBanner {
+  padding: 16px;
+}
+
+.locationControls select,
+.locationControls input,
+.locationControls button {
+  min-height: 40px;
+}
+
+@media (max-width: 1180px) {
+  .main {
+    width: min(100% - 28px, 900px);
+  }
+
+  .homeSectionGrid,
+  .feedGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 58px;
+    padding-inline: 10px;
+  }
+
+  .brand {
+    min-width: 142px;
+  }
+
+  .brandLogo {
+    width: 126px;
+  }
+
+  .header .breaking,
+  .breaking,
+  .main {
+    width: calc(100% - 16px);
+  }
+
+  .main {
+    padding-top: 8px;
+  }
+
+  .leadCard {
+    min-height: 340px;
+  }
+
+  .leadContent h2 {
+    font-size: 25px;
+  }
+
+  .newsBriefingPanel,
+  .homeTopicSection,
+  .mustReadBand,
+  .locationBanner {
+    padding: 12px;
+  }
+
+  .homeSectionGrid,
+  .feedGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .articleCard .headline {
+    font-size: 17px;
+  }
+
+  .articleCard p {
+    -webkit-line-clamp: 2;
+    min-height: auto;
+  }
+
+  .locationControls {
+    grid-template-columns: 1fr;
+  }
+}
