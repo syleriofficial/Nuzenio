@@ -6151,6 +6151,30 @@ textarea:focus-visible {
   position: sticky;
   top: 126px;
   align-self: start;
+  max-height: calc(100dvh - 142px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: 4px;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rightRail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rightRail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rightRail::-webkit-scrollbar-thumb {
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.rightRail:hover::-webkit-scrollbar-thumb {
+  background: #94a3b8;
 }
 
 .railCard,
