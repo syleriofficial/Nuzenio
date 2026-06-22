@@ -5032,25 +5032,48 @@ button {
 }
 
 .footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
   margin: 0 5vw 28px;
-  padding: 16px 0 88px;
+  padding: 20px 0 88px;
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 14px;
 }
 
+.footerBrand,
+.footerLinkGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .footer b {
   color: var(--text);
+  font-size: 18px;
+}
+
+.footer strong {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.footer span {
+  max-width: 220px;
+  color: #64748b;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .footer a,
 .footer button {
   color: var(--blue);
   font-weight: 900;
+  line-height: 1.25;
   text-decoration: none;
 }
 
@@ -5058,6 +5081,7 @@ button {
   border: 0;
   background: transparent;
   padding: 0;
+  text-align: start;
 }
 
 .mobileNav {
@@ -5291,6 +5315,14 @@ button {
   .footer {
     margin: 0 4vw;
     padding-bottom: 88px;
+  }
+
+  .footer {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .footerBrand {
+    grid-column: 1 / -1;
   }
 
   .toolbarRow,
