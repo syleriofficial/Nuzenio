@@ -617,6 +617,46 @@ button {
   outline: none;
 }
 
+.errorBoundary {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.errorBoundary > div {
+  width: min(100%, 620px);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 22px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.errorBoundary b {
+  display: block;
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.errorBoundary p {
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.errorBoundary button {
+  min-height: 42px;
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  padding: 9px 13px;
+  font-weight: 950;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -8141,5 +8181,117 @@ body {
 
   .articleCard {
     box-shadow: 0 1px 0 rgba(15, 23, 42, 0.05);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0b1220;
+    --panel: #111827;
+    --text: #f8fafc;
+    --muted: #cbd5e1;
+    --line: #243044;
+    --soft: #172033;
+    --red-soft: rgba(225, 29, 72, 0.14);
+    --blue-soft: rgba(37, 99, 235, 0.16);
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  }
+
+  body,
+  .appShell,
+  .adminMain {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .header,
+  .searchBox,
+  .newsNav button,
+  .newsNav a,
+  .articleCard,
+  .railCard,
+  .rightRail .railCard,
+  .homeTopicSection,
+  .mustReadBand,
+  .videoCard,
+  .featuredVideo,
+  .videoQueue,
+  .intelligenceHero,
+  .trendSignalCard,
+  .linkCluster,
+  .seoGrowthPanel,
+  .publisherProfilePanel,
+  .authorProfilePanel,
+  .sourceIntelligencePanel,
+  .originalJournalismPanel,
+  .editorialTransparencyPanel,
+  .footer,
+  .adminPanel,
+  .adminHero,
+  .adminGate,
+  .statCard,
+  .errorBoundary > div {
+    border-color: var(--line);
+    background: #111827;
+    color: var(--text);
+  }
+
+  .headline,
+  .articleCard b,
+  .articleCard h3,
+  .sectionHead h2,
+  .homeTopicHead h3,
+  .railCard h3,
+  .linkCluster h3,
+  .seoGrowthIntro h3,
+  .publisherIdentity h3,
+  .authorProfilePanel h3,
+  .originalJournalismPanel h3,
+  .editorialTransparencyPanel h3,
+  .footer b,
+  .footer strong,
+  .errorBoundary b {
+    color: var(--text);
+  }
+
+  .articleCard p,
+  .sectionHead p,
+  .homeTopicHead p,
+  .railCard p,
+  .seoGrowthIntro p,
+  .footer span,
+  .publisherIdentity p,
+  .authorProfilePanel p,
+  .originalJournalismPanel p,
+  .editorialTransparencyPanel p,
+  .publisherLine,
+  .trend span,
+  .errorBoundary p {
+    color: var(--muted);
+  }
+
+  .iconBtn,
+  .loginBtn,
+  .languageSwitcher,
+  .cardActions button,
+  .sectionStatus,
+  .linkCluster a,
+  .adminTopLink,
+  .sourceAction {
+    border-color: var(--line);
+    background: #0f172a;
+    color: #bfdbfe;
+  }
+
+  .articleThumb,
+  .miniThumb,
+  .skeletonCard,
+  .sourceMetricCard,
+  .publisherFactGrid div,
+  .originalTypeGrid div,
+  .transparencyGrid div {
+    border-color: var(--line);
+    background: #0f172a;
   }
 }

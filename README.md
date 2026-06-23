@@ -67,6 +67,7 @@ YOUTUBE_API_KEY=<youtube-data-api-key-optional-but-recommended>
 YOUTUBE_NEWS_CHANNEL_IDS=UCxxxxxxxxxxxxxxxxxxxxxx,UCyyyyyyyyyyyyyyyyyyyyyy
 LIVE_NEWS_SOURCES=[]
 TWITCH_EMBED_PARENTS=nuzenio.com,<netlify-site-name>.netlify.app
+VITE_ADVANCED_ROUTES=true
 VITE_AFFILIATE_LINKS=[]
 EMAIL_WEBHOOK_URL=<optional-email-provider-webhook>
 CRON_SECRET=<optional-secret-for-digest-cron>
@@ -87,6 +88,7 @@ The checker verifies the public anon client can read `languages` and the service
 `YOUTUBE_NEWS_CHANNEL_IDS` is optional. Add comma-separated YouTube channel IDs to show videos from approved news channels first; leave it empty to use country-based YouTube news search.
 `SUPABASE_SERVICE_ROLE_KEY` is used only inside Netlify Functions to read/write the server-side `news_cache` table. Do not expose it in client-side `VITE_` variables.
 `LIVE_NEWS_SOURCES` is optional JSON for verified free live channels and approved publisher RSS feeds. Only add official/publicly available sources that the publisher allows. Live video providers are `youtube`, `twitch`, `official_embed`, and `hls`. Publisher RSS entries use `type: "rss"` plus an HTTPS `rssUrl`.
+`VITE_ADVANCED_ROUTES` controls country, topic, hub, entity, publisher, and author intelligence routes. Routes are enabled by default; set it to `false` only if you intentionally want to hide advanced pages.
 `VITE_AFFILIATE_LINKS` is optional JSON for approved partner links. Links must be real, HTTPS, labeled, and relevant. If Supabase is configured, enabled rows from `public.affiliate_links` are loaded first.
 `EMAIL_WEBHOOK_URL` is optional. When configured, `/api/newsletter` posts opt-in emails to your email provider webhook. Without it, subscriptions are stored as pending and the API returns the confirmation URL for testing/integration.
 `CRON_SECRET` is optional. If set, call `/api/newsletter-digest` with header `X-Nuzenio-Cron: <secret>` from a scheduler to generate daily/weekly digest logs.

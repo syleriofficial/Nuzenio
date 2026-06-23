@@ -1,7 +1,7 @@
 import { handler as newsHandler } from './news.js';
 
 const siteUrl = 'https://nuzenio.com';
-const fallbackImage = `${siteUrl}/og-image.svg`;
+const fallbackImage = `${siteUrl}/og-image.png`;
 const supportedLanguages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
 const supportedLanguageSet = new Set(supportedLanguages);
 

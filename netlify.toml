@@ -12,6 +12,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), payment=()"
     X-Frame-Options = "SAMEORIGIN"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://pagead2.googlesyndication.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://pagead2.googlesyndication.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://accounts.google.com https://googleads.g.doubleclick.net; media-src 'self' https:; manifest-src 'self'; worker-src 'self'"
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
@@ -123,6 +124,18 @@
   for = "/og-image.svg"
   [headers.values]
     Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/og-image.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/icon-192.png"
+  [headers.values]
+    Content-Type = "image/png"
     Cache-Control = "public, max-age=86400"
 
 [[headers]]

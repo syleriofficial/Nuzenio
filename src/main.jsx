@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import { AdSlot } from './components/AdSlot.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { Footer } from './components/Footer.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { trackEvent, trackPageView, updateGoogleConsent } from './services/analytics.js';
 import { fetchNewsJson } from './services/newsApi.js';
@@ -91,6 +93,7 @@ import {
 import { readLocal, writeLocal } from './utils/storage.js';
 
 const configuredAffiliateLinks = parseConfiguredAffiliateLinks(import.meta.env.VITE_AFFILIATE_LINKS);
+const ENABLE_ADVANCED_INTELLIGENCE_ROUTES = import.meta.env.VITE_ADVANCED_ROUTES !== 'false';
 const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
 const defaultAiSettings = {
   enabled: true,
@@ -1538,7 +1541,12 @@ function App() {
       )}
       <PWAInstallPrompt />
       <AdSlot slots={adSlots} name="footer-banner" label="Footer advertising inventory" />
-      <Footer copy={copy} onPrivacySettings={reopenAnalyticsConsent} />
+      <Footer
+        copy={copy}
+        localEditions={featuredLocalEditions.slice(0, 8)}
+        onPrivacySettings={reopenAnalyticsConsent}
+        trafficHubs={seoLandingPages.slice(0, 9)}
+      />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>
   );
@@ -5754,52 +5762,6 @@ function MobileNav({ copy, navigateCategory, navigateHome, setMobileSearchOpen }
   );
 }
 
-function Footer({ copy, onPrivacySettings }) {
-  const trafficHubs = seoLandingPages.slice(0, 9);
-  const localEditions = featuredLocalEditions.slice(0, 8);
-  return (
-    <footer className="footer">
-      <div className="footerBrand">
-        <b>Nuzenio</b>
-        <span>{copy.tagline}</span>
-      </div>
-      <nav className="footerLinkGroup" aria-label="News hubs">
-        <strong>News hubs</strong>
-        {trafficHubs.map((page) => (
-          <a key={page.slug} href={`/${page.slug}`}>{page.label}</a>
-        ))}
-      </nav>
-      <nav className="footerLinkGroup" aria-label="Popular local editions">
-        <strong>Local editions</strong>
-        {localEditions.map((edition) => (
-          <a key={`footer-${edition.country}-${edition.city}`} href={edition.href}>{edition.label}</a>
-        ))}
-        <a href="/local">More local news</a>
-      </nav>
-      <nav className="footerLinkGroup" aria-label="Nuzenio policies">
-        <strong>Trust</strong>
-        <a href="/about.html">About</a>
-        <a href="/sources.html">Sources</a>
-        <a href="/editorial-policy.html">Editorial Policy</a>
-        <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
-        <a href="/ai-policy.html">AI Policy</a>
-        <a href="/corrections.html">Corrections</a>
-      </nav>
-      <nav className="footerLinkGroup" aria-label="Nuzenio business and technical links">
-        <strong>Platform</strong>
-        <a href="/advertise.html">Advertise</a>
-        <a href="/feed.xml">RSS</a>
-        <a href="/privacy.html">Privacy</a>
-        <a href="/terms.html">Terms</a>
-        <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
-        <a href="/humans.txt">Humans</a>
-        <a href="/llms.txt">LLMs</a>
-        <button onClick={onPrivacySettings}>Privacy settings</button>
-      </nav>
-    </footer>
-  );
-}
-
 function videoSectionLabel(category, copy) {
   if (category === 'live') return copy.categories.live;
   return copy.categories.video;
@@ -6432,7 +6394,7 @@ function organizationSchema() {
       width: 512,
       height: 512,
     },
-    image: `${productionOrigin}/og-image.svg`,
+    image: `${productionOrigin}/og-image.png`,
     description: 'Nuzenio is a professional multi-language news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
     slogan: 'Trusted news, simplified.',
     sameAs: ['https://github.com/syleriofficial/Nuzenio'],
@@ -6447,10 +6409,10 @@ function pageSeoPlace(category, location) {
 }
 
 function seoImage(article) {
-  if (article?.imageKind === 'logo') return `${productionOrigin}/og-image.svg`;
+  if (article?.imageKind === 'logo') return `${productionOrigin}/og-image.png`;
   const image = article?.image || videoThumbnail(article);
   if (image && /^https:\/\//i.test(image)) return image;
-  return `${productionOrigin}/og-image.svg`;
+  return `${productionOrigin}/og-image.png`;
 }
 
 async function shareArticle(article) {
@@ -6501,4 +6463,8 @@ function openArticleFromLink(event, article, openArticle) {
   openArticle(article);
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+);

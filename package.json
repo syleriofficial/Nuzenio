@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-sitemap.mjs && vite build",
+    "build": "node scripts/generate-png-assets.mjs && node scripts/generate-sitemap.mjs && vite build",
     "preview": "vite preview",
     "supabase:check": "node scripts/check-supabase.mjs"
   },
