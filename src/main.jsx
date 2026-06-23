@@ -32,10 +32,13 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import { AdSlot } from './components/AdSlot.jsx';
+import { ArticleCard } from './components/ArticleCard.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { LoadingCards, SectionStatus, VideoShowcaseSkeleton } from './components/FeedStatus.jsx';
 import { Footer } from './components/Footer.jsx';
+import { ImageWithFallback, NewsFallbackVisual } from './components/Media.jsx';
 import { MobileNav } from './components/MobileNav.jsx';
+import { SourceQualityLabels } from './components/SourceQualityLabels.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { trackEvent, trackPageView, updateGoogleConsent } from './services/analytics.js';
 import { fetchNewsJson } from './services/newsApi.js';
@@ -2212,9 +2215,12 @@ function Home({
                 <ArticleCard
                   key={article.id}
                   article={article}
+                  articleHref={articleHref}
                   copy={copy}
                   openArticle={openArticle}
+                  openArticleFromLink={openArticleFromLink}
                   savedIds={savedIds}
+                  shareArticle={shareArticle}
                   toggleSave={toggleSave}
                 />
               ))}
@@ -2558,9 +2564,12 @@ function PersonalizedSection({ articles = [], copy, openArticle, savedIds, title
           <div className="recommendedCardWrap" key={`${title}-${article.id}`}>
             <ArticleCard
               article={article}
+              articleHref={articleHref}
               copy={copy}
               openArticle={openArticle}
+              openArticleFromLink={openArticleFromLink}
               savedIds={savedIds}
+              shareArticle={shareArticle}
               toggleSave={toggleSave}
             />
             <div className="recommendReason">
@@ -2953,9 +2962,12 @@ function HomeTopicSection({ copy, openArticle, savedIds, section, toggleSave }) 
           <ArticleCard
             key={`${section.key}-${article.id}`}
             article={article}
+            articleHref={articleHref}
             copy={copy}
             openArticle={openArticle}
+            openArticleFromLink={openArticleFromLink}
             savedIds={savedIds}
+            shareArticle={shareArticle}
             toggleSave={toggleSave}
           />
         ))}
@@ -3143,9 +3155,12 @@ function IntelligencePage({
                 <ArticleCard
                   key={`${section.key}-${article.id}`}
                   article={article}
+                  articleHref={articleHref}
                   copy={copy}
                   openArticle={openArticle}
+                  openArticleFromLink={openArticleFromLink}
                   savedIds={savedIds}
+                  shareArticle={shareArticle}
                   toggleSave={toggleSave}
                 />
               ))}
@@ -4663,141 +4678,6 @@ function SmallStory({ article, copy, openArticle }) {
   );
 }
 
-function ArticleCard({ article, copy, openArticle, savedIds, toggleSave }) {
-  const isSaved = savedIds.includes(article.id);
-  const image = article.image || videoThumbnail(article);
-  return (
-    <article className="articleCard">
-      <a className="articleThumb" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
-        <ImageWithFallback
-          src={image}
-          alt={`${article.source || 'Publisher'} image for ${displayTitle(article)}`}
-          imageKind={article.imageKind}
-          logoLabel={article.source}
-          fallback={(
-          <NewsFallbackVisual article={article} />
-          )}
-        />
-      </a>
-      <div className="cardTop">
-        <span className="category">{article.category?.toUpperCase()}</span>
-        {['live', 'video'].includes(article.category) && (
-          <span>
-            <PlayCircle size={13} /> {article.category === 'live' ? 'Live' : 'YouTube'}
-          </span>
-        )}
-        <span>
-          <Clock size={13} /> {formatFreshAge(article.pubDate)}
-        </span>
-      </div>
-      <div className="publisherLine">
-        <span>
-          <CheckCircle2 size={14} /> {article.source}
-        </span>
-        <span>{formatDate(article.pubDate)}</span>
-      </div>
-      <SourceQualityLabels article={article} compact />
-      <a className="headline" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
-        {displayTitle(article)}
-      </a>
-      <p>{displaySummary(article)}</p>
-      <div className="trustRow">
-        <span>
-          <ShieldCheck size={14} /> Source attributed
-        </span>
-        {article.clusterSize > 1 && (
-          <span>
-            <CheckCircle2 size={14} /> {article.clusterSize} sources
-          </span>
-        )}
-        <span>
-          <Clock size={14} /> {article.readTime || 2} min read
-        </span>
-      </div>
-      <div className="cardActions">
-        <button className="primaryAction" onClick={() => openArticle(article)}>
-          <Sparkles size={15} /> {copy.aiBrief}
-        </button>
-        <button onClick={() => toggleSave(article)}>
-          <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? copy.saved : copy.save}
-        </button>
-        <button onClick={() => shareArticle(article)}>
-          <Share2 size={15} /> Share
-        </button>
-      </div>
-      <a className="sourceAction" href={articleHref(article)} onClick={(event) => openArticleFromLink(event, article, openArticle)}>
-        {copy.readStory} <ChevronRight size={14} />
-      </a>
-    </article>
-  );
-}
-
-function NewsFallbackVisual({ article, size = 'default' }) {
-  const category = article?.category || 'news';
-  const source = article?.source || 'Nuzenio';
-  const initial = source.trim().charAt(0).toUpperCase() || 'N';
-  return (
-    <div className={`newsFallbackVisual ${size === 'large' ? 'largeFallback' : ''} ${size === 'small' ? 'smallFallback' : ''}`}>
-      <span className="fallbackInitial">{initial}</span>
-      <span>{category.toUpperCase()}</span>
-      {size !== 'small' && <b>{source}</b>}
-    </div>
-  );
-}
-
-function ImageWithFallback({
-  src,
-  alt = '',
-  imageKind = 'photo',
-  loading = 'lazy',
-  fetchPriority,
-  fallback,
-  logoLabel = '',
-  logoSize = 'default',
-}) {
-  const [broken, setBroken] = useState(false);
-  useEffect(() => {
-    setBroken(false);
-  }, [src]);
-
-  if (!src || broken) return fallback || null;
-  if (imageKind === 'logo') {
-    return (
-      <div className={`publisherLogoVisual ${logoSize === 'large' ? 'largePublisherLogo' : ''} ${logoSize === 'small' ? 'smallPublisherLogo' : ''}`}>
-        <span className="sourceBadge">SOURCE</span>
-        <img
-          src={src}
-          alt={alt}
-          loading={loading}
-          decoding="async"
-          fetchPriority={fetchPriority}
-          referrerPolicy="no-referrer"
-          onError={() => setBroken(true)}
-          onLoad={(event) => {
-            if (!event.currentTarget.naturalWidth) setBroken(true);
-          }}
-        />
-        {logoLabel && <span>{logoLabel}</span>}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading={loading}
-      decoding="async"
-      fetchPriority={fetchPriority}
-      data-image-kind={imageKind}
-      referrerPolicy="no-referrer"
-      onError={() => setBroken(true)}
-      onLoad={(event) => {
-        if (!event.currentTarget.naturalWidth) setBroken(true);
-      }}
-    />
-  );
-}
-
 function Trending({ articles, copy, openArticle }) {
   return (
     <div className="railCard">
@@ -5077,32 +4957,6 @@ function SourceComparisonPanel({ article }) {
         ))}
       </div>
     </section>
-  );
-}
-
-function sourceQualityLabels(article = {}) {
-  if (Array.isArray(article.sourceLabels) && article.sourceLabels.length) return article.sourceLabels;
-  const labels = [];
-  const sourceText = `${article.source || ''} ${article.sourceUrl || ''} ${article.link || ''}`.toLowerCase();
-  const titleText = String(article.title || '').toLowerCase();
-  if ((article.trustScore || 0) >= 90 || article.rssSourceName) labels.push('Verified source');
-  if (/\b(gov|government|official|ministry|department|who|un|court|police)\b|\.gov\b/.test(sourceText)) labels.push('Official source');
-  if (article.category === 'local') labels.push('Local source');
-  if (/\b(live|breaking|developing|updates?)\b/.test(titleText)) labels.push('Developing story');
-  return [...new Set(labels)].slice(0, 4);
-}
-
-function SourceQualityLabels({ article, compact = false }) {
-  const labels = sourceQualityLabels(article);
-  if (!labels.length) return null;
-  return (
-    <div className={`sourceQualityLabels ${compact ? 'compactSourceLabels' : ''}`} aria-label="Source quality labels">
-      {labels.map((label) => (
-        <span key={label}>
-          <ShieldCheck size={compact ? 12 : 14} /> {label}
-        </span>
-      ))}
-    </div>
   );
 }
 
