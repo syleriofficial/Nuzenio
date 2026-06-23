@@ -11,7 +11,6 @@ import {
   Database,
   ExternalLink,
   Globe2,
-  Home as HomeIcon,
   Languages,
   LogIn,
   LogOut,
@@ -34,7 +33,9 @@ import {
 import './styles.css';
 import { AdSlot } from './components/AdSlot.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { LoadingCards, SectionStatus, VideoShowcaseSkeleton } from './components/FeedStatus.jsx';
 import { Footer } from './components/Footer.jsx';
+import { MobileNav } from './components/MobileNav.jsx';
 import { useDocumentLanguage } from './hooks/useDocumentLanguage.js';
 import { trackEvent, trackPageView, updateGoogleConsent } from './services/analytics.js';
 import { fetchNewsJson } from './services/newsApi.js';
@@ -4324,55 +4325,6 @@ function uniqueArticles(articles) {
   });
 }
 
-function SectionStatus({ isLoading, lastUpdated, onRefresh, status }) {
-  return (
-    <div className="sectionStatus">
-      <span>{status}</span>
-      {lastUpdated && <small>Updated {formatLastUpdated(lastUpdated)}</small>}
-      <button onClick={onRefresh} disabled={isLoading} aria-label="Refresh news">
-        <RefreshCw size={15} className={isLoading ? 'spinIcon' : ''} />
-        Refresh
-      </button>
-    </div>
-  );
-}
-
-function LoadingCards({ count = 6, type = 'article' }) {
-  return Array.from({ length: count }, (_, index) => (
-    <div className={`skeletonCard ${type === 'video' ? 'videoSkeleton' : ''}`} key={`loading-${type}-${index}`}>
-      {type === 'video' && <div className="skeletonThumb" />}
-      <span />
-      <b />
-      <p />
-      <em />
-    </div>
-  ));
-}
-
-function VideoShowcaseSkeleton() {
-  return (
-    <section className="videoShowcase skeletonShowcase">
-      <div className="featuredVideo skeletonFeature">
-        <div className="featuredFrame" />
-        <div className="featuredBody">
-          <span />
-          <b />
-          <p />
-        </div>
-      </div>
-      <div className="videoQueue skeletonQueue">
-        <h3>Loading</h3>
-        {Array.from({ length: 4 }, (_, index) => (
-          <div key={`queue-loading-${index}`}>
-            <span />
-            <b />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function VideoShowcase({ articles, copy, openArticle, savedIds, toggleSave }) {
   const featured = articles[0];
   const queue = articles.slice(1, 6);
@@ -5725,40 +5677,6 @@ function RelatedStoryCard({ article, openArticle }) {
         <b>{displayTitle(article)}</b>
       </div>
     </button>
-  );
-}
-
-function MobileNav({ copy, navigateCategory, navigateHome, setMobileSearchOpen }) {
-  return (
-    <div className="mobileNav">
-      <a href="/" onClick={(event) => {
-        event.preventDefault();
-        navigateHome();
-      }}>
-        <HomeIcon size={18} /> {copy.home}
-      </a>
-      <a href={categoryRoutes.local} onClick={(event) => {
-        event.preventDefault();
-        navigateCategory('local');
-      }}>
-        <Globe2 size={18} /> {copy.categories.local}
-      </a>
-      <a href={categoryRoutes.live} onClick={(event) => {
-        event.preventDefault();
-        navigateCategory('live');
-      }}>
-        <PlayCircle size={18} /> {copy.categories.live}
-      </a>
-      <a href={categoryRoutes.video} onClick={(event) => {
-        event.preventDefault();
-        navigateCategory('video');
-      }}>
-        <PlayCircle size={18} /> {copy.categories.video}
-      </a>
-      <button onClick={() => setMobileSearchOpen((value) => !value)}>
-        <Search size={18} /> {copy.search}
-      </button>
-    </div>
   );
 }
 
