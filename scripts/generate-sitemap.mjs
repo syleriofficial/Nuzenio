@@ -1,4 +1,5 @@
 import { writeFileSync } from 'node:fs';
+import { countryOptionCodes, localPlacePresets } from '../src/constants/locale.js';
 
 const siteUrl = 'https://nuzenio.com';
 const languages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
@@ -47,22 +48,10 @@ const publisherPages = includeAdvancedIntelligencePages ? ['nuzenio', 'reuters',
 const authorPages = includeAdvancedIntelligencePages ? ['nuzenio-news-desk', 'nuzenio-analysis-team', 'nuzenio-fact-check-desk', 'nuzenio-research-desk'] : [];
 const lastmod = new Date().toISOString().slice(0, 10);
 
-const localPlaces = [
-  { country: 'IN', region: 'Delhi', city: 'New Delhi' },
-  { country: 'IN', region: 'Maharashtra', city: 'Mumbai' },
-  { country: 'IN', region: 'Karnataka', city: 'Bengaluru' },
-  { country: 'IN', region: 'Tamil Nadu', city: 'Chennai' },
-  { country: 'US', region: 'California', city: 'Los Angeles' },
-  { country: 'US', region: 'New York', city: 'New York' },
-  { country: 'GB', region: 'England', city: 'London' },
-  { country: 'CA', region: 'Ontario', city: 'Toronto' },
-  { country: 'AU', region: 'New South Wales', city: 'Sydney' },
-  { country: 'AE', region: 'Dubai', city: 'Dubai' },
-  { country: 'BD', region: 'Dhaka', city: 'Dhaka' },
-  { country: 'PK', region: 'Punjab', city: 'Lahore' },
-  { country: 'SG', region: 'Singapore', city: 'Singapore' },
-  { country: 'ZA', region: 'Gauteng', city: 'Johannesburg' },
-];
+const localPlaces = countryOptionCodes
+  .flatMap((country) => (localPlacePresets[country] || [])
+    .slice(0, 4)
+    .map(([region, city]) => ({ country, region, city })));
 
 const staticPages = [
   ['', 'hourly', '1.00'],
