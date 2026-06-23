@@ -24,7 +24,7 @@ Functions: Netlify Functions
 Auth/Data: Supabase-ready structure
 Analytics: Google Analytics with consent controls
 Advertising: Google AdSense-ready structure
-Sitemaps: Standard, language, and news sitemaps
+Sitemaps: Sitemap index, standard, language, and news sitemaps
 PWA: Installable app shell with offline fallback
 
 /* Standards */

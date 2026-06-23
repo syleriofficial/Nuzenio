@@ -78,6 +78,18 @@
     Cache-Control = "public, max-age=3600"
 
 [[headers]]
+  for = "/sitemap-index.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/sitemap-languages.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
   for = "/news-sitemap.xml"
   [headers.values]
     Content-Type = "application/xml; charset=utf-8"

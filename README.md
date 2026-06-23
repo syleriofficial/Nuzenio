@@ -30,7 +30,7 @@ Production-oriented Netlify + Supabase AI news platform.
 - V18 global-scale reliability foundation with `/api/health`, CI workflow, background job tables, search telemetry, incident tracking, and infrastructure docs
 - Backend-ready admin structures for RSS sources, AdSense slots, sponsored blocks, newsletter, analytics, SEO, affiliate links, and policies
 - Affiliate and sponsored block managers with visible disclosures
-- SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
+- SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap-index.xml`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
 - Trust pages: about, sources, editorial policy, AI policy, corrections, contact, advertise, privacy, terms, and affiliate disclosure
 - Transparency files: `ads.txt`, `humans.txt`, `llms.txt`, and `.well-known/security.txt`
 - Google AdSense publisher script and `ads.txt` configured for `pub-5589150014762971`
@@ -161,6 +161,7 @@ https://nuzenio.com/api/news
 https://nuzenio.com/api/health
 https://nuzenio.com/feed.xml
 https://nuzenio.com/news-sitemap.xml
+https://nuzenio.com/sitemap-index.xml
 https://nuzenio.com/sitemap-languages.xml
 https://nuzenio.com/about.html
 https://nuzenio.com/editorial-policy.html
@@ -175,8 +176,8 @@ https://nuzenio.com/llms.txt
 https://nuzenio.com/.well-known/security.txt
 ```
 
-8. Submit `https://nuzenio.com/sitemap.xml` and `https://nuzenio.com/news-sitemap.xml` in Google Search Console.
-9. Confirm `/feed.xml` and `/news-sitemap.xml` return XML, not the SPA HTML shell.
+8. Submit `https://nuzenio.com/sitemap-index.xml` in Google Search Console. Keep `sitemap.xml` and `news-sitemap.xml` as direct backup submissions if Search Console asks for them.
+9. Confirm `/feed.xml`, `/sitemap-index.xml`, and `/news-sitemap.xml` return XML, not the SPA HTML shell.
 10. Keep `https://nuzenio.com` as the canonical production URL.
 
 ## Multi-language SEO

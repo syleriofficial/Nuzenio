@@ -17,6 +17,7 @@
 ## Feeds And Discovery
 
 - Sitemap: https://nuzenio.com/sitemap.xml
+- Sitemap Index: https://nuzenio.com/sitemap-index.xml
 - Language Sitemap: https://nuzenio.com/sitemap-languages.xml
 - News Sitemap: https://nuzenio.com/news-sitemap.xml
 - RSS Feed: https://nuzenio.com/feed.xml

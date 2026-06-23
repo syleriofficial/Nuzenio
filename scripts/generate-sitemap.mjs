@@ -217,4 +217,18 @@ ${languageEntries.map(languageEntry).join('\n')}
 `;
 
 writeFileSync(new URL('../public/sitemap-languages.xml', import.meta.url), languageSitemap);
-console.log(`Generated sitemap with ${new Set(entries).size} URLs and ${languageEntries.length} localized URLs`);
+
+const sitemapIndexEntries = [
+  ['sitemap.xml', lastmod],
+  ['sitemap-languages.xml', lastmod],
+  ['news-sitemap.xml', new Date().toISOString()],
+];
+
+const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapIndexEntries.map(([path, modified]) => `  <sitemap><loc>${escapeXml(url(path))}</loc><lastmod>${escapeXml(modified)}</lastmod></sitemap>`).join('\n')}
+</sitemapindex>
+`;
+
+writeFileSync(new URL('../public/sitemap-index.xml', import.meta.url), sitemapIndex);
+console.log(`Generated sitemap index with ${new Set(entries).size} URLs and ${languageEntries.length} localized URLs`);
