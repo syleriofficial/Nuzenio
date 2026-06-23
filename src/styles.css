@@ -2938,6 +2938,54 @@ button {
   margin: 16px 0;
 }
 
+.seoGrowthPanel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.62fr) minmax(0, 1.38fr);
+  gap: 14px;
+  margin: 16px 0;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fbff 0%, #fff 64%);
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.seoGrowthIntro span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.seoGrowthIntro h3 {
+  margin: 8px 0;
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1.12;
+}
+
+.seoGrowthIntro p {
+  margin: 0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.seoGrowthGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seoGrowthGrid .linkCluster {
+  min-width: 0;
+  padding: 12px;
+}
+
+.seoGrowthGrid .linkCluster:last-child {
+  grid-column: 1 / -1;
+}
+
 .discoverReadinessPanel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr);
@@ -5266,9 +5314,18 @@ button {
   .personalizedHero,
   .dailyBriefPanel,
   .followPanel,
+  .seoGrowthPanel,
   .trendSignalGrid,
   .internalLinkGraph {
     grid-template-columns: 1fr;
+  }
+
+  .seoGrowthGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .seoGrowthGrid .linkCluster:last-child {
+    grid-column: auto;
   }
 
   .discoverSignalGrid,
@@ -7522,6 +7579,7 @@ body {
   .homeTopicSection,
   .mustReadBand,
   .personalizedSection,
+  .seoGrowthPanel,
   .trendSignalGrid,
   .discoverReadinessPanel,
   .dataPlatformPanel,

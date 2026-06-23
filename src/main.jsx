@@ -3106,6 +3106,7 @@ function IntelligencePage({
         </div>
 
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
+        {isLanding && <SeoGrowthPanel route={route} articles={articles} />}
         {isEcosystem && <EcosystemPanel articles={articles} route={route} />}
         {isDataPlatform && <DataPlatformPanel articles={articles} />}
         {isArchive && <NewsArchivePanel articles={articles} route={route} />}
@@ -4162,6 +4163,43 @@ function LinkCluster({ title, items = [] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function SeoGrowthPanel({ route, articles = [] }) {
+  const siblingPages = seoLandingPages
+    .filter((page) => page.slug !== route.slug)
+    .slice(0, 8)
+    .map((page) => ({ label: page.label, href: `/${page.slug}` }));
+  const countryPages = intelligenceCountries
+    .slice(0, 6)
+    .map((country) => ({ label: `${country.label} news`, href: `/country/${country.slug}` }));
+  const topicPages = topicIntelligence
+    .filter((topic) => topic.category === route.category || ['ai', 'economy', 'markets', 'science'].includes(topic.slug))
+    .slice(0, 8)
+    .map((topic) => ({ label: `${topic.label} updates`, href: `/topic/${topic.slug}` }));
+  const localPages = featuredLocalEditions
+    .slice(0, 8)
+    .map((edition) => ({ label: edition.label, href: edition.href }));
+  const articleLinks = articles
+    .slice(0, 5)
+    .map((article) => ({ label: displayTitle(article), href: articleHref(article) }));
+
+  return (
+    <section className="seoGrowthPanel" aria-label={`${route.label} discovery links`}>
+      <div className="seoGrowthIntro">
+        <span>SEO discovery</span>
+        <h3>{route.label} paths people can explore next</h3>
+        <p>Nuzenio connects every live news hub to related categories, countries, topics, city editions, and fresh publisher-sourced stories.</p>
+      </div>
+      <div className="seoGrowthGrid">
+        <LinkCluster title="More news hubs" items={siblingPages} />
+        <LinkCluster title="Country editions" items={countryPages} />
+        <LinkCluster title="Topic intelligence" items={topicPages} />
+        <LinkCluster title="Local city editions" items={localPages} />
+        <LinkCluster title="Fresh story links" items={articleLinks} />
+      </div>
+    </section>
   );
 }
 
