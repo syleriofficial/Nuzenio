@@ -8182,6 +8182,89 @@ body {
   .articleCard {
     box-shadow: 0 1px 0 rgba(15, 23, 42, 0.05);
   }
+
+  .feedGrid,
+  .homeSectionGrid,
+  .infoGrid {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .homeSectionGrid.trendingNowRail {
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 8px;
+  }
+
+  .trendingNowRail > * {
+    flex: 0 0 min(88vw, 340px);
+    min-width: 0;
+  }
+
+  .articleCard {
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .articleThumb {
+    margin: -14px -14px 12px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .articleCard .headline {
+    display: block;
+    overflow: visible;
+    font-size: 18px;
+    line-height: 1.32;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .articleCard p {
+    display: block;
+    overflow: visible;
+    margin-bottom: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .cardTop,
+  .publisherLine,
+  .trustRow,
+  .cardActions {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .cardTop span,
+  .publisherLine span,
+  .trustRow span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .trustRow {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .cardActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .cardActions button,
+  .sourceAction {
+    justify-content: center;
+    width: 100%;
+    min-height: 42px;
+    white-space: normal;
+    text-align: center;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
