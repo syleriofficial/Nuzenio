@@ -221,7 +221,7 @@ writeFileSync(new URL('../public/sitemap-languages.xml', import.meta.url), langu
 const sitemapIndexEntries = [
   ['sitemap.xml', lastmod],
   ['sitemap-languages.xml', lastmod],
-  ['news-sitemap.xml', new Date().toISOString()],
+  ['news-sitemap.xml', lastmod],
 ];
 
 const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
