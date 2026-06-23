@@ -1624,6 +1624,53 @@ button {
   font-weight: 850;
 }
 
+.localEditionLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #dbeafe;
+  padding-top: 12px;
+}
+
+.localEditionLinks div {
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  margin-right: 4px;
+}
+
+.localEditionLinks b {
+  color: #172554;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.localEditionLinks span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.localEditionLinks a {
+  min-height: 34px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d4ed8;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.localEditionLinks a:hover,
+.localEditionLinks a:focus-visible {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
 .affiliateDisclosure {
   color: var(--blue);
 }
@@ -5033,7 +5080,7 @@ button {
 
 .footer {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(180px, 0.85fr) repeat(4, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
   margin: 0 5vw 28px;

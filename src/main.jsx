@@ -103,6 +103,18 @@ const countryOptions = countryOptionCodes
   .map((code) => ({ code, label: countryLabel(code) }))
   .sort((a, b) => a.label.localeCompare(b.label));
 
+const featuredLocalEditionCountries = ['US', 'GB', 'IN', 'CA', 'AU', 'AE', 'DE', 'FR', 'JP', 'BR', 'NP', 'SG'];
+const featuredLocalEditions = featuredLocalEditionCountries
+  .flatMap((country) => (localPlacePresets[country] || []).slice(0, 2)
+    .map(([region, city]) => ({
+      country,
+      region,
+      city,
+      label: `${city}, ${countryLabel(country)}`,
+      href: localLocationPath({ country, region, city }),
+    })))
+  .slice(0, 20);
+
 const translations = {
   en: {
     tagline: 'AI global news bridge',
@@ -4611,6 +4623,18 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             </button>
           ))}
         </div>
+
+        <nav className="localEditionLinks" aria-label="Popular global local editions">
+          <div>
+            <b>Popular local editions</b>
+            <span>Direct city pages for global local news discovery</span>
+          </div>
+          {featuredLocalEditions.slice(0, 12).map((edition) => (
+            <a key={`${edition.country}-${edition.region}-${edition.city}`} href={edition.href}>
+              {edition.label}
+            </a>
+          ))}
+        </nav>
       </div>
     </div>
   );
@@ -5694,6 +5718,7 @@ function MobileNav({ copy, navigateCategory, navigateHome, setMobileSearchOpen }
 
 function Footer({ copy, onPrivacySettings }) {
   const trafficHubs = seoLandingPages.slice(0, 9);
+  const localEditions = featuredLocalEditions.slice(0, 8);
   return (
     <footer className="footer">
       <div className="footerBrand">
@@ -5705,6 +5730,13 @@ function Footer({ copy, onPrivacySettings }) {
         {trafficHubs.map((page) => (
           <a key={page.slug} href={`/${page.slug}`}>{page.label}</a>
         ))}
+      </nav>
+      <nav className="footerLinkGroup" aria-label="Popular local editions">
+        <strong>Local editions</strong>
+        {localEditions.map((edition) => (
+          <a key={`footer-${edition.country}-${edition.city}`} href={edition.href}>{edition.label}</a>
+        ))}
+        <a href="/local">More local news</a>
       </nav>
       <nav className="footerLinkGroup" aria-label="Nuzenio policies">
         <strong>Trust</strong>
