@@ -8190,6 +8190,22 @@ body {
     min-width: 0;
   }
 
+  .personalizedHub,
+  .personalizedSection,
+  .recommendedCardWrap,
+  .recommendReason {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .personalizedSection .homeSectionGrid {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
   .homeSectionGrid.trendingNowRail {
     display: flex;
     grid-template-columns: none;
