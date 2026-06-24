@@ -64,14 +64,33 @@ function rssItem(article) {
     </item>`;
 }
 
-function rssDocument(articles = []) {
+const categoryLabels = {
+  top: 'Top News',
+  world: 'World News',
+  business: 'Business News',
+  tech: 'Technology News',
+  ai: 'AI News',
+  sports: 'Sports News',
+  entertainment: 'Entertainment News',
+  health: 'Health News',
+  science: 'Science News',
+  local: 'Local News',
+  live: 'Live News',
+  video: 'Video News',
+};
+
+function rssDocument(articles = [], { category = 'top', country = 'IN' } = {}) {
   const updatedAt = new Date().toUTCString();
+  const label = categoryLabels[category] || 'Top News';
+  const channelUrl = new URL('/feed.xml', siteUrl);
+  if (category && category !== 'top') channelUrl.searchParams.set('category', category);
+  if (country && country !== 'IN') channelUrl.searchParams.set('country', country);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Nuzenio Top News</title>
-    <link>${siteUrl}/</link>
-    <description>Live English headlines from Nuzenio with publisher attribution and AI-powered context.</description>
+    <title>Nuzenio ${escapeXml(label)}</title>
+    <link>${escapeXml(channelUrl.toString())}</link>
+    <description>Live English ${escapeXml(label.toLowerCase())} headlines from Nuzenio with publisher attribution and AI-powered context.</description>
     <language>en</language>
     <lastBuildDate>${escapeXml(updatedAt)}</lastBuildDate>
     <ttl>5</ttl>
@@ -96,12 +115,14 @@ export const handler = async (event) => {
   }
 
   try {
+    const category = event.queryStringParameters?.category || 'top';
+    const country = event.queryStringParameters?.country || 'IN';
     const newsResponse = await newsHandler({
       httpMethod: 'GET',
       headers: event.headers || {},
       queryStringParameters: {
-        category: event.queryStringParameters?.category || 'top',
-        country: event.queryStringParameters?.country || 'IN',
+        category,
+        country,
         language: 'en',
       },
     });
@@ -110,13 +131,13 @@ export const handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: rssDocument(data.articles || []),
+      body: rssDocument(data.articles || [], { category, country }),
     };
   } catch (error) {
     return {
       statusCode: 502,
       headers,
-      body: rssDocument([]).replace('</description>', `</description>\n    <generator>${escapeXml(error.message)}</generator>`),
+      body: rssDocument([], { category: event.queryStringParameters?.category || 'top', country: event.queryStringParameters?.country || 'IN' }).replace('</description>', `</description>\n    <generator>${escapeXml(error.message)}</generator>`),
     };
   }
 };
