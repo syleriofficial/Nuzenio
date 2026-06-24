@@ -21,6 +21,11 @@
 - Language Sitemap: https://nuzenio.com/sitemap-languages.xml
 - News Sitemap: https://nuzenio.com/news-sitemap.xml
 - RSS Feed: https://nuzenio.com/feed.xml
+- World RSS Feed: https://nuzenio.com/feed.xml?category=world
+- Business RSS Feed: https://nuzenio.com/feed.xml?category=business
+- Technology RSS Feed: https://nuzenio.com/feed.xml?category=tech
+- AI RSS Feed: https://nuzenio.com/feed.xml?category=ai
+- Sports RSS Feed: https://nuzenio.com/feed.xml?category=sports
 - OpenSearch: https://nuzenio.com/opensearch.xml
 
 ## Trust And Policy Pages

@@ -33,4 +33,5 @@ Language: English plus Hindi, Spanish, French, German, Portuguese, Arabic, Japan
 Source Model: Publisher-attributed RSS and approved playable news sources
 Copyright Model: Nuzenio does not copy full publisher articles without a license; readers are sent to original publishers for complete reports.
 Commercial Model: Ads, affiliate links, and sponsored content must remain labeled and separated from editorial RSS coverage.
-Last Updated: 2026-06-23
+Security Contact: https://nuzenio.com/.well-known/security.txt
+Last Updated: 2026-06-24

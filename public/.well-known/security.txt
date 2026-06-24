@@ -1,5 +1,6 @@
 Contact: mailto:syleriofficial@gmail.com
+Expires: 2027-06-24T00:00:00Z
 Preferred-Languages: en, hi
 Canonical: https://nuzenio.com/.well-known/security.txt
 Policy: https://nuzenio.com/privacy.html
-Expires: 2027-06-19T00:00:00Z
+Hiring: https://nuzenio.com/contact.html
