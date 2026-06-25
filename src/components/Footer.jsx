@@ -31,6 +31,7 @@ export function Footer({ copy, localEditions = [], onPrivacySettings, trafficHub
       <nav className="footerLinkGroup" aria-label="Nuzenio business and technical links">
         <strong>Platform</strong>
         <a href="/advertise.html">Advertise</a>
+        <a href="/feeds.html">Feeds</a>
         <a href="/feed.xml">RSS</a>
         <a href="/privacy.html">Privacy</a>
         <a href="/terms.html">Terms</a>
