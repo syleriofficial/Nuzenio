@@ -107,6 +107,36 @@ create table if not exists public.rss_sources (
   updated_at timestamptz default now()
 );
 
+alter table public.rss_sources add column if not exists status text default 'pending' check (status in ('pending', 'approved', 'rejected', 'disabled'));
+alter table public.rss_sources add column if not exists health_status text default 'unknown' check (health_status in ('unknown', 'healthy', 'degraded', 'failing'));
+alter table public.rss_sources add column if not exists crawl_interval_minutes integer default 15;
+alter table public.rss_sources add column if not exists last_crawled_at timestamptz;
+alter table public.rss_sources add column if not exists last_success_at timestamptz;
+alter table public.rss_sources add column if not exists last_error_at timestamptz;
+alter table public.rss_sources add column if not exists last_error text;
+alter table public.rss_sources add column if not exists consecutive_failures integer default 0;
+alter table public.rss_sources add column if not exists articles_crawled_count integer default 0;
+alter table public.rss_sources add column if not exists duplicate_articles_count integer default 0;
+alter table public.rss_sources add column if not exists last_article_at timestamptz;
+alter table public.rss_sources add column if not exists quality_score integer default 60;
+alter table public.rss_sources add column if not exists crawl_metadata jsonb default '{}'::jsonb;
+
+create table if not exists public.rss_crawl_logs (
+  id uuid primary key default gen_random_uuid(),
+  source_id uuid references public.rss_sources(id) on delete set null,
+  job_id uuid,
+  status text not null default 'started' check (status in ('started', 'completed', 'failed', 'skipped')),
+  feed_url text,
+  http_status integer,
+  duration_ms integer,
+  item_count integer default 0,
+  inserted_count integer default 0,
+  duplicate_count integer default 0,
+  error_message text,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
 create table if not exists public.adsense_slots (
   id uuid primary key default gen_random_uuid(),
   slot_key text unique not null,
@@ -875,6 +905,7 @@ alter table public.newsletter_subscribers enable row level security;
 alter table public.user_preferences enable row level security;
 alter table public.email_digest_logs enable row level security;
 alter table public.rss_sources enable row level security;
+alter table public.rss_crawl_logs enable row level security;
 alter table public.adsense_slots enable row level security;
 alter table public.affiliate_links enable row level security;
 alter table public.sponsored_blocks enable row level security;
@@ -955,6 +986,8 @@ drop policy if exists "Anyone can subscribe to newsletter" on public.newsletter_
 drop policy if exists "Subscribers can read own email row" on public.newsletter_subscribers;
 drop policy if exists "Users can manage own preferences" on public.user_preferences;
 drop policy if exists "RSS sources are publicly readable" on public.rss_sources;
+drop policy if exists "RSS crawl logs are admin readable" on public.rss_crawl_logs;
+drop policy if exists "Admins can manage rss crawl logs" on public.rss_crawl_logs;
 drop policy if exists "Ad slots are publicly readable" on public.adsense_slots;
 drop policy if exists "Approved affiliate links are publicly readable" on public.affiliate_links;
 drop policy if exists "Enabled sponsored blocks are publicly readable" on public.sponsored_blocks;
@@ -1100,6 +1133,12 @@ on public.user_preferences for all using (auth.uid() = user_id) with check (auth
 
 create policy "RSS sources are publicly readable"
 on public.rss_sources for select using (enabled = true);
+
+create policy "RSS crawl logs are admin readable"
+on public.rss_crawl_logs for select using (public.is_admin());
+
+create policy "Admins can manage rss crawl logs"
+on public.rss_crawl_logs for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "Ad slots are publicly readable"
 on public.adsense_slots for select using (enabled = true);
@@ -1525,6 +1564,9 @@ create index if not exists sponsored_blocks_active_idx on public.sponsored_block
 create index if not exists news_cache_lookup_idx on public.news_cache(category, country, published_at desc);
 create index if not exists news_cache_updated_idx on public.news_cache(category, country, updated_at desc);
 create index if not exists rss_sources_priority_idx on public.rss_sources(category, country, enabled, priority desc);
+create index if not exists rss_sources_crawl_due_idx on public.rss_sources(enabled, status, health_status, last_crawled_at, priority desc);
+create index if not exists rss_crawl_logs_source_idx on public.rss_crawl_logs(source_id, created_at desc);
+create index if not exists rss_crawl_logs_status_idx on public.rss_crawl_logs(status, created_at desc);
 create index if not exists admin_logs_action_idx on public.admin_logs(action, created_at desc);
 create index if not exists admin_logs_status_idx on public.admin_logs(status, created_at desc);
 create index if not exists publisher_profiles_slug_idx on public.publisher_profiles(slug, status);

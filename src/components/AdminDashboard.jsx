@@ -122,6 +122,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [dashboardExports, setDashboardExports] = useState([]);
   const [publisherAccounts, setPublisherAccounts] = useState([]);
   const [feedSubmissions, setFeedSubmissions] = useState([]);
+  const [crawlLogs, setCrawlLogs] = useState([]);
+  const [backgroundJobs, setBackgroundJobs] = useState([]);
   const [journalistAccounts, setJournalistAccounts] = useState([]);
   const [researchReports, setResearchReports] = useState([]);
   const [marketplaceProducts, setMarketplaceProducts] = useState([]);
@@ -183,6 +185,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const alertsByType = useMemo(() => topEntries(groupCount(alerts, 'alert_type'), 8), [alerts]);
   const publisherAccountStatuses = useMemo(() => topEntries(groupCount(publisherAccounts, 'verification_status'), 8), [publisherAccounts]);
   const feedSubmissionStatuses = useMemo(() => topEntries(groupCount(feedSubmissions, 'status'), 8), [feedSubmissions]);
+  const sourceHealthStatuses = useMemo(() => topEntries(groupCount(sources, 'health_status'), 8), [sources]);
+  const crawlJobStatuses = useMemo(() => topEntries(groupCount(backgroundJobs, 'status'), 8), [backgroundJobs]);
   const journalistAccountStatuses = useMemo(() => topEntries(groupCount(journalistAccounts, 'verification_status'), 8), [journalistAccounts]);
   const marketplaceByType = useMemo(() => topEntries(groupCount(marketplaceProducts, 'product_type'), 8), [marketplaceProducts]);
   const enterpriseByPlan = useMemo(() => topEntries(groupCount(enterpriseAccounts, 'plan'), 8), [enterpriseAccounts]);
@@ -259,6 +263,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         dashboardExportResult,
         publisherAccountResult,
         feedSubmissionResult,
+        crawlLogResult,
+        backgroundJobResult,
         journalistAccountResult,
         researchReportResult,
         marketplaceProductResult,
@@ -295,6 +301,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         dashboardExportCount,
         publisherAccountCount,
         feedSubmissionCount,
+        crawlLogCount,
+        crawlQueueCount,
         journalistAccountCount,
         researchReportCount,
         marketplaceProductCount,
@@ -337,6 +345,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         safeQuery(supabase.from('dashboard_exports').select('id,export_type,status,file_url,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('publisher_accounts').select('id,publisher_name,contact_email,country,verification_status,website_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('feed_submissions').select('id,publisher_name,feed_url,category,country,language,status,submitted_by_email,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('rss_crawl_logs').select('id,source_id,job_id,status,feed_url,http_status,duration_ms,item_count,inserted_count,duplicate_count,error_message,created_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('background_jobs').select('id,job_type,status,priority,payload,attempts,max_attempts,scheduled_at,started_at,finished_at,last_error,updated_at').eq('job_type', 'rss_ingestion').order('scheduled_at', { ascending: true }).limit(80)),
         safeQuery(supabase.from('journalist_accounts').select('id,full_name,email,publisher_name,verification_status,badge_label,portfolio_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('research_reports').select('id,slug,title,topic,report_type,access_level,status,published_at,updated_at').order('updated_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('marketplace_products').select('id,slug,title,product_type,access_level,status,price_cents,currency,updated_at').order('updated_at', { ascending: false }).limit(80)),
@@ -373,6 +383,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         countRows('dashboard_exports'),
         countRows('publisher_accounts'),
         countRows('feed_submissions'),
+        countRows('rss_crawl_logs'),
+        countRows('background_jobs', (query) => query.eq('job_type', 'rss_ingestion')),
         countRows('journalist_accounts'),
         countRows('research_reports'),
         countRows('marketplace_products'),
@@ -430,6 +442,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       setDashboardExports(dashboardExportResult.data || []);
       setPublisherAccounts(publisherAccountResult.data || []);
       setFeedSubmissions(feedSubmissionResult.data || []);
+      setCrawlLogs(crawlLogResult.data || []);
+      setBackgroundJobs(backgroundJobResult.data || []);
       setJournalistAccounts(journalistAccountResult.data || []);
       setResearchReports(researchReportResult.data || []);
       setMarketplaceProducts(marketplaceProductResult.data || []);
@@ -470,6 +484,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         dashboardExportCount,
         publisherAccountCount,
         feedSubmissionCount,
+        crawlLogCount,
+        crawlQueueCount,
         journalistAccountCount,
         researchReportCount,
         marketplaceProductCount,
@@ -539,6 +555,29 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     const data = await response.json();
     setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}.` : `RSS test failed: ${data.error}`);
     await logAdmin('rss_source_test', data.ok ? 'ok' : 'error', { table: 'rss_sources', id: source.id || source.url, message: data.error || data.feedTitle || '' });
+  }
+
+  async function runCrawler(action = 'run', sourceId = '') {
+    setNotice(action === 'enqueue' ? 'Adding due RSS sources to crawl queue...' : 'Running RSS crawler...');
+    const { data: sessionData } = await supabase.auth.getSession();
+    const response = await fetch('/api/rss-crawler', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionData.session?.access_token || ''}`,
+      },
+      body: JSON.stringify({ action: sourceId ? 'source' : action, sourceId, limit: 8 }),
+    });
+    const data = await response.json();
+    const ok = data.ok !== false;
+    const message = sourceId
+      ? `${data.result?.sourceName || 'Source'} crawled: ${data.result?.insertedCount || 0} new, ${data.result?.duplicateCount || 0} duplicate.`
+      : action === 'enqueue'
+        ? `Crawler queue: ${data.enqueuedCount || 0} sources enqueued, ${data.skippedCount || 0} skipped.`
+        : `Crawler run: ${data.queue?.claimedCount || 0} jobs processed.`;
+    setNotice(ok ? message : `Crawler failed: ${data.error}`);
+    await logAdmin(`rss_crawler_${sourceId ? 'source' : action}`, ok ? 'ok' : 'error', { table: 'rss_sources', id: sourceId || action, message: data.error || message });
+    loadAdmin();
   }
 
   async function editSource(source) {
@@ -825,6 +864,37 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
 
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="RSS Crawling Engine">
+          <div className="adminToolbar">
+            <button onClick={() => runCrawler('enqueue')}><RefreshCw size={15} /> Enqueue due sources</button>
+            <button className="primaryAction" onClick={() => runCrawler('run')}><Activity size={15} /> Run crawler now</button>
+          </div>
+          <MetricRow label="Crawl jobs" value={overview.crawlQueueCount || 0} />
+          <MetricRow label="Crawl logs" value={overview.crawlLogCount || 0} />
+          <h4>Source health</h4>
+          {sourceHealthStatuses.length ? sourceHealthStatuses.map(([key, count]) => <MetricRow key={key} label={key || 'unknown'} value={count} />) : <MetricRow label="No health data yet" value="Run crawler" />}
+          <h4>Queue status</h4>
+          {crawlJobStatuses.length ? crawlJobStatuses.map(([key, count]) => <MetricRow key={key} label={key} value={count} />) : <MetricRow label="No queue jobs yet" value="Ready" />}
+          <p className="adminHint">Crawler stores title, short RSS summary, source, timestamp, original link, AI-safe tags, and deduplicated article IDs. Full publisher articles are not copied.</p>
+        </AdminPanel>
+
+        <AdminPanel title="Recent Crawl Logs">
+          <AdminTable headers={['Source', 'Status', 'Items', 'New', 'Duplicates', 'Time']}>
+            {crawlLogs.slice(0, 12).map((log) => (
+              <tr key={log.id}>
+                <td><b>{sources.find((source) => source.id === log.source_id)?.name || 'RSS source'}</b><small>{log.error_message || log.feed_url}</small></td>
+                <td>{log.status}</td>
+                <td>{log.item_count || 0}</td>
+                <td>{log.inserted_count || 0}</td>
+                <td>{log.duplicate_count || 0}</td>
+                <td>{localDate(log.created_at)}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+      </section>
+
       {showAdvancedRoadmapPanels && <section className="adminGrid twoColumn">
         <AdminPanel title="V20 Publisher & Journalist Portal">
           <MetricRow label="Publisher accounts" value={overview.publisherAccountCount || 0} />
@@ -952,15 +1022,16 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <AdminTable headers={['Source', 'Category', 'Country', 'Priority', 'Status', 'Actions']}>
           {sources.map((source) => (
             <tr key={source.id}>
-              <td><b>{source.name}</b><small>{source.url}</small></td>
+              <td><b>{source.name}</b><small>{source.url}</small><small>{source.health_status || 'unknown'} · last crawl {localDate(source.last_crawled_at)}</small></td>
               <td>{source.category}</td>
               <td>{source.country}</td>
               <td>{source.priority}</td>
-              <td>{source.enabled ? 'Enabled' : 'Disabled'}</td>
+              <td>{source.enabled ? (source.status || 'enabled') : 'Disabled'}</td>
               <td className="adminActions">
                 <button onClick={() => editSource(source)}>Edit</button>
                 <button onClick={() => updateSource(source, { enabled: !source.enabled })}>{source.enabled ? 'Disable' : 'Enable'}</button>
                 <button onClick={() => testSource(source)}>Test</button>
+                <button onClick={() => runCrawler('source', source.id)}>Crawl</button>
                 <button className="dangerAction" onClick={() => deleteRow('rss_sources', source.id, source.name)}><Trash2 size={14} /></button>
               </td>
             </tr>

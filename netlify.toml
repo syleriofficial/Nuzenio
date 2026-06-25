@@ -155,6 +155,12 @@
     X-Robots-Tag = "noindex"
 
 [[headers]]
+  for = "/api/rss-crawler"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex"
+
+[[headers]]
   for = "/api/ecosystem"
   [headers.values]
     Cache-Control = "no-store"
@@ -189,6 +195,11 @@
 [[redirects]]
   from = "/api/admin-rss-test"
   to = "/.netlify/functions/admin-rss-test"
+  status = 200
+
+[[redirects]]
+  from = "/api/rss-crawler"
+  to = "/.netlify/functions/rss-crawler"
   status = 200
 
 [[redirects]]
