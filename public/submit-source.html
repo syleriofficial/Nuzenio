@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit a News Source - Nuzenio</title>
+  <meta name="description" content="Submit a public RSS news source for Nuzenio review. Publisher attribution, source quality, country, language, and category are reviewed before approval.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://nuzenio.com/submit-source.html">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <meta property="og:title" content="Submit a News Source to Nuzenio">
+  <meta property="og:description" content="Suggest a public RSS news source for Nuzenio source review and future publisher attribution.">
+  <meta property="og:url" content="https://nuzenio.com/submit-source.html">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://nuzenio.com/og-image.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      "name": "Submit a News Source",
+      "url": "https://nuzenio.com/submit-source.html",
+      "description": "Submit a public RSS news source for Nuzenio editorial and source quality review.",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Nuzenio",
+        "url": "https://nuzenio.com/"
+      }
+    }
+  </script>
+  <style>
+    body{margin:0;background:#f6f8fb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;line-height:1.65}
+    main{max-width:980px;margin:0 auto;padding:48px 20px}
+    a{color:#2563eb;font-weight:800;text-decoration:none}
+    section{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:28px;box-shadow:0 12px 34px rgba(15,23,42,.055)}
+    h1{line-height:1.1;margin:14px 0 10px;font-size:clamp(34px,6vw,58px)}
+    form{display:grid;gap:12px;margin-top:22px}
+    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    input,select,textarea,button{font:inherit;border-radius:8px;border:1px solid #cbd5e1;padding:13px 14px}
+    textarea{min-height:110px;resize:vertical}
+    input:focus,select:focus,textarea:focus{outline:3px solid rgba(37,99,235,.18);border-color:#2563eb}
+    button{border-color:#2563eb;background:#2563eb;color:#fff;font-weight:900;cursor:pointer}
+    button:disabled{opacity:.7;cursor:wait}
+    .status{min-height:28px;font-weight:800}.ok{color:#166534}.error{color:#b91c1c}
+    .note{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:20px;color:#475569}
+    ul{padding-left:20px}
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <a href="/">Back to Nuzenio</a>
+      <h1>Submit a News Source</h1>
+      <p>Suggest a public RSS news feed for Nuzenio review. Sources are not added automatically. Nuzenio reviews attribution, publisher identity, category fit, language, country, reliability, and policy safety before approval.</p>
+      <form id="source-form">
+        <input id="publisher" name="publisher" placeholder="Publisher name" required>
+        <input id="feed" name="feed" type="url" placeholder="https://example.com/rss.xml" required>
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="Your email" required>
+        <div class="row">
+          <select id="category" name="category" aria-label="Primary category">
+            <option value="top">Top News</option>
+            <option value="world">World</option>
+            <option value="business">Business</option>
+            <option value="tech">Technology</option>
+            <option value="ai">AI</option>
+            <option value="sports">Sports</option>
+            <option value="health">Health</option>
+            <option value="science">Science</option>
+            <option value="local">Local</option>
+          </select>
+          <input id="country" name="country" maxlength="20" placeholder="Country code, e.g. US">
+          <input id="language" name="language" maxlength="12" placeholder="Language, e.g. en">
+        </div>
+        <textarea id="notes" name="notes" placeholder="Why should Nuzenio review this source? Mention official publisher page, region, or source quality notes."></textarea>
+        <button id="submit-button" type="submit">Submit for review</button>
+      </form>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div class="note">
+        <strong>Review rules</strong>
+        <ul>
+          <li>Only public RSS or publisher-owned feeds should be submitted.</li>
+          <li>Nuzenio keeps original publisher links and does not copy full articles.</li>
+          <li>Commercial, spam, duplicate, or misleading sources can be rejected.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById('source-form');
+    const statusBox = document.getElementById('status');
+    const submitButton = document.getElementById('submit-button');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      statusBox.className = 'status';
+      statusBox.textContent = '';
+      submitButton.disabled = true;
+      submitButton.textContent = 'Submitting...';
+      try {
+        const response = await fetch('/api/ecosystem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'publisher',
+            publisher_name: document.getElementById('publisher').value.trim(),
+            feed_url: document.getElementById('feed').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            category: document.getElementById('category').value,
+            country: document.getElementById('country').value.trim() || 'GLOBAL',
+            language: document.getElementById('language').value.trim() || 'en',
+            notes: document.getElementById('notes').value.trim()
+          })
+        });
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.error || 'Source submission failed.');
+        statusBox.className = 'status ok';
+        statusBox.textContent = result.message || 'Source submitted for Nuzenio review.';
+        form.reset();
+      } catch (error) {
+        statusBox.className = 'status error';
+        statusBox.textContent = error.message || 'Please try again.';
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit for review';
+      }
+    });
+  </script>
+</body>
+</html>

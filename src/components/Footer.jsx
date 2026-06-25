@@ -32,6 +32,7 @@ export function Footer({ copy, localEditions = [], onPrivacySettings, trafficHub
         <strong>Platform</strong>
         <a href="/advertise.html">Advertise</a>
         <a href="/newsletter.html">Newsletter</a>
+        <a href="/submit-source.html">Submit Source</a>
         <a href="/feeds.html">Feeds</a>
         <a href="/feed.xml">RSS</a>
         <a href="/privacy.html">Privacy</a>

@@ -14,6 +14,7 @@
 - Live News: https://nuzenio.com/live
 - Video News: https://nuzenio.com/video
 - Newsletter: https://nuzenio.com/newsletter.html
+- Submit Source: https://nuzenio.com/submit-source.html
 
 ## Feeds And Discovery
 
