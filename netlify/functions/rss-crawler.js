@@ -136,6 +136,10 @@ function sourceSelect() {
   ].join('');
 }
 
+function minimalSourceSelect() {
+  return 'id,name,url,category,country,language,priority,enabled';
+}
+
 function dueSource(source) {
   if (!source.enabled) return false;
   if (['rejected', 'disabled'].includes(source.status)) return false;
@@ -145,12 +149,23 @@ function dueSource(source) {
 }
 
 async function getDueSources(limit = maxSourcesPerRun) {
-  const rows = await supabaseRequest([
-    `rss_sources?select=${sourceSelect()}`,
-    'enabled=eq.true',
-    'order=priority.desc',
-    `limit=${Math.max(1, limit * 3)}`,
-  ].join('&'));
+  let rows;
+  try {
+    rows = await supabaseRequest([
+      `rss_sources?select=${sourceSelect()}`,
+      'enabled=eq.true',
+      'order=priority.desc',
+      `limit=${Math.max(1, limit * 3)}`,
+    ].join('&'));
+  } catch (error) {
+    if (!/column .* does not exist|42703/i.test(error.message)) throw error;
+    rows = await supabaseRequest([
+      `rss_sources?select=${minimalSourceSelect()}`,
+      'enabled=eq.true',
+      'order=priority.desc',
+      `limit=${Math.max(1, limit * 3)}`,
+    ].join('&'));
+  }
   return (rows || []).filter(dueSource).slice(0, limit);
 }
 
@@ -238,7 +253,13 @@ function updateJob(id, patch) {
 }
 
 async function getSource(id) {
-  const rows = await supabaseRequest(`rss_sources?id=eq.${encodeURIComponent(id)}&select=${sourceSelect()}&limit=1`);
+  let rows;
+  try {
+    rows = await supabaseRequest(`rss_sources?id=eq.${encodeURIComponent(id)}&select=${sourceSelect()}&limit=1`);
+  } catch (error) {
+    if (!/column .* does not exist|42703/i.test(error.message)) throw error;
+    rows = await supabaseRequest(`rss_sources?id=eq.${encodeURIComponent(id)}&select=${minimalSourceSelect()}&limit=1`);
+  }
   return rows?.[0] || null;
 }
 
