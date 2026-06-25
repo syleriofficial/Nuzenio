@@ -30,6 +30,8 @@
   <link rel="preload" as="image" href="/logo.svg" type="image/svg+xml"/>
   <link rel="preconnect" href="https://www.google.com">
   <link rel="dns-prefetch" href="https://www.google.com">
+  <link rel="preconnect" href="https://news.google.com">
+  <link rel="dns-prefetch" href="https://news.google.com">
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
@@ -52,6 +54,17 @@
   <meta name="twitter:description" content="Professional English news with live RSS headlines, video news, live channels, AI context, and verified source attribution."/>
   <meta name="twitter:image" content="https://nuzenio.com/og-image.png"/>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5589150014762971" crossorigin="anonymous"></script>
+  <script async type="application/javascript" src="https://news.google.com/swg/js/v1/swg-basic.js"></script>
+  <script>
+    (self.SWG_BASIC = self.SWG_BASIC || []).push((basicSubscriptions) => {
+      basicSubscriptions.init({
+        type: "NewsArticle",
+        isPartOfType: ["Product"],
+        isPartOfProductId: "CAow8OjgCw:openaccess",
+        clientOptions: { theme: "light", lang: "en-GB" },
+      });
+    });
+  </script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7TQQHY9XDV"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
