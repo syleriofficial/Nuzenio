@@ -56,6 +56,10 @@ async function supabaseRequest(path, options = {}) {
   return response.json();
 }
 
+function missingTableOrColumn(error) {
+  return /PGRST205|Could not find the table|column .* does not exist|42703/i.test(error?.message || '');
+}
+
 async function adminAuthorized(token) {
   const config = supabaseConfig();
   if (!config.enabled) return false;
@@ -202,25 +206,42 @@ async function enqueueDueSources({ limit = maxSourcesPerRun } = {}) {
       max_attempts: 3,
     }));
   if (jobs.length) {
-    await supabaseRequest('background_jobs', {
-      method: 'POST',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify(jobs),
-    });
+    try {
+      await supabaseRequest('background_jobs', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(jobs),
+      });
+    } catch (error) {
+      if (!missingTableOrColumn(error)) throw error;
+      return {
+        queueAvailable: false,
+        dueCount: due.length,
+        enqueuedCount: 0,
+        skippedCount: 0,
+        message: 'background_jobs table is not live yet; run supabase/schema.sql to enable persistent queue.',
+      };
+    }
   }
-  return { dueCount: due.length, enqueuedCount: jobs.length, skippedCount: due.length - jobs.length };
+  return { queueAvailable: true, dueCount: due.length, enqueuedCount: jobs.length, skippedCount: due.length - jobs.length };
 }
 
 async function claimJobs(limit = maxSourcesPerRun) {
   const now = new Date().toISOString();
-  const jobs = await supabaseRequest([
-    'background_jobs?select=id,attempts,max_attempts,payload,priority,scheduled_at',
-    'job_type=eq.rss_ingestion',
-    'status=eq.queued',
-    `scheduled_at=lte.${encodeURIComponent(now)}`,
-    'order=priority.asc',
-    `limit=${Math.max(1, limit)}`,
-  ].join('&'));
+  let jobs;
+  try {
+    jobs = await supabaseRequest([
+      'background_jobs?select=id,attempts,max_attempts,payload,priority,scheduled_at',
+      'job_type=eq.rss_ingestion',
+      'status=eq.queued',
+      `scheduled_at=lte.${encodeURIComponent(now)}`,
+      'order=priority.asc',
+      `limit=${Math.max(1, limit)}`,
+    ].join('&'));
+  } catch (error) {
+    if (!missingTableOrColumn(error)) throw error;
+    return null;
+  }
 
   const claimed = [];
   for (const job of jobs || []) {
@@ -638,6 +659,7 @@ async function crawlSource(source, job = {}) {
 
 async function processQueue({ limit = maxSourcesPerRun } = {}) {
   const jobs = await claimJobs(limit);
+  if (jobs === null) return directCrawlDueSources({ limit });
   const results = [];
   for (const job of jobs) {
     const sourceId = job.payload?.sourceId;
@@ -663,6 +685,24 @@ async function processQueue({ limit = maxSourcesPerRun } = {}) {
     }
   }
   return { claimedCount: jobs.length, results };
+}
+
+async function directCrawlDueSources({ limit = maxSourcesPerRun } = {}) {
+  const sources = await getDueSources(limit);
+  const results = [];
+  for (const source of sources) {
+    try {
+      results.push(await crawlSource(source, { id: null }));
+    } catch (error) {
+      results.push({ ok: false, sourceId: source.id, sourceName: source.name, error: error.message });
+    }
+  }
+  return {
+    queueAvailable: false,
+    claimedCount: sources.length,
+    results,
+    message: 'Direct crawl mode used because background_jobs table is not live yet.',
+  };
 }
 
 async function crawlSingleSource(sourceId) {
