@@ -13,6 +13,7 @@
 - AI News: https://nuzenio.com/ai
 - Live News: https://nuzenio.com/live
 - Video News: https://nuzenio.com/video
+- Newsletter: https://nuzenio.com/newsletter.html
 
 ## Feeds And Discovery
 

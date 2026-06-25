@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuzenio Daily Brief - Newsletter Signup</title>
+  <meta name="description" content="Subscribe to the Nuzenio Daily Brief for top global news, local updates, business, technology, AI, sports, health, and science headlines.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://nuzenio.com/newsletter.html">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <meta property="og:title" content="Nuzenio Daily Brief">
+  <meta property="og:description" content="Get top global news, local updates, business, technology, AI, sports, health, and science headlines from Nuzenio.">
+  <meta property="og:url" content="https://nuzenio.com/newsletter.html">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://nuzenio.com/og-image.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SubscribeAction",
+      "name": "Subscribe to Nuzenio Daily Brief",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://nuzenio.com/newsletter.html",
+        "actionPlatform": [
+          "https://schema.org/DesktopWebPlatform",
+          "https://schema.org/MobileWebPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Newsletter",
+        "name": "Nuzenio Daily Brief",
+        "publisher": {
+          "@type": "NewsMediaOrganization",
+          "name": "Nuzenio",
+          "url": "https://nuzenio.com/"
+        }
+      }
+    }
+  </script>
+  <style>
+    body{margin:0;background:#f6f8fb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;line-height:1.65}
+    main{max-width:980px;margin:0 auto;padding:48px 20px}
+    a{color:#2563eb;font-weight:800;text-decoration:none}
+    section{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:28px;box-shadow:0 12px 34px rgba(15,23,42,.055)}
+    h1{line-height:1.1;margin:14px 0 10px;font-size:clamp(34px,6vw,64px)}
+    form{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:12px;margin:24px 0 12px}
+    input,select,button{font:inherit;border-radius:8px;border:1px solid #cbd5e1;padding:13px 14px}
+    input:focus,select:focus{outline:3px solid rgba(37,99,235,.18);border-color:#2563eb}
+    button{border-color:#2563eb;background:#2563eb;color:#fff;font-weight:900;cursor:pointer}
+    button:disabled{opacity:.7;cursor:wait}
+    .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+    .consent{display:flex;gap:10px;align-items:flex-start;margin:14px 0;color:#475569}
+    .consent input{width:18px;height:18px;margin-top:4px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:22px}
+    .card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff}
+    .card strong{display:block;margin-bottom:6px}
+    .status{min-height:28px;font-weight:800}
+    .ok{color:#166534}.error{color:#b91c1c}
+    .note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-top:20px;color:#1e3a8a}
+    @media (max-width:640px){form{grid-template-columns:1fr}section{padding:22px}}
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <a href="/">Back to Nuzenio</a>
+      <h1>Nuzenio Daily Brief</h1>
+      <p>Get the most useful global headlines, local updates, business, technology, AI, sports, health, and science stories in a clean daily or weekly email.</p>
+      <form id="newsletter-form">
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <button id="submit-button" type="submit">Sign up</button>
+        <div class="options">
+          <select id="frequency" name="frequency" aria-label="Digest frequency">
+            <option value="daily">Daily brief</option>
+            <option value="weekly">Weekly digest</option>
+          </select>
+          <select id="country" name="country" aria-label="Preferred edition">
+            <option value="GLOBAL">Global edition</option>
+            <option value="IN">India</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="AE">Middle East</option>
+            <option value="SG">Asia-Pacific</option>
+          </select>
+        </div>
+      </form>
+      <label class="consent">
+        <input id="consent" type="checkbox" required>
+        <span>I agree to receive Nuzenio news digest emails. I can unsubscribe anytime from email links or by contacting Nuzenio.</span>
+      </label>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div class="grid">
+        <article class="card"><strong>Top stories</strong><span>Important headlines from source-attributed publishers.</span></article>
+        <article class="card"><strong>Local and global</strong><span>Country-aware news with a global baseline.</span></article>
+        <article class="card"><strong>Business and tech</strong><span>Markets, companies, AI, products, and science signals.</span></article>
+        <article class="card"><strong>Privacy-safe</strong><span>Consent required, double opt-in ready, and unsubscribe supported.</span></article>
+      </div>
+      <p class="note">Nuzenio uses double opt-in support. If email delivery is not connected yet, your pending subscription is still stored securely for confirmation workflow setup.</p>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById('newsletter-form');
+    const statusBox = document.getElementById('status');
+    const submitButton = document.getElementById('submit-button');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      statusBox.className = 'status';
+      statusBox.textContent = '';
+      const email = document.getElementById('email').value.trim();
+      const frequency = document.getElementById('frequency').value;
+      const country = document.getElementById('country').value;
+      const consent = document.getElementById('consent').checked;
+      if (!consent) {
+        statusBox.className = 'status error';
+        statusBox.textContent = 'Please confirm newsletter consent.';
+        return;
+      }
+      submitButton.disabled = true;
+      submitButton.textContent = 'Signing up...';
+      try {
+        const response = await fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            frequency,
+            country,
+            categories: ['top', 'local', 'business', 'tech', 'sports'],
+            consent,
+            source: 'newsletter-page'
+          })
+        });
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.error || 'Newsletter signup failed.');
+        statusBox.className = 'status ok';
+        statusBox.textContent = result.emailQueued ? 'Check your email to confirm your Nuzenio brief.' : result.message;
+        form.reset();
+        document.getElementById('consent').checked = false;
+      } catch (error) {
+        statusBox.className = 'status error';
+        statusBox.textContent = error.message || 'Please try again.';
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Sign up';
+      }
+    });
+  </script>
+</body>
+</html>

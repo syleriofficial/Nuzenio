@@ -64,6 +64,7 @@ const staticPages = [
   ['corrections-policy.html', 'monthly', '0.50'],
   ['contact.html', 'monthly', '0.50'],
   ['advertise.html', 'monthly', '0.45'],
+  ['newsletter.html', 'weekly', '0.58'],
   ['feeds.html', 'weekly', '0.55'],
   ['feed.xml', 'hourly', '0.50'],
   ['privacy.html', 'monthly', '0.40'],
