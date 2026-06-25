@@ -555,6 +555,101 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     const data = await response.json();
     setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}.` : `RSS test failed: ${data.error}`);
     await logAdmin('rss_source_test', data.ok ? 'ok' : 'error', { table: 'rss_sources', id: source.id || source.url, message: data.error || data.feedTitle || '' });
+    return data;
+  }
+
+  async function updateFeedSubmissionStatus(submission, status, message = '') {
+    const { error } = await supabase
+      .from('feed_submissions')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', submission.id);
+    if (error) {
+      setNotice(error.message);
+      await logAdmin('feed_submission_status', 'error', { table: 'feed_submissions', id: submission.id, message: error.message });
+      return false;
+    }
+    await logAdmin('feed_submission_status', 'ok', { table: 'feed_submissions', id: submission.id, message: message || status });
+    return true;
+  }
+
+  async function testSubmittedFeed(submission) {
+    const data = await testSource({
+      id: submission.id,
+      name: submission.publisher_name,
+      url: submission.feed_url,
+    });
+    if (data?.ok) {
+      await updateFeedSubmissionStatus(submission, 'tested', `${data.itemCount || 0} items found`);
+      loadAdmin();
+    }
+  }
+
+  async function insertApprovedSource(payload) {
+    const enrichedPayload = {
+      ...payload,
+      status: 'approved',
+      health_status: 'unknown',
+      last_error: null,
+    };
+    const result = await supabase.from('rss_sources').insert(enrichedPayload);
+    if (!result.error) return result;
+    if (!/status|health_status|last_error|column/i.test(result.error.message || '')) return result;
+    return supabase.from('rss_sources').insert(payload);
+  }
+
+  async function approveFeedSubmission(submission) {
+    setNotice('Checking submitted RSS source before approval...');
+    const duplicateCheck = await supabase
+      .from('rss_sources')
+      .select('id,name,url')
+      .eq('url', submission.feed_url)
+      .maybeSingle();
+    if (duplicateCheck.error && duplicateCheck.error.code !== 'PGRST116') {
+      setNotice(duplicateCheck.error.message);
+      await logAdmin('feed_submission_duplicate_check', 'error', { table: 'rss_sources', id: submission.feed_url, message: duplicateCheck.error.message });
+      return;
+    }
+    if (duplicateCheck.data) {
+      await updateFeedSubmissionStatus(submission, 'approved', `Already exists as ${duplicateCheck.data.name}`);
+      setNotice(`${submission.publisher_name} already exists in RSS sources. Submission marked approved.`);
+      loadAdmin();
+      return;
+    }
+
+    const testResult = await testSource({
+      id: submission.id,
+      name: submission.publisher_name,
+      url: submission.feed_url,
+    });
+    if (!testResult?.ok) return;
+
+    const payload = {
+      name: submission.publisher_name || testResult.feedTitle || 'Approved publisher',
+      url: submission.feed_url,
+      country: String(submission.country || 'GLOBAL').toUpperCase(),
+      language: submission.language || 'en',
+      category: submission.category || 'top',
+      priority: 10,
+      enabled: true,
+    };
+    const insertResult = await insertApprovedSource(payload);
+    if (insertResult.error) {
+      setNotice(insertResult.error.message);
+      await logAdmin('feed_submission_approve', 'error', { table: 'rss_sources', id: submission.feed_url, message: insertResult.error.message });
+      return;
+    }
+    await updateFeedSubmissionStatus(submission, 'approved', 'Approved and added to rss_sources');
+    setNotice(`${payload.name} approved and added to RSS Source Manager.`);
+    loadAdmin();
+  }
+
+  async function rejectFeedSubmission(submission) {
+    if (!window.confirm(`Reject ${submission.publisher_name || submission.feed_url}?`)) return;
+    const ok = await updateFeedSubmissionStatus(submission, 'rejected', 'Rejected by admin');
+    if (ok) {
+      setNotice(`${submission.publisher_name || 'Source'} rejected.`);
+      loadAdmin();
+    }
   }
 
   async function runCrawler(action = 'run', sourceId = '') {
@@ -889,6 +984,37 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                 <td>{log.inserted_count || 0}</td>
                 <td>{log.duplicate_count || 0}</td>
                 <td>{localDate(log.created_at)}</td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="Source Review Queue">
+          <MetricRow label="Feed submissions" value={overview.feedSubmissionCount || feedSubmissions.length || 0} />
+          <MetricRow label="Ready for review" value={feedSubmissions.filter((item) => !['approved', 'rejected'].includes(item.status)).length} />
+          <h4>Submission status</h4>
+          {feedSubmissionStatuses.length
+            ? feedSubmissionStatuses.map(([key, count]) => <MetricRow key={key} label={key || 'pending'} value={count} />)
+            : <MetricRow label="No feed submissions yet" value="Open submit source" />}
+          <p className="adminHint">Approve only working RSS feeds. Approval adds the publisher feed to the live RSS Source Manager, where the crawler can index it automatically.</p>
+        </AdminPanel>
+
+        <AdminPanel title="Publisher Source Review">
+          <AdminTable headers={['Publisher', 'Country', 'Category', 'Status', 'Submitted', 'Actions']}>
+            {feedSubmissions.slice(0, 20).map((item) => (
+              <tr key={item.id}>
+                <td><b>{item.publisher_name || 'Publisher'}</b><small>{item.feed_url}</small><small>{item.submitted_by_email || 'No email supplied'}</small></td>
+                <td>{item.country || 'GLOBAL'}</td>
+                <td>{item.category || 'top'}</td>
+                <td>{item.status || 'pending'}</td>
+                <td>{localDate(item.created_at)}</td>
+                <td className="adminActions">
+                  <button onClick={() => testSubmittedFeed(item)}>Test</button>
+                  <button className="primaryAction" onClick={() => approveFeedSubmission(item)}>Approve</button>
+                  <button className="dangerAction" onClick={() => rejectFeedSubmission(item)}>Reject</button>
+                </td>
               </tr>
             ))}
           </AdminTable>
