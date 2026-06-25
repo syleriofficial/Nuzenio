@@ -53,7 +53,8 @@ async function supabaseRequest(path, options = {}) {
     throw new Error(`Supabase crawler request failed with ${response.status}${body ? `: ${body.slice(0, 220)}` : ''}`);
   }
   if (response.status === 204) return null;
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function missingTableOrColumn(error) {
