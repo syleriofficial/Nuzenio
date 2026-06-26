@@ -160,34 +160,42 @@
   for = "/api/news"
   [headers.values]
     Cache-Control = "public, max-age=60, stale-while-revalidate=240"
+    X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
   for = "/api/location"
   [headers.values]
     Cache-Control = "public, max-age=900"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
   for = "/api/health"
   [headers.values]
     Cache-Control = "no-store"
-    X-Robots-Tag = "noindex"
+    X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
   for = "/api/rss-crawler"
   [headers.values]
     Cache-Control = "no-store"
-    X-Robots-Tag = "noindex"
+    X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
   for = "/api/ecosystem"
   [headers.values]
     Cache-Control = "no-store"
-    X-Robots-Tag = "noindex"
+    X-Robots-Tag = "noindex, nofollow"
 
 [[headers]]
   for = "/api/v1/*"
   [headers.values]
     Cache-Control = "public, max-age=120, stale-while-revalidate=300"
+    X-Robots-Tag = "noindex, nofollow"
     X-RateLimit-Policy = "api-key-quota-or-edge-default"
 
 [[redirects]]

@@ -1393,7 +1393,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
 
         <AdminPanel title="SEO Monitoring">
           <MetricRow label="Indexed pages" value="Check Search Console" />
-          <MetricRow label="Sitemap status" value="306 static URLs + live news sitemap" />
+          <MetricRow label="Sitemap status" value="4,000+ public URLs + live news sitemap" />
           <MetricRow label="CTR tracking" value={seoCtr} />
           <MetricRow label="News sitemap" value="/news-sitemap.xml" />
           <h4>Top pages</h4>

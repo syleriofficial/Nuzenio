@@ -69,7 +69,6 @@ const staticPages = [
   ['advertise.html', 'monthly', '0.45'],
   ['newsletter.html', 'weekly', '0.58'],
   ['feeds.html', 'weekly', '0.55'],
-  ['feed.xml', 'hourly', '0.50'],
   ['privacy.html', 'monthly', '0.40'],
   ['terms.html', 'monthly', '0.40'],
   ['affiliate-disclosure.html', 'monthly', '0.40'],
