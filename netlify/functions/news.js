@@ -421,6 +421,17 @@ const VIDEO_CATEGORIES = new Set(['video', 'live']);
 const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS), 'ai']);
 const LIVE_SOURCE_PROVIDERS = new Set(['youtube', 'twitch', 'official_embed', 'hls']);
 const MAX_RSS_AGE_DAYS = 14;
+const CATEGORY_MAX_AGE_DAYS = {
+  top: 3,
+  world: 5,
+  business: 5,
+  tech: 5,
+  ai: 7,
+  sports: 5,
+  entertainment: 7,
+  health: 7,
+  science: 7,
+};
 
 const COUNTRY_NAMES = {
   AE: 'United Arab Emirates',
@@ -834,6 +845,10 @@ function rankCategoryArticles(articles, category) {
 
 function polishFeed(articles, { days = 14, perSourceLimit = 12 } = {}) {
   return diversifySources(sortByNewest(compactDuplicateArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
+}
+
+function maxAgeDaysForCategory(category, fallback = MAX_RSS_AGE_DAYS) {
+  return CATEGORY_MAX_AGE_DAYS[category] || fallback;
 }
 
 function normalizeUrlKey(value = '') {
@@ -2059,7 +2074,7 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
   });
 
   return {
-    articles: polishFeed(articles, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 6 }).slice(0, 60),
+    articles: polishFeed(articles, { days: maxAgeDaysForCategory(category), perSourceLimit: 6 }).slice(0, 60),
     sourceType: errors.length && articles.length ? 'publisher-rss-partial' : 'publisher-rss',
     errors,
   };
@@ -2067,7 +2082,7 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
 
 async function fetchGoogleNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
-    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: MAX_RSS_AGE_DAYS });
+    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: maxAgeDaysForCategory(category) });
   }
 
   if (category === 'local') {
@@ -2088,7 +2103,7 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
   });
 
   const finalArticles = interleaveSources(
-    rankCategoryArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS }), category),
+    rankCategoryArticles(polishFeed(batches, { days: maxAgeDaysForCategory(category) }), category),
     12,
   ).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
@@ -2138,7 +2153,7 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
 
   const merged = interleaveSources(
     rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {
-      days: MAX_RSS_AGE_DAYS,
+      days: maxAgeDaysForCategory(category),
       perSourceLimit: 12,
     }), category),
     12,
