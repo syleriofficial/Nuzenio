@@ -104,8 +104,8 @@ function ogPaint(x, y) {
   return color;
 }
 
-function iconPaint(x, y) {
-  const scale = 192 / 512;
+function iconPaint(x, y, size = 192) {
+  const scale = size / 512;
   const sx = x / scale;
   const sy = y / scale;
   if (roundedRect(sx, sy, 0, 0, 512, 512, 108)) return hex('#ffffff');
@@ -119,4 +119,5 @@ function iconPaint(x, y) {
 }
 
 writeFileSync(new URL('../public/og-image.png', import.meta.url), png(1200, 630, ogPaint));
-writeFileSync(new URL('../public/icon-192.png', import.meta.url), png(192, 192, iconPaint));
+writeFileSync(new URL('../public/icon-192.png', import.meta.url), png(192, 192, (x, y) => iconPaint(x, y, 192)));
+writeFileSync(new URL('../public/icon-512.png', import.meta.url), png(512, 512, (x, y) => iconPaint(x, y, 512)));

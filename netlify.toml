@@ -43,6 +43,18 @@
     Cache-Control = "public, max-age=86400"
 
 [[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/login"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
   for = "/robots.txt"
   [headers.values]
     Content-Type = "text/plain; charset=utf-8"
@@ -134,6 +146,12 @@
 
 [[headers]]
   for = "/icon-192.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/icon-512.png"
   [headers.values]
     Content-Type = "image/png"
     Cache-Control = "public, max-age=86400"
