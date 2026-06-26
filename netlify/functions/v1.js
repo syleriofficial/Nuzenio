@@ -5,6 +5,7 @@ const headers = {
   'Cache-Control': 'public, max-age=120, stale-while-revalidate=300',
   'Content-Type': 'application/json; charset=utf-8',
   'X-Content-Type-Options': 'nosniff',
+  'X-Robots-Tag': 'noindex, nofollow',
 };
 
 const endpointNames = [

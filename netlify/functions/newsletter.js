@@ -9,6 +9,7 @@ const headers = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
+  'X-Robots-Tag': 'noindex, nofollow',
 };
 
 const digestCategories = ['top', 'local', 'business', 'tech', 'sports'];
