@@ -344,7 +344,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         safeQuery(supabase.from('shared_dashboards').select('id,name,organization_name,access_level,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('dashboard_exports').select('id,export_type,status,file_url,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('publisher_accounts').select('id,publisher_name,contact_email,country,verification_status,website_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
-        safeQuery(supabase.from('feed_submissions').select('id,publisher_name,feed_url,category,country,language,status,submitted_by_email,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('feed_submissions').select('id,publisher_name,feed_url,category,country,language,status,test_result,submitted_by_email,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('rss_crawl_logs').select('id,source_id,job_id,status,feed_url,http_status,duration_ms,item_count,inserted_count,duplicate_count,error_message,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('background_jobs').select('id,job_type,status,priority,payload,attempts,max_attempts,scheduled_at,started_at,finished_at,last_error,updated_at').eq('job_type', 'rss_ingestion').order('scheduled_at', { ascending: true }).limit(80)),
         safeQuery(supabase.from('journalist_accounts').select('id,full_name,email,publisher_name,verification_status,badge_label,portfolio_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
@@ -550,19 +550,30 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         'Content-Type': 'application/json',
         Authorization: `Bearer ${sessionData.session?.access_token || ''}`,
       },
-      body: JSON.stringify({ url: source.url, name: source.name }),
+      body: JSON.stringify({ url: source.url, name: source.name, id: source.id, submissionId: source.submissionId }),
     });
     const data = await response.json();
-    setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}.` : `RSS test failed: ${data.error}`);
+    const quality = data.qualityScore == null ? '' : ` · quality ${data.qualityScore}/100`;
+    const duplicate = data.duplicate ? ` · duplicate: ${data.duplicate.name || data.duplicate.url}` : '';
+    const newest = data.newestPublishedAt ? ` · newest ${localDate(data.newestPublishedAt)}` : '';
+    setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}${quality}${newest}${duplicate}.` : `RSS test failed: ${data.error}`);
     await logAdmin('rss_source_test', data.ok ? 'ok' : 'error', { table: 'rss_sources', id: source.id || source.url, message: data.error || data.feedTitle || '' });
     return data;
   }
 
-  async function updateFeedSubmissionStatus(submission, status, message = '') {
-    const { error } = await supabase
+  async function updateFeedSubmissionStatus(submission, status, message = '', testResult = null) {
+    const payload = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+    if (testResult) payload.test_result = testResult;
+    const result = await supabase
       .from('feed_submissions')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', submission.id);
+    const error = result.error && /test_result|column/i.test(result.error.message || '') && testResult
+      ? (await supabase.from('feed_submissions').update({ status, updated_at: payload.updated_at }).eq('id', submission.id)).error
+      : result.error;
     if (error) {
       setNotice(error.message);
       await logAdmin('feed_submission_status', 'error', { table: 'feed_submissions', id: submission.id, message: error.message });
@@ -577,9 +588,10 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       id: submission.id,
       name: submission.publisher_name,
       url: submission.feed_url,
+      submissionId: submission.id,
     });
     if (data?.ok) {
-      await updateFeedSubmissionStatus(submission, 'tested', `${data.itemCount || 0} items found`);
+      await updateFeedSubmissionStatus(submission, 'testing', `${data.itemCount || 0} items found`, data);
       loadAdmin();
     }
   }
@@ -620,8 +632,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       id: submission.id,
       name: submission.publisher_name,
       url: submission.feed_url,
+      submissionId: submission.id,
     });
     if (!testResult?.ok) return;
+    if (testResult.duplicate) {
+      await updateFeedSubmissionStatus(submission, 'rejected', `Duplicate feed: ${testResult.duplicate.name || testResult.duplicate.url}`, testResult);
+      setNotice(`${submission.publisher_name || 'Submitted feed'} is a duplicate of ${testResult.duplicate.name || testResult.duplicate.url}.`);
+      loadAdmin();
+      return;
+    }
 
     const payload = {
       name: submission.publisher_name || testResult.feedTitle || 'Approved publisher',
@@ -1005,7 +1024,13 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <AdminTable headers={['Publisher', 'Country', 'Category', 'Status', 'Submitted', 'Actions']}>
             {feedSubmissions.slice(0, 20).map((item) => (
               <tr key={item.id}>
-                <td><b>{item.publisher_name || 'Publisher'}</b><small>{item.feed_url}</small><small>{item.submitted_by_email || 'No email supplied'}</small></td>
+                <td>
+                  <b>{item.publisher_name || 'Publisher'}</b>
+                  <small>{item.feed_url}</small>
+                  <small>{item.submitted_by_email || 'No email supplied'}</small>
+                  {item.test_result?.qualityScore != null && <small>Quality {item.test_result.qualityScore}/100 · {item.test_result.recommendation || 'review'}</small>}
+                  {item.test_result?.duplicate && <small>Duplicate: {item.test_result.duplicate.name || item.test_result.duplicate.url}</small>}
+                </td>
                 <td>{item.country || 'GLOBAL'}</td>
                 <td>{item.category || 'top'}</td>
                 <td>{item.status || 'pending'}</td>

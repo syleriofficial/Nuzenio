@@ -26,6 +26,37 @@ function first(xml, tag) {
   return match ? clean(match[1]) : '';
 }
 
+function allMatches(xml, tag, limit = 20) {
+  const matches = [];
+  const pattern = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+  let match = pattern.exec(xml);
+  while (match && matches.length < limit) {
+    matches.push(match[1]);
+    match = pattern.exec(xml);
+  }
+  return matches;
+}
+
+function itemBlocks(xml) {
+  const rssItems = allMatches(xml, 'item', 40);
+  const atomItems = allMatches(xml, 'entry', 40);
+  return [...rssItems, ...atomItems];
+}
+
+function parseDate(value = '') {
+  if (!value) return null;
+  const timestamp = Date.parse(clean(value));
+  return Number.isNaN(timestamp) ? null : new Date(timestamp);
+}
+
+function newestPublishedAt(blocks = []) {
+  const dates = blocks
+    .map((block) => parseDate(first(block, 'pubDate') || first(block, 'published') || first(block, 'updated')))
+    .filter(Boolean)
+    .sort((a, b) => b.getTime() - a.getTime());
+  return dates[0] || null;
+}
+
 function safeHttpsUrl(value = '') {
   try {
     const url = new URL(String(value || '').trim());
@@ -75,6 +106,26 @@ function supabaseConfig() {
   return { url, key, enabled: Boolean(url && key) };
 }
 
+async function supabaseRequest(path, options = {}) {
+  const config = supabaseConfig();
+  if (!config.enabled) throw new Error('Supabase service role is not configured');
+  const response = await fetch(`${config.url}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Supabase request failed with ${response.status}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
 async function requireAdmin(event) {
   const config = supabaseConfig();
   if (!config.enabled) throw new Error('Supabase service role is not configured');
@@ -101,6 +152,45 @@ async function requireAdmin(event) {
   return user;
 }
 
+async function findDuplicate(url, submissionId = '') {
+  const encodedUrl = encodeURIComponent(url);
+  const sourceRows = await supabaseRequest(`rss_sources?url=eq.${encodedUrl}&select=id,name,url&limit=1`);
+  if (sourceRows?.[0]) {
+    return { type: 'approved_source', ...sourceRows[0] };
+  }
+  let submissionPath = `feed_submissions?feed_url=eq.${encodedUrl}&select=id,publisher_name,feed_url,status&limit=2`;
+  if (submissionId) submissionPath += `&id=neq.${encodeURIComponent(submissionId)}`;
+  const submissionRows = await supabaseRequest(submissionPath);
+  if (submissionRows?.[0]) {
+    return {
+      type: 'submitted_feed',
+      id: submissionRows[0].id,
+      name: submissionRows[0].publisher_name,
+      url: submissionRows[0].feed_url,
+      status: submissionRows[0].status,
+    };
+  }
+  return null;
+}
+
+function scoreFeed({ itemCount, newestDate, duplicate }) {
+  let score = 55;
+  if (itemCount >= 10) score += 20;
+  else if (itemCount >= 5) score += 12;
+  else score -= 10;
+  if (newestDate) {
+    const ageHours = (Date.now() - newestDate.getTime()) / 36e5;
+    if (ageHours <= 24) score += 20;
+    else if (ageHours <= 72) score += 12;
+    else if (ageHours <= 168) score += 5;
+    else score -= 15;
+  } else {
+    score -= 8;
+  }
+  if (duplicate) score -= 35;
+  return Math.max(0, Math.min(100, score));
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') {
@@ -117,8 +207,12 @@ export const handler = async (event) => {
     const url = safeHttpsUrl(body.url);
     if (!url) throw new Error('A valid HTTPS RSS URL is required');
     const xml = await fetchText(url);
-    const itemCount = (xml.match(/<item\b/gi) || []).length + (xml.match(/<entry\b/gi) || []).length;
+    const blocks = itemBlocks(xml);
+    const itemCount = blocks.length;
     if (!itemCount) throw new Error('No RSS items or Atom entries found');
+    const newestDate = newestPublishedAt(blocks);
+    const duplicate = await findDuplicate(url, body.submissionId || body.id || '');
+    const qualityScore = scoreFeed({ itemCount, newestDate, duplicate });
     return {
       statusCode: 200,
       headers,
@@ -126,6 +220,10 @@ export const handler = async (event) => {
         ok: true,
         feedTitle: first(xml, 'title') || body.name || 'RSS feed',
         itemCount,
+        newestPublishedAt: newestDate ? newestDate.toISOString() : null,
+        duplicate,
+        qualityScore,
+        recommendation: duplicate ? 'duplicate' : qualityScore >= 70 ? 'approve' : 'review',
       }),
     };
   } catch (error) {
