@@ -10,7 +10,7 @@ export function buildNewsApiUrl({
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   else params.set('category', category || 'top');
-  params.set('country', country || 'IN');
+  params.set('country', country || 'US');
   params.set('language', language || 'en');
   if (!q && category === 'local' && region) params.set('region', region);
   if (!q && category === 'local' && city) params.set('city', city);

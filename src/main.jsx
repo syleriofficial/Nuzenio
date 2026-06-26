@@ -4456,11 +4456,14 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
     .filter(([region, city]) => !citySearch || `${city} ${region}`.toLowerCase().includes(citySearch))
     .slice(0, 6);
   const countryName = countryLabel(draft.country);
-  const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country fallback';
+  const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country-level feed';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
   const isApproximate = ['ip', 'ip backup'].includes(location.source);
   const hasExactCity = Boolean(location.city);
+  const needsExactLocation = !hasExactCity || ['fallback', 'browser locale', 'timezone'].includes(location.source);
+  const locationTitle = needsExactLocation ? 'Worldwide local news' : copy.localNewsFor;
+  const locationValue = needsExactLocation ? 'Choose your country, state, and city' : location.label;
 
   useEffect(() => {
     setDraft(location);
@@ -4531,18 +4534,18 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
         <div>
           <Globe2 size={20} />
           <span>
-            <b>{copy.localNewsFor}</b>
-            <strong>{location.label}</strong>
+            <b>{locationTitle}</b>
+            <strong>{locationValue}</strong>
           </span>
         </div>
         <p>{locationSourceLabel(location.source)} · {status}</p>
         <div className={`locationModeBadge ${hasExactCity ? 'isExact' : 'isApproximate'}`}>
           <MapPin size={14} />
-          <span>{hasExactCity ? 'Exact local mode' : 'Region mode'}</span>
+          <span>{hasExactCity ? 'Exact local mode' : 'Global setup mode'}</span>
         </div>
-        {isApproximate && (
+        {(isApproximate || needsExactLocation) && (
           <small className="locationNotice">
-            Network location is approximate. Use browser GPS or type your exact city for local news.
+            Nuzenio is global. Use browser GPS or type your exact city so local news follows each reader's real area.
           </small>
         )}
         <div className="locationSignals" aria-label="Local news precision">
@@ -5309,7 +5312,7 @@ function videoSectionLabel(category, copy) {
 
 function sectionContent(category, copy, location) {
   const label = copy.categories[category] || copy.latestStories;
-  const place = location?.label || countryLabel(location?.country || 'IN');
+  const place = location?.label || countryLabel(location?.country || 'US');
   const intros = {
     local: `Local headlines and nearby updates for ${place}. Change country, state, or city to tune this page.`,
     top: 'Top headlines from the live news feed, refreshed for your selected country.',
@@ -5690,7 +5693,7 @@ function pageJsonLd(url, { context, description, image, title }) {
     name: place,
     address: {
       '@type': 'PostalAddress',
-      addressCountry: countryLabel(context.location?.country || 'IN'),
+      addressCountry: countryLabel(context.location?.country || 'US'),
       addressRegion: context.location?.region || undefined,
       addressLocality: context.location?.city || undefined,
     },
@@ -5752,7 +5755,7 @@ function articleJsonLd(article, url, { context, description, image, title }) {
   const organizationId = `${productionOrigin}/#organization`;
   const websiteId = `${productionOrigin}/#website`;
   const sourceName = article.source || 'RSS publisher';
-  const articleCountry = article.country || context.location?.country || 'IN';
+  const articleCountry = article.country || context.location?.country || 'US';
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -5943,9 +5946,9 @@ function organizationSchema() {
 
 function pageSeoPlace(category, location) {
   if (category === 'local') {
-    return [location?.city, location?.region, countryLabel(location?.country || 'IN')].filter(Boolean).join(', ');
+    return [location?.city, location?.region, countryLabel(location?.country || 'US')].filter(Boolean).join(', ');
   }
-  return countryLabel(location?.country || 'IN');
+  return countryLabel(location?.country || 'US');
 }
 
 function seoImage(article) {
@@ -5985,7 +5988,7 @@ function shareArticleUrl(article) {
   url.pathname = localizedPath(`/article/${encodeURIComponent(articleSlug(article))}`, currentLanguageCode());
   url.searchParams.delete('article');
   url.hash = '';
-  if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'IN');
+  if (!url.searchParams.get('country')) url.searchParams.set('country', article.country || 'US');
   url.searchParams.delete('language');
   url.searchParams.set('category', article.category || 'top');
   return url;
@@ -5993,7 +5996,7 @@ function shareArticleUrl(article) {
 
 function articleHref(article) {
   const url = new URL(localizedPath(`/article/${encodeURIComponent(articleSlug(article))}`, currentLanguageCode()), window.location.origin);
-  url.searchParams.set('country', article.country || 'IN');
+  url.searchParams.set('country', article.country || 'US');
   url.searchParams.set('category', article.category || 'top');
   return `${url.pathname}${url.search}`;
 }

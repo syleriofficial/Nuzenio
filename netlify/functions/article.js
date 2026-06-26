@@ -27,8 +27,8 @@ function normalizeCategory(value = 'top') {
   return /^[a-z-]+$/i.test(value) ? value : 'top';
 }
 
-function normalizeCountry(value = 'IN') {
-  return /^[A-Z]{2}$/i.test(value) ? value.toUpperCase() : 'IN';
+function normalizeCountry(value = 'US') {
+  return /^[A-Z]{2}$/i.test(value) ? value.toUpperCase() : 'US';
 }
 
 function articleIdFromPath(path = '') {
@@ -374,7 +374,7 @@ export const handler = async (event) => {
   const language = languageFromPath(event.path || '', event.queryStringParameters?.language || 'en');
   const articleId = articleIdFromPath(event.path || '');
   const requestedCategory = normalizeCategory(event.queryStringParameters?.category || 'top');
-  const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
+  const country = normalizeCountry(event.queryStringParameters?.country || 'US');
   const { article, category } = articleId
     ? await findArticle(articleId, requestedCategory, country, language, event)
     : { article: null, category: requestedCategory };

@@ -1623,12 +1623,12 @@ function localizedYouTubeSearchWhyItMatters(language = 'en') {
   return 'This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.';
 }
 
-function normalizeCountry(country = 'IN') {
+function normalizeCountry(country = 'US') {
   const value = country.toUpperCase();
-  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+  return /^[A-Z]{2}$/.test(value) ? value : 'US';
 }
 
-function countryLabel(country = 'IN') {
+function countryLabel(country = 'US') {
   const value = normalizeCountry(country);
   if (COUNTRY_NAMES[value]) return COUNTRY_NAMES[value];
   try {
@@ -2220,7 +2220,7 @@ export const handler = async (event) => {
 
   try {
     const category = normalizeCategory(event.queryStringParameters?.category || 'local');
-    const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
+    const country = normalizeCountry(event.queryStringParameters?.country || 'US');
     const region = cleanRegion(event.queryStringParameters?.region || '');
     const city = cleanRegion(event.queryStringParameters?.city || '');
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');
@@ -2318,7 +2318,7 @@ export const handler = async (event) => {
     };
   } catch (error) {
     const category = normalizeCategory(event.queryStringParameters?.category || 'local');
-    const country = normalizeCountry(event.queryStringParameters?.country || 'IN');
+    const country = normalizeCountry(event.queryStringParameters?.country || 'US');
     const region = cleanRegion(event.queryStringParameters?.region || '');
     const city = cleanRegion(event.queryStringParameters?.city || '');
     const language = normalizeLanguage(event.queryStringParameters?.language || 'en');

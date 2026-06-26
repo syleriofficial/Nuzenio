@@ -2,8 +2,8 @@ import { countryNames } from '../constants/locale.js';
 import { readLocal, writeLocal } from './storage.js';
 
 export function normalizeCountry(country) {
-  const value = (country || 'IN').toUpperCase();
-  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+  const value = (country || 'US').toUpperCase();
+  return /^[A-Z]{2}$/.test(value) ? value : 'US';
 }
 
 export function countryLabel(country) {
@@ -35,7 +35,7 @@ export function formatLocation(data) {
 }
 
 export function compactLocationEntry(location = {}) {
-  const country = normalizeCountry(location.country || 'IN');
+  const country = normalizeCountry(location.country || 'US');
   const region = String(location.region || '').trim();
   const city = String(location.city || '').trim();
   if (!city) return null;
@@ -62,7 +62,7 @@ export function uniquePlacePairs(pairs = []) {
 }
 
 export function readRecentLocalLocations(country) {
-  const countryCode = normalizeCountry(country || 'IN');
+  const countryCode = normalizeCountry(country || 'US');
   return readLocal('nuzenio_recent_locations', [])
     .filter((item) => item?.country === countryCode && item.city)
     .slice(0, 6);
@@ -83,6 +83,6 @@ export function locationSourceLabel(source) {
   if (source === 'ip backup') return 'Approximate backup network region';
   if (source === 'preset') return 'Selected from popular locations';
   if (source === 'manual') return 'Set manually';
-  if (source === 'fallback') return 'Using default location';
+  if (source === 'fallback') return 'Choose your exact city';
   return 'Detected from browser region';
 }
