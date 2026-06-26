@@ -15,6 +15,7 @@
 - Video News: https://nuzenio.com/video
 - Newsletter: https://nuzenio.com/newsletter.html
 - Submit Source: https://nuzenio.com/submit-source.html
+- Publisher Dashboard: https://nuzenio.com/publisher-dashboard.html
 
 ## Feeds And Discovery
 

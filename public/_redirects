@@ -2,6 +2,7 @@
 /api/location /.netlify/functions/location 200
 /api/health /.netlify/functions/health 200
 /api/ecosystem /.netlify/functions/ecosystem 200
+/api/publisher-dashboard /.netlify/functions/publisher-dashboard 200
 /api/admin-rss-test /.netlify/functions/admin-rss-test 200
 /api/newsletter /.netlify/functions/newsletter 200
 /api/newsletter-digest /.netlify/functions/newsletter-digest 200

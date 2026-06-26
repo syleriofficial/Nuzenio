@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publisher Dashboard - Nuzenio</title>
+  <meta name="description" content="Check submitted RSS source status, approval status, crawl health, feed quality, and publisher source review progress on Nuzenio.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://nuzenio.com/publisher-dashboard.html">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <meta property="og:title" content="Nuzenio Publisher Dashboard">
+  <meta property="og:description" content="Track RSS submissions, source approval, crawl health, and feed quality on Nuzenio.">
+  <meta property="og:url" content="https://nuzenio.com/publisher-dashboard.html">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://nuzenio.com/og-image.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Publisher Dashboard",
+      "url": "https://nuzenio.com/publisher-dashboard.html",
+      "description": "Publisher dashboard for submitted RSS sources, source approval, and crawl health.",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Nuzenio",
+        "url": "https://nuzenio.com/"
+      }
+    }
+  </script>
+  <style>
+    body{margin:0;background:#f6f8fb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;line-height:1.65}
+    main{max-width:1120px;margin:0 auto;padding:46px 20px}
+    a{color:#2563eb;font-weight:850;text-decoration:none}
+    .shell{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:28px;box-shadow:0 12px 34px rgba(15,23,42,.055)}
+    h1{line-height:1.08;margin:14px 0 10px;font-size:clamp(34px,6vw,58px)}
+    p{color:#475569}
+    form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;margin-top:24px}
+    input,button{font:inherit;border-radius:8px;border:1px solid #cbd5e1;padding:13px 14px}
+    input:focus{outline:3px solid rgba(37,99,235,.18);border-color:#2563eb}
+    button{border-color:#2563eb;background:#2563eb;color:#fff;font-weight:900;cursor:pointer}
+    button:disabled{opacity:.7;cursor:wait}
+    .status{min-height:28px;font-weight:850}.error{color:#b91c1c}.ok{color:#166534}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+    .metric,.sourceCard{border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:16px}
+    .metric span,.meta span{display:block;color:#64748b;font-size:.88rem;font-weight:750}
+    .metric b{display:block;font-size:1.75rem;line-height:1.1;margin-top:4px}
+    .sourceGrid{display:grid;gap:14px}
+    .sourceCard{background:#fff}
+    .sourceHeader{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+    .sourceHeader h2{font-size:1.1rem;line-height:1.25;margin:0}
+    .badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:900;background:#eff6ff;color:#1d4ed8;text-transform:uppercase;white-space:nowrap}
+    .badge.approved,.badge.healthy{background:#ecfdf5;color:#047857}
+    .badge.rejected,.badge.failing{background:#fef2f2;color:#b91c1c}
+    .badge.testing,.badge.degraded{background:#fff7ed;color:#c2410c}
+    .meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+    .note{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:18px;color:#475569}
+    small{display:block;color:#64748b;overflow-wrap:anywhere}
+    @media (max-width:760px){
+      main{padding:24px 12px}.shell{padding:20px}
+      form,.metrics,.meta{grid-template-columns:1fr}
+      .sourceHeader{display:grid}
+      button{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="shell">
+      <a href="/">Back to Nuzenio</a>
+      <h1>Publisher Dashboard</h1>
+      <p>Check your submitted RSS sources, approval status, feed test quality, crawl health, and latest source review progress. Use the same email address used while submitting a source.</p>
+      <form id="dashboard-form">
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="publisher@example.com" required>
+        <button id="load-button" type="submit">Load dashboard</button>
+      </form>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div id="result"></div>
+      <div class="note">
+        <strong>Publisher privacy</strong>
+        <p>Nuzenio shows only records connected to the email address entered here. Approval still requires admin review, RSS validation, duplicate checks, and source quality review.</p>
+        <a href="/submit-source.html">Submit another source</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById('dashboard-form');
+    const statusBox = document.getElementById('status');
+    const resultBox = document.getElementById('result');
+    const loadButton = document.getElementById('load-button');
+
+    function dateLabel(value) {
+      if (!value) return 'Not available';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function badgeClass(value) {
+      return `badge ${String(value || '').toLowerCase()}`;
+    }
+
+    function renderSource(item) {
+      const source = item.source || {};
+      const health = source.healthStatus || 'unknown';
+      const quality = source.qualityScore ?? item.testResult?.qualityScore ?? 'Review';
+      return `
+        <article class="sourceCard">
+          <div class="sourceHeader">
+            <div>
+              <h2>${escapeHtml(item.publisherName || source.name || 'Submitted source')}</h2>
+              <small>${escapeHtml(item.feedUrl)}</small>
+            </div>
+            <span class="${badgeClass(item.status)}">${escapeHtml(item.status || 'submitted')}</span>
+          </div>
+          <div class="meta">
+            <div><span>Category</span><b>${escapeHtml(item.category || 'top')}</b></div>
+            <div><span>Country</span><b>${escapeHtml(item.country || 'GLOBAL')}</b></div>
+            <div><span>Language</span><b>${escapeHtml(item.language || 'en')}</b></div>
+            <div><span>Quality</span><b>${escapeHtml(quality)}</b></div>
+            <div><span>Health</span><b class="${badgeClass(health)}">${escapeHtml(health)}</b></div>
+            <div><span>Last crawl</span><b>${escapeHtml(dateLabel(source.lastCrawledAt))}</b></div>
+            <div><span>Last success</span><b>${escapeHtml(dateLabel(source.lastSuccessAt))}</b></div>
+            <div><span>Articles crawled</span><b>${escapeHtml(source.articlesCrawledCount || 0)}</b></div>
+          </div>
+          ${source.lastError ? `<p class="error">Latest crawler error: ${escapeHtml(source.lastError)}</p>` : ''}
+          ${item.testResult?.duplicate ? `<p class="error">Duplicate feed: ${escapeHtml(item.testResult.duplicate.name || item.testResult.duplicate.url)}</p>` : ''}
+        </article>
+      `;
+    }
+
+    function renderDashboard(dashboard) {
+      resultBox.innerHTML = `
+        <div class="metrics">
+          <div class="metric"><span>Total submissions</span><b>${dashboard.totalSubmissions || 0}</b></div>
+          <div class="metric"><span>Approved</span><b>${dashboard.approvedSources || 0}</b></div>
+          <div class="metric"><span>Pending</span><b>${dashboard.pendingSources || 0}</b></div>
+          <div class="metric"><span>Rejected</span><b>${dashboard.rejectedSources || 0}</b></div>
+        </div>
+        <div class="sourceGrid">
+          ${(dashboard.sources || []).length ? dashboard.sources.map(renderSource).join('') : '<p class="note">No source submissions found for this email.</p>'}
+        </div>
+      `;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      statusBox.className = 'status';
+      statusBox.textContent = '';
+      resultBox.innerHTML = '';
+      loadButton.disabled = true;
+      loadButton.textContent = 'Loading...';
+      try {
+        const response = await fetch('/api/publisher-dashboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: document.getElementById('email').value.trim() })
+        });
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.error || 'Dashboard could not load.');
+        statusBox.className = 'status ok';
+        statusBox.textContent = `Loaded dashboard for ${result.dashboard.email}.`;
+        renderDashboard(result.dashboard);
+      } catch (error) {
+        statusBox.className = 'status error';
+        statusBox.textContent = error.message || 'Please try again.';
+      } finally {
+        loadButton.disabled = false;
+        loadButton.textContent = 'Load dashboard';
+      }
+    });
+  </script>
+</body>
+</html>
