@@ -422,7 +422,7 @@ function articleSlug(article) {
 }
 
 function localLocationPath(location = {}) {
-  const country = normalizeCountry(location.country || 'IN').toLowerCase();
+  const country = normalizeCountry(location.country || 'US').toLowerCase();
   const region = slugifyTitle(location.region || '');
   const city = slugifyTitle(location.city || '');
   if (region && city) return `/local/${country}/${region}/${city}`;
@@ -5374,10 +5374,10 @@ function LiveVideoPlayer({ article, autoplay = true, lazy = false }) {
 }
 
 function detectLocaleCountry() {
-  const locale = navigator.language || navigator.languages?.[0] || 'en-IN';
+  const locale = navigator.language || navigator.languages?.[0] || 'en-US';
   const localeCountry = locale.split('-')[1]?.toUpperCase();
   const timezoneCountry = inferCountryFromTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const country = normalizeCountry(localeCountry || timezoneCountry || 'IN');
+  const country = normalizeCountry(localeCountry || timezoneCountry || 'US');
   return {
     country,
     region: '',
@@ -5461,7 +5461,7 @@ function inferCountryFromTimezone(timeZone = '') {
   if (timeZone.includes('Seoul')) return 'KR';
   if (timeZone.includes('Moscow')) return 'RU';
   if (timeZone.includes('New_York') || timeZone.includes('Chicago') || timeZone.includes('Los_Angeles')) return 'US';
-  return 'IN';
+  return 'US';
 }
 
 function setMeta(selector, attribute, value) {
