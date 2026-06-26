@@ -57,6 +57,72 @@ function newestPublishedAt(blocks = []) {
   return dates[0] || null;
 }
 
+function itemSamples(blocks = []) {
+  return blocks.slice(0, 20).map((block) => ({
+    title: first(block, 'title'),
+    summary: first(block, 'description') || first(block, 'summary') || first(block, 'content'),
+    link: first(block, 'link'),
+    date: parseDate(first(block, 'pubDate') || first(block, 'published') || first(block, 'updated')),
+  }));
+}
+
+function keywordHits(text = '', terms = []) {
+  const lower = text.toLowerCase();
+  return terms.reduce((count, term) => count + (lower.includes(term) ? 1 : 0), 0);
+}
+
+function inferCategory(samples = []) {
+  const text = samples.map((item) => `${item.title} ${item.summary}`).join(' ').toLowerCase();
+  const categories = [
+    ['business', ['market', 'stock', 'economy', 'inflation', 'company', 'earnings', 'bank']],
+    ['technology', ['ai', 'tech', 'software', 'chip', 'startup', 'cyber', 'app', 'google', 'apple']],
+    ['sports', ['match', 'score', 'league', 'tournament', 'cricket', 'football', 'tennis']],
+    ['health', ['health', 'doctor', 'hospital', 'disease', 'vaccine', 'medical']],
+    ['science', ['space', 'science', 'climate', 'research', 'nasa', 'study']],
+    ['entertainment', ['film', 'movie', 'music', 'celebrity', 'box office', 'streaming']],
+    ['world', ['president', 'minister', 'war', 'election', 'global', 'country', 'border']],
+  ];
+  const scored = categories
+    .map(([category, terms]) => [category, keywordHits(text, terms)])
+    .sort((a, b) => b[1] - a[1]);
+  return scored[0]?.[1] ? scored[0][0] : 'top';
+}
+
+function qualitySignals({ samples, itemCount, newestDate, duplicate }) {
+  const text = samples.map((item) => `${item.title} ${item.summary} ${item.link}`).join(' ');
+  const summaries = samples.map((item) => item.summary || '').filter(Boolean);
+  const avgSummaryLength = summaries.length
+    ? Math.round(summaries.reduce((sum, value) => sum + value.length, 0) / summaries.length)
+    : 0;
+  const spamTerms = ['casino', 'betting', 'loan app', 'crypto giveaway', 'adult', 'coupon code', 'free money', 'miracle cure'];
+  const spamHits = keywordHits(text, spamTerms);
+  const datedSamples = samples.filter((item) => item.date);
+  const recentCount = datedSamples.filter((item) => Date.now() - item.date.getTime() <= 72 * 36e5).length;
+  const updateFrequency = recentCount >= 8 ? 'high' : recentCount >= 3 ? 'medium' : recentCount > 0 ? 'low' : 'unknown';
+  const copyrightSignal = avgSummaryLength > 1200 ? 'full-article-risk' : avgSummaryLength > 700 ? 'long-summary-review' : 'summary-safe';
+  const spamRisk = spamHits >= 3 ? 'high' : spamHits ? 'medium' : 'low';
+  const freshness = newestDate
+    ? Date.now() - newestDate.getTime() <= 72 * 36e5 ? 'fresh' : 'stale'
+    : 'unknown';
+  const approvalRisk = duplicate || spamRisk === 'high' || copyrightSignal === 'full-article-risk'
+    ? 'high'
+    : freshness === 'stale' || updateFrequency === 'low'
+      ? 'medium'
+      : 'low';
+  return {
+    trustScore: scoreFeed({ itemCount, newestDate, duplicate }) - (spamRisk === 'high' ? 25 : spamRisk === 'medium' ? 10 : 0) - (copyrightSignal === 'full-article-risk' ? 20 : 0),
+    spamRisk,
+    spamHits,
+    updateFrequency,
+    recentItemCount: recentCount,
+    freshness,
+    copyrightSignal,
+    averageSummaryLength: avgSummaryLength,
+    suggestedCategory: inferCategory(samples),
+    approvalRisk,
+  };
+}
+
 function safeHttpsUrl(value = '') {
   try {
     const url = new URL(String(value || '').trim());
@@ -213,6 +279,9 @@ export const handler = async (event) => {
     const newestDate = newestPublishedAt(blocks);
     const duplicate = await findDuplicate(url, body.submissionId || body.id || '');
     const qualityScore = scoreFeed({ itemCount, newestDate, duplicate });
+    const samples = itemSamples(blocks);
+    const signals = qualitySignals({ samples, itemCount, newestDate, duplicate });
+    signals.trustScore = Math.max(0, Math.min(100, signals.trustScore));
     return {
       statusCode: 200,
       headers,
@@ -223,7 +292,8 @@ export const handler = async (event) => {
         newestPublishedAt: newestDate ? newestDate.toISOString() : null,
         duplicate,
         qualityScore,
-        recommendation: duplicate ? 'duplicate' : qualityScore >= 70 ? 'approve' : 'review',
+        qualitySignals: signals,
+        recommendation: duplicate ? 'duplicate' : signals.approvalRisk === 'high' ? 'reject-review' : qualityScore >= 70 ? 'approve' : 'review',
       }),
     };
   } catch (error) {

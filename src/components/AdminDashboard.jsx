@@ -554,9 +554,11 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     });
     const data = await response.json();
     const quality = data.qualityScore == null ? '' : ` · quality ${data.qualityScore}/100`;
+    const trust = data.qualitySignals?.trustScore == null ? '' : ` · trust ${data.qualitySignals.trustScore}/100`;
     const duplicate = data.duplicate ? ` · duplicate: ${data.duplicate.name || data.duplicate.url}` : '';
     const newest = data.newestPublishedAt ? ` · newest ${localDate(data.newestPublishedAt)}` : '';
-    setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}${quality}${newest}${duplicate}.` : `RSS test failed: ${data.error}`);
+    const risk = data.qualitySignals?.approvalRisk ? ` · risk ${data.qualitySignals.approvalRisk}` : '';
+    setNotice(data.ok ? `RSS test passed: ${data.itemCount} items found from ${data.feedTitle || source.name || 'source'}${quality}${trust}${newest}${risk}${duplicate}.` : `RSS test failed: ${data.error}`);
     await logAdmin('rss_source_test', data.ok ? 'ok' : 'error', { table: 'rss_sources', id: source.id || source.url, message: data.error || data.feedTitle || '' });
     return data;
   }
@@ -638,6 +640,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     if (testResult.duplicate) {
       await updateFeedSubmissionStatus(submission, 'rejected', `Duplicate feed: ${testResult.duplicate.name || testResult.duplicate.url}`, testResult);
       setNotice(`${submission.publisher_name || 'Submitted feed'} is a duplicate of ${testResult.duplicate.name || testResult.duplicate.url}.`);
+      loadAdmin();
+      return;
+    }
+    if (testResult.qualitySignals?.approvalRisk === 'high') {
+      await updateFeedSubmissionStatus(submission, 'testing', 'High-risk feed requires manual review', testResult);
+      setNotice(`${submission.publisher_name || 'Submitted feed'} needs manual review before approval: ${testResult.qualitySignals.spamRisk} spam risk, ${testResult.qualitySignals.copyrightSignal} copyright signal.`);
       loadAdmin();
       return;
     }
@@ -1029,6 +1037,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   <small>{item.feed_url}</small>
                   <small>{item.submitted_by_email || 'No email supplied'}</small>
                   {item.test_result?.qualityScore != null && <small>Quality {item.test_result.qualityScore}/100 · {item.test_result.recommendation || 'review'}</small>}
+                  {item.test_result?.qualitySignals && <small>Trust {item.test_result.qualitySignals.trustScore}/100 · spam {item.test_result.qualitySignals.spamRisk} · {item.test_result.qualitySignals.copyrightSignal}</small>}
+                  {item.test_result?.qualitySignals?.suggestedCategory && <small>Suggested category: {item.test_result.qualitySignals.suggestedCategory} · updates {item.test_result.qualitySignals.updateFrequency}</small>}
                   {item.test_result?.duplicate && <small>Duplicate: {item.test_result.duplicate.name || item.test_result.duplicate.url}</small>}
                 </td>
                 <td>{item.country || 'GLOBAL'}</td>
