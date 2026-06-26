@@ -16,6 +16,7 @@
 - Newsletter: https://nuzenio.com/newsletter.html
 - Submit Source: https://nuzenio.com/submit-source.html
 - Publisher Dashboard: https://nuzenio.com/publisher-dashboard.html
+- Publisher Verification: https://nuzenio.com/publisher-verify.html
 
 ## Feeds And Discovery
 

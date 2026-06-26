@@ -343,7 +343,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         safeQuery(supabase.from('saved_reports').select('id,title,report_type,shared,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('shared_dashboards').select('id,name,organization_name,access_level,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('dashboard_exports').select('id,export_type,status,file_url,created_at').order('created_at', { ascending: false }).limit(80)),
-        safeQuery(supabase.from('publisher_accounts').select('id,publisher_name,contact_email,country,verification_status,website_url,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
+        safeQuery(supabase.from('publisher_accounts').select('id,publisher_name,contact_email,country,verification_status,verification_notes,website_url,metadata,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('feed_submissions').select('id,publisher_name,feed_url,category,country,language,status,test_result,submitted_by_email,created_at,updated_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('rss_crawl_logs').select('id,source_id,job_id,status,feed_url,http_status,duration_ms,item_count,inserted_count,duplicate_count,error_message,created_at').order('created_at', { ascending: false }).limit(80)),
         safeQuery(supabase.from('background_jobs').select('id,job_type,status,priority,payload,attempts,max_attempts,scheduled_at,started_at,finished_at,last_error,updated_at').eq('job_type', 'rss_ingestion').order('scheduled_at', { ascending: true }).limit(80)),
@@ -1050,6 +1050,36 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   <button className="primaryAction" onClick={() => approveFeedSubmission(item)}>Approve</button>
                   <button className="dangerAction" onClick={() => rejectFeedSubmission(item)}>Reject</button>
                 </td>
+              </tr>
+            ))}
+          </AdminTable>
+        </AdminPanel>
+      </section>
+
+      <section className="adminGrid twoColumn">
+        <AdminPanel title="Publisher Verification">
+          <MetricRow label="Publisher accounts" value={overview.publisherAccountCount || publisherAccounts.length || 0} />
+          <h4>Verification status</h4>
+          {publisherAccountStatuses.length
+            ? publisherAccountStatuses.map(([key, count]) => <MetricRow key={key} label={key || 'submitted'} value={count} />)
+            : <MetricRow label="No publisher accounts yet" value="Open verification" />}
+          <p className="adminHint">Publishers verify domain ownership with a DNS TXT record. Verified status means the DNS token was found; editorial trust labels still require source review.</p>
+        </AdminPanel>
+
+        <AdminPanel title="Publisher Account Review">
+          <AdminTable headers={['Publisher', 'Country', 'Status', 'Updated']}>
+            {publisherAccounts.slice(0, 20).map((item) => (
+              <tr key={item.id}>
+                <td>
+                  <b>{item.publisher_name || 'Publisher'}</b>
+                  <small>{item.website_url || 'No website supplied'}</small>
+                  <small>{item.contact_email}</small>
+                  {item.metadata?.verification_record && <small>TXT: {item.metadata.verification_record}</small>}
+                  {item.verification_notes && <small>{item.verification_notes}</small>}
+                </td>
+                <td>{item.country || 'GLOBAL'}</td>
+                <td>{item.verification_status || 'submitted'}</td>
+                <td>{localDate(item.updated_at || item.created_at)}</td>
               </tr>
             ))}
           </AdminTable>
