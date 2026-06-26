@@ -419,6 +419,35 @@ const CATEGORY_SEARCH_TERMS = {
 
 const VIDEO_CATEGORIES = new Set(['video', 'live']);
 const CATEGORIES = new Set(['local', 'top', ...VIDEO_CATEGORIES, ...Object.keys(TOPICS), 'ai']);
+const CATEGORY_ALIASES = {
+  news: 'top',
+  headlines: 'top',
+  'top-news': 'top',
+  latest: 'top',
+  'latest-news': 'top',
+  breaking: 'top',
+  'breaking-news': 'top',
+  technology: 'tech',
+  'technology-news': 'tech',
+  technews: 'tech',
+  videos: 'video',
+  'video-news': 'video',
+  'live-news': 'live',
+  worldnews: 'world',
+  'world-news': 'world',
+  businessnews: 'business',
+  'business-news': 'business',
+  sportsnews: 'sports',
+  'sports-news': 'sports',
+  entertainmentnews: 'entertainment',
+  'entertainment-news': 'entertainment',
+  healthnews: 'health',
+  'health-news': 'health',
+  sciencenews: 'science',
+  'science-news': 'science',
+  ainews: 'ai',
+  'ai-news': 'ai',
+};
 const LIVE_SOURCE_PROVIDERS = new Set(['youtube', 'twitch', 'official_embed', 'hls']);
 const MAX_RSS_AGE_DAYS = 14;
 const CATEGORY_MAX_AGE_DAYS = {
@@ -1618,7 +1647,8 @@ function cleanQuery(query = '') {
 }
 
 function normalizeCategory(category = 'local') {
-  const value = category.toLowerCase();
+  const value = String(category || '').toLowerCase().trim();
+  if (CATEGORY_ALIASES[value]) return CATEGORY_ALIASES[value];
   return CATEGORIES.has(value) ? value : 'local';
 }
 
