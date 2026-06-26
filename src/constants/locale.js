@@ -30,7 +30,7 @@ export const localPlacePresets = {
   DEFAULT: [
     ['New York', 'New York'],
     ['England', 'London'],
-    ['Delhi', 'New Delhi'],
+    ['Ile-de-France', 'Paris'],
     ['Ontario', 'Toronto'],
     ['New South Wales', 'Sydney'],
     ['Dubai', 'Dubai'],

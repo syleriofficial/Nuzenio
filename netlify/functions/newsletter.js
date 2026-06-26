@@ -27,9 +27,9 @@ function normalizeEmail(value = '') {
   return String(value || '').trim().toLowerCase();
 }
 
-function normalizeCountry(value = 'IN') {
-  const country = String(value || 'IN').trim().toUpperCase();
-  return /^[A-Z]{2}$/.test(country) || country === 'GLOBAL' ? country : 'IN';
+function normalizeCountry(value = 'GLOBAL') {
+  const country = String(value || 'GLOBAL').trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(country) || country === 'GLOBAL' ? country : 'GLOBAL';
 }
 
 function normalizeFrequency(value = 'daily') {

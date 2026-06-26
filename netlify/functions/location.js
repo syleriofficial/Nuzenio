@@ -70,12 +70,12 @@ function fetchJson(url, redirects = 0, extraHeaders = {}) {
   });
 }
 
-function normalizeCountry(country = 'IN') {
+function normalizeCountry(country = 'US') {
   const value = country.toUpperCase();
-  return /^[A-Z]{2}$/.test(value) ? value : 'IN';
+  return /^[A-Z]{2}$/.test(value) ? value : 'US';
 }
 
-function countryLabel(country = 'IN') {
+function countryLabel(country = 'US') {
   const value = normalizeCountry(country);
   if (COUNTRY_NAMES[value]) return COUNTRY_NAMES[value];
   try {

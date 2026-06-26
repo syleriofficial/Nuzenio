@@ -212,7 +212,7 @@ async function readGraph(url) {
 
 async function readRecommendations(url) {
   const limit = limitParam(url, 30, 60);
-  const country = escapeLike(url.searchParams.get('country') || 'IN').toUpperCase();
+  const country = escapeLike(url.searchParams.get('country') || 'US').toUpperCase();
   const categories = escapeLike(url.searchParams.get('categories') || 'top,world,business,tech,ai')
     .split(/\s*,\s*/)
     .filter(Boolean)

@@ -139,7 +139,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   const [affiliateForm, setAffiliateForm] = useState(emptyAffiliate);
   const [sponsoredForm, setSponsoredForm] = useState(emptySponsored);
   const [originalForm, setOriginalForm] = useState(emptyOriginalArticle);
-  const [cacheRefresh, setCacheRefresh] = useState({ category: 'top', country: 'IN' });
+  const [cacheRefresh, setCacheRefresh] = useState({ category: 'top', country: 'US' });
 
   const isAdmin = profile?.role === 'admin';
   const articlesByCategory = useMemo(() => topEntries(groupCount(cacheRows, 'category')), [cacheRows]);
@@ -1486,7 +1486,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             ))}
           </AdminTable>
           <h4>Latest subscribers</h4>
-          {newsletters.slice(0, 10).map((item) => <MetricRow key={item.email} label={`${item.email} · ${item.frequency || 'daily'} · ${item.country || 'IN'}`} value={item.status} />)}
+          {newsletters.slice(0, 10).map((item) => <MetricRow key={item.email} label={`${item.email} · ${item.frequency || 'daily'} · ${item.country || 'GLOBAL'}`} value={item.status} />)}
         </AdminPanel>
       </section>
 

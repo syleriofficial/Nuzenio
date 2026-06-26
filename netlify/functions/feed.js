@@ -39,7 +39,7 @@ function articleSlug(article) {
 
 function articleUrl(article) {
   const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, siteUrl);
-  url.searchParams.set('country', article.country || 'IN');
+  url.searchParams.set('country', article.country || 'US');
   url.searchParams.set('category', article.category || 'top');
   return url.toString();
 }
@@ -79,12 +79,12 @@ const categoryLabels = {
   video: 'Video News',
 };
 
-function rssDocument(articles = [], { category = 'top', country = 'IN' } = {}) {
+function rssDocument(articles = [], { category = 'top', country = 'US' } = {}) {
   const updatedAt = new Date().toUTCString();
   const label = categoryLabels[category] || 'Top News';
   const channelUrl = new URL('/feed.xml', siteUrl);
   if (category && category !== 'top') channelUrl.searchParams.set('category', category);
-  if (country && country !== 'IN') channelUrl.searchParams.set('country', country);
+  if (country && country !== 'US') channelUrl.searchParams.set('country', country);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -116,7 +116,7 @@ export const handler = async (event) => {
 
   try {
     const category = event.queryStringParameters?.category || 'top';
-    const country = event.queryStringParameters?.country || 'IN';
+    const country = event.queryStringParameters?.country || 'US';
     const newsResponse = await newsHandler({
       httpMethod: 'GET',
       headers: event.headers || {},
@@ -137,7 +137,7 @@ export const handler = async (event) => {
     return {
       statusCode: 502,
       headers,
-      body: rssDocument([], { category: event.queryStringParameters?.category || 'top', country: event.queryStringParameters?.country || 'IN' }).replace('</description>', `</description>\n    <generator>${escapeXml(error.message)}</generator>`),
+      body: rssDocument([], { category: event.queryStringParameters?.category || 'top', country: event.queryStringParameters?.country || 'US' }).replace('</description>', `</description>\n    <generator>${escapeXml(error.message)}</generator>`),
     };
   }
 };

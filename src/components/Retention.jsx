@@ -88,7 +88,7 @@ export function Newsletter({ copy, language, location }) {
 export function RetentionPanel({ location, supabase, user }) {
   const [notificationPermission, setNotificationPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
   const [preferences, setPreferences] = useState({
-    preferred_country: location.country || 'IN',
+    preferred_country: location.country || 'US',
     preferred_categories: DEFAULT_CATEGORIES,
     digest_frequency: 'daily',
     email_notifications: false,
@@ -107,7 +107,7 @@ export function RetentionPanel({ location, supabase, user }) {
       .maybeSingle()
       .then(({ data }) => {
         if (data) setPreferences({
-          preferred_country: data.preferred_country || location.country || 'IN',
+          preferred_country: data.preferred_country || location.country || 'US',
           preferred_categories: data.preferred_categories?.length ? data.preferred_categories : DEFAULT_CATEGORIES,
           digest_frequency: data.digest_frequency || 'daily',
           email_notifications: Boolean(data.email_notifications),
@@ -136,7 +136,7 @@ export function RetentionPanel({ location, supabase, user }) {
       user_id: user.id,
       ...preferences,
       metadata: { breaking_alerts: preferences.breaking_alerts },
-      preferred_country: String(preferences.preferred_country || 'IN').toUpperCase(),
+      preferred_country: String(preferences.preferred_country || 'US').toUpperCase(),
     };
     const { error } = await supabase.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
     if (error) {

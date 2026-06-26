@@ -73,7 +73,7 @@ export const handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
     const digestType = body.digestType === 'weekly' ? 'weekly' : 'daily';
-    const country = String(body.country || 'IN').toUpperCase();
+    const country = String(body.country || 'GLOBAL').toUpperCase();
     const categories = Array.isArray(body.categories) && body.categories.length ? body.categories : defaultCategories;
     const subscribers = await supabaseRequest(`newsletter_subscribers?status=eq.active&frequency=eq.${digestType}&country=eq.${encodeURIComponent(country)}&select=email,categories,unsubscribe_token&limit=200`);
     const articles = await fetchDigestArticles({ country, categories });

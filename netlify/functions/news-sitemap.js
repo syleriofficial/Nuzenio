@@ -39,7 +39,7 @@ function articleSlug(article) {
 
 function articleUrl(article) {
   const url = new URL(`/article/${encodeURIComponent(articleSlug(article))}`, siteUrl);
-  url.searchParams.set('country', article.country || 'IN');
+  url.searchParams.set('country', article.country || 'US');
   url.searchParams.set('category', article.category || 'top');
   return url.toString();
 }
@@ -92,7 +92,7 @@ async function readCachedArticles() {
       title: row.title,
       source: row.source || 'Publisher',
       category: row.category || 'top',
-      country: row.country || 'IN',
+      country: row.country || 'US',
       pubDate: row.published_at || row.updated_at,
     }));
   } catch {
@@ -130,7 +130,7 @@ export const handler = async (event) => {
   }
 
   try {
-    const country = event.queryStringParameters?.country || 'IN';
+    const country = event.queryStringParameters?.country || 'US';
     const requestedCategory = event.queryStringParameters?.category;
     const categories = requestedCategory
       ? [requestedCategory]
