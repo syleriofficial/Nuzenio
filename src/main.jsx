@@ -1550,7 +1550,7 @@ function App() {
         copy={copy}
         localEditions={featuredLocalEditions.slice(0, 8)}
         onPrivacySettings={reopenAnalyticsConsent}
-        trafficHubs={seoLandingPages.slice(0, 9)}
+        trafficHubs={seoLandingPages.slice(0, 18)}
       />
       <MobileNav copy={copy} navigateCategory={navigateCategory} navigateHome={navigateHome} setMobileSearchOpen={setMobileSearchOpen} />
     </div>

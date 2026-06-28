@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { countryOptionCodes, localPlacePresets } from '../src/constants/locale.js';
+import { seoLandingPages } from '../src/constants/navigation.js';
 
 const siteUrl = 'https://nuzenio.com';
 const languages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
@@ -23,7 +24,7 @@ const includeAdvancedIntelligencePages = false;
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
 const intelligenceCountries = includeAdvancedIntelligencePages ? ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'] : [];
 const intelligenceTopics = includeAdvancedIntelligencePages ? ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'] : [];
-const seoLandingPages = ['latest-news', 'breaking-news', 'world-news', 'technology-news', 'business-news', 'sports-news', 'ai-news', 'science-news', 'health-news'];
+const seoLandingPageSlugs = seoLandingPages.map((page) => page.slug);
 const dataPlatformPages = includeAdvancedIntelligencePages ? [
   'ecosystem',
   'publisher-portal',
@@ -170,7 +171,7 @@ for (const author of authorPages) {
   pushLocalized(`author/${author}`, 'weekly', '0.68');
 }
 
-for (const page of seoLandingPages) {
+for (const page of seoLandingPageSlugs) {
   entries.push(entry(url(page), 'hourly', '0.90'));
   pushLocalized(page, 'hourly', '0.90');
 }
