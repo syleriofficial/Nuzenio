@@ -1511,6 +1511,48 @@ button {
   text-transform: uppercase;
 }
 
+.locationAccuracyMeter {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.locationAccuracyMeter div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.locationAccuracyMeter span {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  padding: 7px 8px;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.locationAccuracyMeter span.isActive {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.locationAccuracyMeter small {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .localIntelligenceStrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

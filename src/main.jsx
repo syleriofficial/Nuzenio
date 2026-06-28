@@ -2070,14 +2070,16 @@ function Home({
   return (
     <main id="main-content" className="main" tabIndex="-1">
       <section>
-        <LocationBanner copy={copy} location={location} localMeta={localMeta} setLocation={setLocation} status={status} />
         {category === 'local' && (
-          <LocalIntelligenceStrip
-            articles={articles}
-            feedIsStale={feedIsStale}
-            localMeta={localMeta}
-            sourceType={feedSourceType}
-          />
+          <>
+            <LocationBanner copy={copy} location={location} localMeta={localMeta} setLocation={setLocation} status={status} />
+            <LocalIntelligenceStrip
+              articles={articles}
+              feedIsStale={feedIsStale}
+              localMeta={localMeta}
+              sourceType={feedSourceType}
+            />
+          </>
         )}
 
         <div className={isRootHome ? 'heroGrid editorialHeroGrid' : 'heroGrid'}>
@@ -4551,6 +4553,16 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const needsExactLocation = !hasExactCity || ['fallback', 'browser locale', 'timezone'].includes(location.source);
   const locationTitle = needsExactLocation ? 'Worldwide local news' : copy.localNewsFor;
   const locationValue = needsExactLocation ? 'Choose your country, state, and city' : location.label;
+  const accuracySteps = [
+    { key: 'country', label: 'Country', active: Boolean(draft.country) },
+    { key: 'region', label: 'State / region', active: Boolean(draft.region?.trim()) },
+    { key: 'city', label: 'City / area', active: Boolean(draft.city?.trim()) },
+  ];
+  const accuracyHint = draft.city?.trim()
+    ? 'Exact city mode is ready. Apply to refresh local headlines for this area.'
+    : draft.region?.trim()
+      ? 'Add city or nearby area for sharper local headlines.'
+      : 'Add state and city, or use GPS, so Nuzenio follows the reader anywhere in the world.';
 
   useEffect(() => {
     setDraft(location);
@@ -4662,6 +4674,16 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             <b>GPS fallback</b>
             Use when city is unknown
           </span>
+        </div>
+        <div className="locationAccuracyMeter" aria-label="Manual location completeness">
+          <div>
+            {accuracySteps.map((step) => (
+              <span key={step.key} className={step.active ? 'isActive' : ''}>
+                {step.label}
+              </span>
+            ))}
+          </div>
+          <small>{accuracyHint}</small>
         </div>
         <div className="locationControls">
           <label>
