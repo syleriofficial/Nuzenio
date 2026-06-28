@@ -309,6 +309,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     ];
     const growthQueue = [
       ...weakCategories.slice(0, 4).map((item) => ({
+        actionCategory: item.category,
+        actionLabel: 'Refresh',
         label: `${item.category} news page`,
         detail: `${item.count} cached stories · ${freshnessLabel(item.newestHours)}`,
         href: item.href,
@@ -317,6 +319,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         type: 'Freshness',
       })),
       ...searchQueries.slice(0, 4).map(([query, count]) => ({
+        actionLabel: 'Open',
         label: query,
         detail: `${count} search signals · refresh matching page/topic`,
         href: `/top-news?q=${encodeURIComponent(query)}`,
@@ -325,6 +328,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         type: 'Keyword',
       })),
       ...topPages.slice(0, 3).map(([page, count]) => ({
+        actionLabel: 'Open',
         label: page.replace(/^https?:\/\/[^/]+/i, '') || '/',
         detail: `${count} visits · add links to weak pages`,
         href: page.startsWith('http') ? page : page,
@@ -1216,11 +1220,16 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <div className="trafficCommandBlock trafficCommandWide">
             <h4>SEO Growth Queue</h4>
             {trafficCommand.growthQueue.length ? trafficCommand.growthQueue.map((item) => (
-              <a className="growthQueueRow" href={item.href} key={`${item.type}-${item.label}`}>
-                <span>{item.type}</span>
-                <b>{item.label}<em>{item.priority}</em></b>
-                <small>{item.reason} · {item.detail}</small>
-              </a>
+              <div className="growthQueueRow" key={`${item.type}-${item.label}`}>
+                <a href={item.href}>
+                  <span>{item.type}</span>
+                  <b>{item.label}<em>{item.priority}</em></b>
+                  <small>{item.reason} · {item.detail}</small>
+                </a>
+                {item.actionCategory
+                  ? <button onClick={() => refreshCategory(item.actionCategory)}><RefreshCw size={13} /> {item.actionLabel}</button>
+                  : <a className="growthQueueAction" href={item.href}>{item.actionLabel}</a>}
+              </div>
             )) : <p className="adminHint">Growth queue appears after cache, search, and page-view signals are available.</p>}
           </div>
           <div className="trafficCommandBlock">

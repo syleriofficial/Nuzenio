@@ -714,10 +714,17 @@ button {
 
 .growthQueueRow {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 10px;
+  align-items: center;
   border-top: 1px solid #eef2f7;
   padding: 9px 0;
+}
+
+.growthQueueRow > a:first-child {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 4px 10px;
   text-decoration: none;
 }
 
@@ -760,6 +767,23 @@ button {
   font-size: 11px;
   font-style: normal;
   font-weight: 950;
+}
+
+.growthQueueRow button,
+.growthQueueAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 950;
+  text-decoration: none;
 }
 
 .growthQueueRow small {
@@ -6019,6 +6043,10 @@ button {
   }
 
   .growthQueueRow {
+    grid-template-columns: 1fr;
+  }
+
+  .growthQueueRow > a:first-child {
     grid-template-columns: 1fr;
   }
 
