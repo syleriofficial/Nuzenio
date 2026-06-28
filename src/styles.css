@@ -793,6 +793,82 @@ button {
   line-height: 1.35;
 }
 
+.publishingTargetList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.publishingTargetRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 9px;
+}
+
+.publishingTargetRow.good {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.publishingTargetRow.stale,
+.publishingTargetRow.empty {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.publishingTargetRow a {
+  min-width: 0;
+  display: block;
+  text-decoration: none;
+}
+
+.publishingTargetRow span,
+.publishingTargetRow b,
+.publishingTargetRow small {
+  display: block;
+}
+
+.publishingTargetRow span {
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.publishingTargetRow b {
+  margin-top: 3px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.publishingTargetRow small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.publishingTargetRow button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .weeklyGrowthPlan {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6104,7 +6180,12 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .publishingTargetList,
   .weeklyGrowthPlan {
+    grid-template-columns: 1fr;
+  }
+
+  .publishingTargetRow {
     grid-template-columns: 1fr;
   }
 

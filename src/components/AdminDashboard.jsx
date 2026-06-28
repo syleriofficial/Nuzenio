@@ -337,6 +337,22 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         type: 'Internal links',
       })),
     ].sort((a, b) => b.priority - a.priority).slice(0, 10);
+    const publishingTargets = categories
+      .map((item) => {
+        const staleHours = item.newestHours === Infinity ? 72 : Number(item.newestHours || 0);
+        const target = item.category === 'Top News' ? 80 : item.category === 'World' ? 70 : 45;
+        const gap = Math.max(0, target - item.count);
+        const urgency = Math.min(100, gap + staleHours);
+        return {
+          ...item,
+          gap,
+          target,
+          urgency,
+          statusLabel: item.status === 'good' ? 'Ready' : item.count ? 'Needs refresh' : 'Needs sources',
+        };
+      })
+      .sort((a, b) => b.urgency - a.urgency || b.gap - a.gap)
+      .slice(0, 8);
     const weeklyPlan = [
       {
         actionHref: weakCategories[0]?.href || '/news-sitemap.xml',
@@ -390,7 +406,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         task: 'Review Traffic Command Center, archive stale targets, and restart from highest priority queue items.',
       },
     ];
-    return { actions, categories, growthQueue, sourcePerformance, strongCategories, weakCategories, weeklyPlan };
+    return { actions, categories, growthQueue, publishingTargets, sourcePerformance, strongCategories, weakCategories, weeklyPlan };
   }, [analytics, cacheRows, crawlLogs, newsletters, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
@@ -1284,6 +1300,21 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   : <a className="growthQueueAction" href={item.href}>{item.actionLabel}</a>}
               </div>
             )) : <p className="adminHint">Growth queue appears after cache, search, and page-view signals are available.</p>}
+          </div>
+          <div className="trafficCommandBlock trafficCommandWide">
+            <h4>Daily publishing targets</h4>
+            <div className="publishingTargetList">
+              {trafficCommand.publishingTargets.map((item) => (
+                <div className={`publishingTargetRow ${item.status}`} key={item.category}>
+                  <a href={item.href}>
+                    <span>{item.category}</span>
+                    <b>{item.statusLabel}</b>
+                    <small>{item.count}/{item.target} cached · gap {item.gap} · {freshnessLabel(item.newestHours)}</small>
+                  </a>
+                  <button onClick={() => refreshCategory(item.category)}><RefreshCw size={13} /> Refresh</button>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="trafficCommandBlock trafficCommandWide">
             <h4>7-day growth plan</h4>
