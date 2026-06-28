@@ -353,6 +353,26 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       })
       .sort((a, b) => b.urgency - a.urgency || b.gap - a.gap)
       .slice(0, 8);
+    const sourceCoverage = categories
+      .map((item) => {
+        const matchingSources = sources.filter((source) => normalizeCategory(source.category || 'top') === normalizeCategory(item.key));
+        const enabled = matchingSources.filter((source) => source.enabled !== false).length;
+        const healthy = matchingSources.filter((source) => ['healthy', 'enabled', 'ok'].includes(String(source.health_status || '').toLowerCase())).length;
+        const targetSources = item.category === 'Top News' || item.category === 'World' ? 8 : 5;
+        const gap = Math.max(0, targetSources - enabled);
+        const coverageScore = Math.min(100, Math.round((enabled / targetSources) * 100));
+        return {
+          category: item.category,
+          enabled,
+          gap,
+          healthy,
+          href: '#rss-source-manager',
+          score: coverageScore,
+          targetSources,
+        };
+      })
+      .sort((a, b) => b.gap - a.gap || a.score - b.score)
+      .slice(0, 8);
     const weeklyPlan = [
       {
         actionHref: weakCategories[0]?.href || '/news-sitemap.xml',
@@ -406,7 +426,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         task: 'Review Traffic Command Center, archive stale targets, and restart from highest priority queue items.',
       },
     ];
-    return { actions, categories, growthQueue, publishingTargets, sourcePerformance, strongCategories, weakCategories, weeklyPlan };
+    return { actions, categories, growthQueue, publishingTargets, sourceCoverage, sourcePerformance, strongCategories, weakCategories, weeklyPlan };
   }, [analytics, cacheRows, crawlLogs, newsletters, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
@@ -1313,6 +1333,18 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   </a>
                   <button onClick={() => refreshCategory(item.category)}><RefreshCw size={13} /> Refresh</button>
                 </div>
+              ))}
+            </div>
+          </div>
+          <div className="trafficCommandBlock trafficCommandWide">
+            <h4>RSS source coverage</h4>
+            <div className="sourceCoverageList">
+              {trafficCommand.sourceCoverage.map((item) => (
+                <a className={item.gap ? 'sourceCoverageRow needsSources' : 'sourceCoverageRow'} href={item.href} key={item.category}>
+                  <span>{item.category}</span>
+                  <b>{item.enabled}/{item.targetSources} enabled sources</b>
+                  <small>{item.healthy} healthy · {item.gap ? `${item.gap} more sources needed` : 'coverage ready'} · {item.score}%</small>
+                </a>
               ))}
             </div>
           </div>

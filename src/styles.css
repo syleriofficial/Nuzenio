@@ -869,6 +869,57 @@ button {
   font-weight: 950;
 }
 
+.sourceCoverageList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sourceCoverageRow {
+  min-width: 0;
+  display: block;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.sourceCoverageRow.needsSources {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.sourceCoverageRow span,
+.sourceCoverageRow b,
+.sourceCoverageRow small {
+  display: block;
+}
+
+.sourceCoverageRow span {
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.sourceCoverageRow.needsSources span {
+  color: #c2410c;
+}
+
+.sourceCoverageRow b {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.sourceCoverageRow small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .weeklyGrowthPlan {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6181,6 +6232,7 @@ button {
   }
 
   .publishingTargetList,
+  .sourceCoverageList,
   .weeklyGrowthPlan {
     grid-template-columns: 1fr;
   }
