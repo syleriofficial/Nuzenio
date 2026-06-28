@@ -3,7 +3,7 @@
   <ShortName>Nuzenio</ShortName>
   <Description>Search live multi-language news on Nuzenio.</Description>
   <InputEncoding>UTF-8</InputEncoding>
-  <Image height="64" width="64" type="image/svg+xml">https://nuzenio.com/icon.svg</Image>
+  <Image height="192" width="192" type="image/png">https://nuzenio.com/icon-192.png</Image>
   <Url type="text/html" template="https://nuzenio.com/top-news?q={searchTerms}"/>
   <Url type="application/rss+xml" template="https://nuzenio.com/feed.xml"/>
 </OpenSearchDescription>
