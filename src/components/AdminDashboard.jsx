@@ -664,16 +664,17 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
   }
 
   async function insertApprovedSource(payload) {
+    const selectColumns = 'id,name,url,category,country';
     const enrichedPayload = {
       ...payload,
       status: 'approved',
       health_status: 'unknown',
       last_error: null,
     };
-    const result = await supabase.from('rss_sources').insert(enrichedPayload);
+    const result = await supabase.from('rss_sources').insert(enrichedPayload).select(selectColumns).single();
     if (!result.error) return result;
     if (!/status|health_status|last_error|column/i.test(result.error.message || '')) return result;
-    return supabase.from('rss_sources').insert(payload);
+    return supabase.from('rss_sources').insert(payload).select(selectColumns).single();
   }
 
   async function approveFeedSubmission(submission) {
@@ -731,7 +732,16 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       return;
     }
     await updateFeedSubmissionStatus(submission, 'approved', 'Approved and added to rss_sources');
-    setNotice(`${payload.name} approved and added to RSS Source Manager. Run crawler now to publish fresh items into public pages.`);
+    const insertedSource = insertResult.data;
+    if (insertedSource?.id) {
+      setNotice(`${payload.name} approved. Crawling fresh stories for public pages...`);
+      const crawlResult = await runCrawler('source', insertedSource.id, { announce: false, reload: false });
+      setNotice(crawlResult.ok
+        ? `${payload.name} approved and crawled. ${crawlResult.message} New stories can appear on Home, ${payload.category}, RSS feed, and news sitemap.`
+        : `${payload.name} approved, but crawler failed: ${crawlResult.data?.error || 'Unknown crawler error'}. Use Crawl from RSS Source Manager.`);
+    } else {
+      setNotice(`${payload.name} approved and added to RSS Source Manager. Use Crawl to publish fresh items into public pages.`);
+    }
     loadAdmin();
   }
 
@@ -744,8 +754,9 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     }
   }
 
-  async function runCrawler(action = 'run', sourceId = '') {
-    setNotice(action === 'enqueue' ? 'Adding due RSS sources to crawl queue...' : 'Running RSS crawler...');
+  async function runCrawler(action = 'run', sourceId = '', options = {}) {
+    const { announce = true, reload = true } = options;
+    if (announce) setNotice(action === 'enqueue' ? 'Adding due RSS sources to crawl queue...' : 'Running RSS crawler...');
     const { data: sessionData } = await supabase.auth.getSession();
     const response = await fetch('/api/rss-crawler', {
       method: 'POST',
@@ -759,12 +770,13 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     const ok = data.ok !== false;
     const message = sourceId
       ? `${data.result?.sourceName || 'Source'} crawled: ${data.result?.insertedCount || 0} new, ${data.result?.duplicateCount || 0} duplicate.`
-      : action === 'enqueue'
-        ? `Crawler queue: ${data.enqueuedCount || 0} sources enqueued, ${data.skippedCount || 0} skipped.`
-        : `Crawler run: ${data.queue?.claimedCount || 0} jobs processed.`;
-    setNotice(ok ? message : `Crawler failed: ${data.error}`);
+        : action === 'enqueue'
+          ? `Crawler queue: ${data.enqueuedCount || 0} sources enqueued, ${data.skippedCount || 0} skipped.`
+          : `Crawler run: ${data.queue?.claimedCount || 0} jobs processed.`;
+    if (announce) setNotice(ok ? message : `Crawler failed: ${data.error}`);
     await logAdmin(`rss_crawler_${sourceId ? 'source' : action}`, ok ? 'ok' : 'error', { table: 'rss_sources', id: sourceId || action, message: data.error || message });
-    loadAdmin();
+    if (reload) loadAdmin();
+    return { ok, data, message };
   }
 
   async function editSource(source) {
