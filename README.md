@@ -32,8 +32,8 @@ Production-oriented Netlify + Supabase AI news platform.
 - Affiliate and sponsored block managers with visible disclosures
 - SEO and discovery: meta tags, Open Graph tags, structured data, `robots.txt`, `sitemap-index.xml`, `sitemap.xml`, `news-sitemap.xml`, `feed.xml`, and `opensearch.xml`
 - Trust pages: about, sources, editorial policy, AI policy, corrections, contact, advertise, privacy, terms, and affiliate disclosure
-- Transparency files: `ads.txt`, `humans.txt`, `llms.txt`, and `.well-known/security.txt`
-- Google AdSense publisher script and `ads.txt` configured for `pub-5589150014762971`
+- Transparency files: `ads.txt`, `app-ads.txt`, `humans.txt`, `llms.txt`, and `.well-known/security.txt`
+- Google AdSense publisher script, `ads.txt`, and `app-ads.txt` configured for `pub-5589150014762971`
 - Mobile bottom navigation and readable article view
 
 ## Netlify settings
@@ -165,15 +165,16 @@ https://nuzenio.com/feed.xml
 https://nuzenio.com/news-sitemap.xml
 https://nuzenio.com/sitemap-index.xml
 https://nuzenio.com/sitemap-languages.xml
-https://nuzenio.com/about.html
-https://nuzenio.com/editorial-policy.html
-https://nuzenio.com/ai-policy.html
-https://nuzenio.com/corrections.html
-https://nuzenio.com/contact.html
-https://nuzenio.com/privacy.html
+https://nuzenio.com/about
+https://nuzenio.com/editorial-policy
+https://nuzenio.com/ai-policy
+https://nuzenio.com/corrections
+https://nuzenio.com/contact
+https://nuzenio.com/privacy
 https://nuzenio.com/sitemap.xml
 https://nuzenio.com/robots.txt
 https://nuzenio.com/ads.txt
+https://nuzenio.com/app-ads.txt
 https://nuzenio.com/llms.txt
 https://nuzenio.com/.well-known/security.txt
 ```
@@ -252,7 +253,7 @@ Keep `prefer_related_applications` disabled in `public/site.webmanifest` until r
 - AdSense publisher script is configured in `index.html`; create real ad units in AdSense and replace reserved inventory slots only with approved slot IDs.
 - Header, in-feed, article, sidebar, and footer ad inventory is controlled by `public.adsense_slots`.
 - Keep paid placements labeled and separate from editorial RSS stories. Nuzenio never simulates ad clicks or hides commercial labels.
-- Keep `public/ads.txt` in sync with the active AdSense publisher account.
+- Keep `public/ads.txt` and `public/app-ads.txt` in sync with the active AdSense publisher account.
 - Use the public trust pages in `public/` for AdSense and publisher review readiness.
 - Store approved Amazon Associates or other partner links in `public.affiliate_links` and keep `enabled=false` until reviewed. Only set `enabled=true` after the destination, disclosure, category, and network are approved.
 - Manage sponsored campaigns in `public.sponsored_blocks` with label, sponsor name, destination, placement, and optional start/end dates.
