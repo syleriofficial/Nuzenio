@@ -44,6 +44,15 @@ function articleUrl(article) {
   return url.toString();
 }
 
+function safeImageUrl(value = '') {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 function cdata(value = '') {
   return `<![CDATA[${String(value).replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>`;
 }
@@ -53,6 +62,7 @@ function rssItem(article) {
   const source = article.source || 'RSS publisher';
   const description = article.summary || article.description || '';
   const pubDate = article.pubDate ? new Date(article.pubDate).toUTCString() : new Date().toUTCString();
+  const image = safeImageUrl(article.image);
   return `    <item>
       <title>${cdata(article.title || 'Nuzenio headline')}</title>
       <link>${escapeXml(url)}</link>
@@ -61,6 +71,8 @@ function rssItem(article) {
       <source>${cdata(source)}</source>
       <category>${escapeXml(article.category || 'top')}</category>
       <description>${cdata(description)}</description>
+${image ? `      <media:content url="${escapeXml(image)}" medium="image" />
+      <media:thumbnail url="${escapeXml(image)}" />` : ''}
     </item>`;
 }
 
@@ -86,7 +98,7 @@ function rssDocument(articles = [], { category = 'top', country = 'US' } = {}) {
   if (category && category !== 'top') channelUrl.searchParams.set('category', category);
   if (country && country !== 'US') channelUrl.searchParams.set('country', country);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>Nuzenio ${escapeXml(label)}</title>
     <link>${escapeXml(channelUrl.toString())}</link>

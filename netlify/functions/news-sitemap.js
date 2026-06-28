@@ -44,6 +44,15 @@ function articleUrl(article) {
   return url.toString();
 }
 
+function safeImageUrl(value = '') {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 function isNewsSitemapFresh(article) {
   const time = new Date(article.pubDate).getTime();
   if (!Number.isFinite(time)) return false;
@@ -53,6 +62,7 @@ function isNewsSitemapFresh(article) {
 function newsEntry(article) {
   const publishedAt = new Date(article.pubDate).toISOString();
   const source = article.source || 'Publisher';
+  const image = safeImageUrl(article.image);
   return `  <url>
     <loc>${escapeXml(articleUrl(article))}</loc>
     <lastmod>${escapeXml(publishedAt)}</lastmod>
@@ -65,6 +75,10 @@ function newsEntry(article) {
       <news:title>${escapeXml(article.title || 'Nuzenio headline')}</news:title>
       <news:keywords>${escapeXml([source, article.category || 'news'].filter(Boolean).join(', '))}</news:keywords>
     </news:news>
+${image ? `    <image:image>
+      <image:loc>${escapeXml(image)}</image:loc>
+      <image:title>${escapeXml(article.title || 'Nuzenio headline')}</image:title>
+    </image:image>` : ''}
   </url>`;
 }
 
@@ -94,6 +108,7 @@ async function readCachedArticles() {
       category: row.category || 'top',
       country: row.country || 'US',
       pubDate: row.published_at || row.updated_at,
+      image: row.image || row.payload?.image || '',
     }));
   } catch {
     return [];
@@ -109,7 +124,8 @@ function sitemapDocument(articles = []) {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${entries}
 </urlset>`;
 }
