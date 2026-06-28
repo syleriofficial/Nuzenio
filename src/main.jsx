@@ -563,6 +563,7 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [supabase, setSupabase] = useState(null);
   const [user, setUser] = useState(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [authNotice, setAuthNotice] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [isSendingLoginEmail, setIsSendingLoginEmail] = useState(false);
@@ -720,6 +721,28 @@ function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
+
+  useEffect(() => {
+    let isActive = true;
+    async function loadAdminRole() {
+      if (!supabase || !user?.id) {
+        setIsAdminUser(false);
+        return;
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (isActive) setIsAdminUser(data?.role === 'admin');
+    }
+    loadAdminRole().catch(() => {
+      if (isActive) setIsAdminUser(false);
+    });
+    return () => {
+      isActive = false;
+    };
+  }, [supabase, user?.id]);
 
   async function loadAuthProviders() {
     try {
@@ -1423,6 +1446,7 @@ function App() {
         breakingArticles={breakingArticles}
         breakingLabel={breakingLabel}
         breakingText={ticker || status}
+        canShowAdmin={isAdminUser}
         category={category}
         copy={copy}
         loginWithGoogle={loginWithGoogle}
@@ -1779,6 +1803,7 @@ function Header({
   breakingArticles,
   breakingLabel,
   breakingText,
+  canShowAdmin,
   category,
   copy,
   loginWithGoogle,
@@ -1849,13 +1874,15 @@ function Header({
             ))}
           </select>
         </label>
-        <button
-          className={`adminTopLink ${screen === 'admin' ? 'active' : ''}`}
-          onClick={navigateAdmin}
-          type="button"
-        >
-          Admin
-        </button>
+        {canShowAdmin && (
+          <button
+            className={`adminTopLink ${screen === 'admin' ? 'active' : ''}`}
+            onClick={navigateAdmin}
+            type="button"
+          >
+            Admin
+          </button>
+        )}
         {user ? (
           <button className="loginBtn" onClick={logout}>
             <LogOut size={17} /> {copy.logout}
