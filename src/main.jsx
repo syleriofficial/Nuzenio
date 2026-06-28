@@ -137,7 +137,6 @@ const translations = {
     localNewsFor: 'Local news for',
     stateRegion: 'State / region',
     cityArea: 'City / area',
-    useLocation: 'Use my location',
     latestStories: 'All Latest Stories',
     latestIntro: 'Every story shown here is pulled from the live RSS feed. Open any card for the full Nuzenio brief.',
     aiBriefReady: 'AI brief ready',
@@ -613,7 +612,7 @@ function App() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!['manual', 'link'].includes(location.source)) {
+    if (!isLocalPath() && !['manual', 'link'].includes(location.source)) {
       detectApproximateLocation(updateLocation);
     }
   }, []);
@@ -2258,16 +2257,13 @@ function Home({
   );
 }
 
-function EmptyFeedState({ category, copy, location, refreshNews, searchTerm, setLocation }) {
+function EmptyFeedState({ category, copy, location, refreshNews, searchTerm }) {
   if (category === 'local' && !searchTerm) {
     return (
       <div className="empty searchEmptyState localEmptyState">
         <b>No fresh local articles for {placeLabel(location)}</b>
-        <p>Use precise city/state details or browser location, then refresh the live RSS scan.</p>
+        <p>Set the exact country, state, and city manually, then refresh the live RSS scan.</p>
         <div>
-          <button className="primaryAction" onClick={() => detectAccurateLocation(setLocation)}>
-            <MapPin size={15} /> Use my location
-          </button>
           <button onClick={refreshNews}>
             <RefreshCw size={15} /> Refresh local news
           </button>
@@ -4548,7 +4544,6 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
   const precisionLabel = localMeta?.precision === 'city' ? 'City-first feed' : localMeta?.precision === 'state' ? 'State-first feed' : 'Country-level feed';
   const freshLabel = Number.isFinite(localMeta?.freshToday) ? `${localMeta.freshToday} fresh today` : 'Fresh RSS scan';
   const matchLabel = Number.isFinite(localMeta?.strongMatches) ? `${localMeta.strongMatches} strong local matches` : 'Local relevance ranked';
-  const isApproximate = ['ip', 'ip backup'].includes(location.source);
   const hasExactCity = Boolean(location.city);
   const needsExactLocation = !hasExactCity || ['fallback', 'browser locale', 'timezone'].includes(location.source);
   const locationTitle = needsExactLocation ? 'Worldwide local news' : copy.localNewsFor;
@@ -4562,7 +4557,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
     ? 'Exact city mode is ready. Apply to refresh local headlines for this area.'
     : draft.region?.trim()
       ? 'Add city or nearby area for sharper local headlines.'
-      : 'Add state and city, or use GPS, so Nuzenio follows the reader anywhere in the world.';
+      : 'Add state and city manually so Nuzenio follows readers anywhere in the world.';
 
   useEffect(() => {
     setDraft(location);
@@ -4637,14 +4632,14 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             <strong>{locationValue}</strong>
           </span>
         </div>
-        <p>{locationSourceLabel(location.source)} · {status}</p>
+        <p>Manual local edition · {status}</p>
         <div className={`locationModeBadge ${hasExactCity ? 'isExact' : 'isApproximate'}`}>
           <MapPin size={14} />
-          <span>{hasExactCity ? 'Exact local mode' : 'Global setup mode'}</span>
+          <span>{hasExactCity ? 'Exact manual mode' : 'Manual setup mode'}</span>
         </div>
-        {(isApproximate || needsExactLocation) && (
+        {needsExactLocation && (
           <small className="locationNotice">
-            Nuzenio is global. Use browser GPS or type your exact city so local news follows each reader's real area.
+            Nuzenio is global. Type the exact country, state, and city so local news follows each reader's real area.
           </small>
         )}
         <div className="locationSignals" aria-label="Local news precision">
@@ -4663,7 +4658,7 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
         </div>
         <div className="locationAccuracyGuide" aria-label="Local accuracy guide">
           <span>
-            <b>Best accuracy</b>
+            <b>Manual only</b>
             Manual city + state
           </span>
           <span>
@@ -4671,8 +4666,8 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             {allSuggestionPlaces.length} quick locations
           </span>
           <span>
-            <b>GPS fallback</b>
-            Use when city is unknown
+            <b>No auto GPS</b>
+            Reader chooses the place
           </span>
         </div>
         <div className="locationAccuracyMeter" aria-label="Manual location completeness">
@@ -4717,7 +4712,6 @@ function LocationBanner({ copy, location, localMeta, setLocation, status }) {
             />
           </label>
           <button type="button" className="primaryAction" onClick={applyDraft}>Apply local news</button>
-          <button type="button" onClick={() => detectAccurateLocation(setLocation)}>{copy.useLocation}</button>
         </div>
 
         <div className="citySuggestionRow" aria-label="Suggested manual locations">
@@ -5801,7 +5795,7 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   }
   if (category === 'local') {
     const place = pageSeoPlace(category, location);
-    return `Live local news for ${place} on Nuzenio, tuned by manual location or browser GPS with RSS headlines, source attribution, freshness signals, and AI-powered context.`;
+    return `Live local news for ${place} on Nuzenio, tuned by manual country, state, and city selection with RSS headlines, source attribution, freshness signals, and AI-powered context.`;
   }
   const copy = uiCopy(language.code);
   const sectionTitle = sectionContent(category, copy, location).title;
