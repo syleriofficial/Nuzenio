@@ -903,6 +903,25 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     return data;
   }
 
+  async function refreshWeakCategories() {
+    const targets = trafficCommand.weakCategories.slice(0, 5);
+    if (!targets.length) {
+      setNotice('No weak categories need refresh right now.');
+      return;
+    }
+    setNotice(`Refreshing ${targets.length} weak categories...`);
+    const results = [];
+    for (const target of targets) {
+      const data = await refreshCategory(target.category, cacheRefresh.country || 'US', { announce: false, reload: false });
+      results.push({ category: target.category, ok: data.ok, total: data.total || 0, error: data.error || '' });
+    }
+    const okCount = results.filter((item) => item.ok).length;
+    const summary = results.map((item) => `${item.category}: ${item.ok ? `${item.total} articles` : item.error}`).join(' · ');
+    setNotice(`Weak page refresh complete: ${okCount}/${results.length} refreshed. ${summary}`);
+    await logAdmin('traffic_refresh_weak_categories', okCount === results.length ? 'ok' : 'error', { table: 'news_cache', id: 'traffic-command-center', message: summary, results });
+    loadAdmin();
+  }
+
   async function removeDuplicateCache() {
     const seen = new Set();
     const duplicateIds = [];
@@ -1153,9 +1172,12 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             <h3>What to improve today</h3>
             <p>Uses live cache, analytics events, RSS source health, crawl logs, and search signals. No fake traffic numbers are shown.</p>
           </div>
-          <div className="trafficScoreCard">
-            <b>{trafficCommand.categories.filter((item) => item.status === 'good').length}/{trafficCommand.categories.length}</b>
-            <small>fresh categories</small>
+          <div className="trafficCommandSide">
+            <div className="trafficScoreCard">
+              <b>{trafficCommand.categories.filter((item) => item.status === 'good').length}/{trafficCommand.categories.length}</b>
+              <small>fresh categories</small>
+            </div>
+            <button onClick={refreshWeakCategories}><RefreshCw size={14} /> Refresh weak pages</button>
           </div>
         </div>
         <div className="trafficCommandGrid">

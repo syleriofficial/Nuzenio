@@ -664,6 +664,22 @@ button {
   padding: 14px;
 }
 
+.trafficCommandSide {
+  display: grid;
+  gap: 8px;
+}
+
+.trafficCommandSide button {
+  min-height: 38px;
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .trafficScoreCard b {
   font-size: 34px;
   line-height: 1;
