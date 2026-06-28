@@ -699,6 +699,7 @@ function parse(xml, category, country, language = 'en', sourceConfig = {}) {
         pubDate,
         category,
         country,
+        language: newsLanguage,
         image: rssImage || publisherLogoUrl(sourceUrl),
         imageKind: rssImage ? 'photo' : 'logo',
         readTime: Math.max(1, Math.ceil((description || title).split(/\s+/).length / 180)),
@@ -886,8 +887,36 @@ function rankCategoryArticles(articles, category) {
     .map(({ article }) => article);
 }
 
-function polishFeed(articles, { days = 14, perSourceLimit = 12 } = {}) {
-  return diversifySources(sortByNewest(compactDuplicateArticles(articles).filter((article) => isRecentArticle(article, days))), perSourceLimit);
+function polishFeed(articles, { days = 14, language = 'en', perSourceLimit = 12 } = {}) {
+  return diversifySources(
+    sortByNewest(
+      compactDuplicateArticles(articles)
+        .filter((article) => isRecentArticle(article, days))
+        .filter((article) => articleMatchesLanguage(article, language)),
+    ),
+    perSourceLimit,
+  );
+}
+
+function articleMatchesLanguage(article = {}, language = 'en') {
+  const newsLanguage = normalizeLanguage(language);
+  if (article.language && normalizeLanguage(article.language) !== newsLanguage) return false;
+  if (newsLanguage !== 'en') return true;
+
+  const text = `${article.title || ''} ${article.summary || ''}`.trim();
+  if (!text) return true;
+  const nonEnglishScript = /[\u0900-\u097f\u0980-\u09ff\u0a00-\u0a7f\u0a80-\u0aff\u0b80-\u0bff\u0c00-\u0cff\u0d00-\u0d7f\u0600-\u06ff\u0400-\u04ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/u;
+  if (nonEnglishScript.test(text)) return false;
+
+  const lower = ` ${text.toLowerCase()} `;
+  const foreignSignals = [
+    /\b(und|oder|nicht|für|über|nachrichten|aktuell|wirtschaft|politik)\b/i,
+    /\b(le|la|les|des|du|une|avec|pour|actualites|actualité|monde)\b/i,
+    /\b(noticias|ultima|última|mercado|economia|gobierno|mundo)\b/i,
+    /\b(notícias|ultimas|últimas|mercado|economia|governo|mundo)\b/i,
+  ].filter((pattern) => pattern.test(lower)).length;
+  const englishSignals = /\b(news|live|breaking|report|reports|update|updates|market|business|tech|technology|world|health|science|sports|ai|says|after|before|with|from|for|in|on|at)\b/i.test(lower);
+  return foreignSignals < 2 || englishSignals;
 }
 
 function maxAgeDaysForCategory(category, fallback = MAX_RSS_AGE_DAYS) {
@@ -1908,6 +1937,7 @@ function rowToArticle(row) {
     pubDate: row.published_at,
     category: row.category,
     country: row.country,
+    language: payload.language || 'en',
     image: row.image || '',
     imageKind: row.image_kind || payload.imageKind || 'logo',
     readTime: payload.readTime || 1,
@@ -1926,7 +1956,7 @@ function rowToArticle(row) {
   };
 }
 
-async function readSupabaseNewsCache({ category, country, q }, { allowStale = false } = {}) {
+async function readSupabaseNewsCache({ category, country, language, q }, { allowStale = false } = {}) {
   if (!canUseSupabaseNewsCache({ category, q })) return null;
   try {
     const path = [
@@ -1941,8 +1971,10 @@ async function readSupabaseNewsCache({ category, country, q }, { allowStale = fa
     const updatedAt = rows.reduce((latest, row) => Math.max(latest, new Date(row.updated_at || row.published_at).getTime() || 0), 0);
     const ageMs = Date.now() - updatedAt;
     if (ageMs <= SUPABASE_CACHE_TTL_MS || (allowStale && ageMs <= SUPABASE_STALE_TTL_MS)) {
+      const articles = rows.map(rowToArticle).filter((article) => articleMatchesLanguage(article, language));
+      if (articles.length < 6) return null;
       return {
-        articles: rows.map(rowToArticle),
+        articles,
         updatedAt: new Date(updatedAt || Date.now()).toISOString(),
         stale: ageMs > SUPABASE_CACHE_TTL_MS,
         ageMs,
@@ -1954,7 +1986,7 @@ async function readSupabaseNewsCache({ category, country, q }, { allowStale = fa
   return null;
 }
 
-async function writeSupabaseNewsCache({ category, country, q, articles }) {
+async function writeSupabaseNewsCache({ category, country, language, q, articles }) {
   if (!canUseSupabaseNewsCache({ category, q }) || !articles.length) return;
   try {
     const rows = articles.slice(0, 60).map((article) => {
@@ -1983,6 +2015,7 @@ async function writeSupabaseNewsCache({ category, country, q, articles }) {
           fetchedAt: article.fetchedAt || new Date().toISOString(),
           correctionNotice: article.correctionNotice || '',
           whyItMatters: article.whyItMatters || '',
+          language: article.language || normalizeLanguage(language || 'en'),
         },
       };
     });
@@ -2072,7 +2105,7 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
       lastError = error;
       continue;
     }
-    const fresh = rankLocalArticles(polishFeed(batches, { days: 10, perSourceLimit: 10 }), { country, region, city });
+    const fresh = rankLocalArticles(polishFeed(batches, { days: 10, language, perSourceLimit: 10 }), { country, region, city });
     const meta = localFeedMetadata(fresh, { country, region, city, queries });
     const hasHealthyCityFeed = meta.precision === 'city' && (meta.strongMatches >= 6 || meta.freshToday >= 8);
     const hasHealthyRegionalFeed = meta.precision !== 'city' && fresh.length >= 24;
@@ -2085,7 +2118,7 @@ async function fetchFreshLocalArticles({ country, region, city, language }) {
     }
   }
 
-  const finalArticles = rankLocalArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS, perSourceLimit: 10 }), { country, region, city }).slice(0, 60);
+  const finalArticles = rankLocalArticles(polishFeed(batches, { days: MAX_RSS_AGE_DAYS, language, perSourceLimit: 10 }), { country, region, city }).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
   return {
     articles: finalArticles,
@@ -2118,7 +2151,7 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
   });
 
   return {
-    articles: polishFeed(articles, { days: maxAgeDaysForCategory(category), perSourceLimit: 6 }).slice(0, 60),
+    articles: polishFeed(articles, { days: maxAgeDaysForCategory(category), language, perSourceLimit: 6 }).slice(0, 60),
     sourceType: errors.length && articles.length ? 'publisher-rss-partial' : 'publisher-rss',
     errors,
   };
@@ -2126,7 +2159,10 @@ async function fetchApprovedPublisherArticles({ category, country, language }) {
 
 async function fetchGoogleNewsArticles({ category, country, region, city, language, q }) {
   if (q) {
-    return polishFeed(parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language), { days: maxAgeDaysForCategory(category) });
+    return polishFeed(
+      parse(await fetchText(googleNewsUrl({ category, country, q, region, city, language })), category, country, language),
+      { days: maxAgeDaysForCategory(category), language },
+    );
   }
 
   if (category === 'local') {
@@ -2147,7 +2183,7 @@ async function fetchGoogleNewsArticles({ category, country, region, city, langua
   });
 
   const finalArticles = interleaveSources(
-    rankCategoryArticles(polishFeed(batches, { days: maxAgeDaysForCategory(category) }), category),
+    rankCategoryArticles(polishFeed(batches, { days: maxAgeDaysForCategory(category), language }), category),
     12,
   ).slice(0, 60);
   if (!finalArticles.length && lastError) throw lastError;
@@ -2198,6 +2234,7 @@ async function fetchFreshNewsArticles({ category, country, region, city, languag
   const merged = interleaveSources(
     rankCategoryArticles(polishFeed([...googleArticles, ...publisherArticles], {
       days: maxAgeDaysForCategory(category),
+      language,
       perSourceLimit: 12,
     }), category),
     12,
@@ -2282,7 +2319,7 @@ export const handler = async (event) => {
         };
       }
 
-      const supabaseHit = await readSupabaseNewsCache({ category, country, q });
+      const supabaseHit = await readSupabaseNewsCache({ category, country, language, q });
       if (supabaseHit) {
         writeMemoryCache(key, {
           articles: supabaseHit.articles,
@@ -2313,7 +2350,7 @@ export const handler = async (event) => {
     const updatedAt = new Date().toISOString();
     const sourceType = freshResult.sourceType || (!q && category === 'local' ? 'fresh-local-rss' : 'fresh-rss');
     writeMemoryCache(key, { articles, sourceType, updatedAt, localMeta: freshResult.localMeta });
-    await writeSupabaseNewsCache({ category, country, q, articles });
+    await writeSupabaseNewsCache({ category, country, language, q, articles });
 
     return {
       statusCode: 200,
@@ -2358,7 +2395,7 @@ export const handler = async (event) => {
         })),
       };
     }
-    const supabaseFallback = await readSupabaseNewsCache({ category, country, q }, { allowStale: true });
+    const supabaseFallback = await readSupabaseNewsCache({ category, country, language, q }, { allowStale: true });
     if (supabaseFallback) {
       return {
         statusCode: 200,
