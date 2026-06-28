@@ -8,7 +8,7 @@ Editorial Model: Source-attributed aggregation, short summaries, original publis
 /* Contact */
 
 Owner: SyleriOfficial
-Contact: syleriofficial@gmail.com
+Contact: contect@nuzenio.com
 Corrections: https://nuzenio.com/corrections.html
 Editorial Policy: https://nuzenio.com/editorial-policy.html
 AI Policy: https://nuzenio.com/ai-policy.html
@@ -34,4 +34,4 @@ Source Model: Publisher-attributed RSS and approved playable news sources
 Copyright Model: Nuzenio does not copy full publisher articles without a license; readers are sent to original publishers for complete reports.
 Commercial Model: Ads, affiliate links, and sponsored content must remain labeled and separated from editorial RSS coverage.
 Security Contact: https://nuzenio.com/.well-known/security.txt
-Last Updated: 2026-06-24
+Last Updated: 2026-06-28
