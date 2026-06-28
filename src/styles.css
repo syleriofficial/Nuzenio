@@ -531,6 +531,52 @@ button {
   text-align: end;
 }
 
+.seoChecklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+
+.seoChecklist div {
+  min-width: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 11px;
+}
+
+.seoChecklist span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 4px 7px;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.seoChecklist b,
+.seoChecklist small {
+  display: block;
+}
+
+.seoChecklist b {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.seoChecklist small {
+  margin-top: 4px;
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .adminTableWrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -5948,7 +5994,8 @@ button {
   .newsBriefingStats,
   .quickSectionGrid,
   .statsGrid,
-  .twoColumn {
+  .twoColumn,
+  .seoChecklist {
     grid-template-columns: 1fr;
   }
 

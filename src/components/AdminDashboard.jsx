@@ -57,6 +57,39 @@ const emptyOriginalArticle = {
   scheduled_at: '',
 };
 
+const seoIndexingChecklist = [
+  {
+    title: 'Submit sitemap index',
+    status: 'Ready',
+    detail: 'Submit https://nuzenio.com/sitemap-index.xml in Google Search Console.',
+  },
+  {
+    title: 'Submit news sitemap',
+    status: 'Ready',
+    detail: 'Submit https://nuzenio.com/news-sitemap.xml for fresh publisher-sourced stories.',
+  },
+  {
+    title: 'Robots hygiene',
+    status: 'Ready',
+    detail: 'Public pages are allowed; /api, /admin, and /login are blocked from crawling.',
+  },
+  {
+    title: 'Discover basics',
+    status: 'Active',
+    detail: 'Article pages include source attribution, timestamps, large-image fallback, schema, and internal links.',
+  },
+  {
+    title: 'Daily freshness',
+    status: 'Daily',
+    detail: 'Refresh RSS cache and keep Latest, Breaking, AI, Finance, Politics, Space, and Climate pages fresh.',
+  },
+  {
+    title: 'Search Console loop',
+    status: 'Weekly',
+    detail: 'Use impressions and queries to improve titles, descriptions, and topic hub coverage.',
+  },
+];
+
 const aiCategoryOptions = ['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'local'];
 const originalContentTypes = ['analysis', 'explainer', 'fact_check', 'opinion', 'research'];
 const editorialStatuses = ['draft', 'review', 'scheduled', 'published', 'archived'];
@@ -1396,6 +1429,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <MetricRow label="Sitemap status" value="4,000+ public URLs + live news sitemap" />
           <MetricRow label="CTR tracking" value={seoCtr} />
           <MetricRow label="News sitemap" value="/news-sitemap.xml" />
+          <div className="seoChecklist" aria-label="Search indexing checklist">
+            {seoIndexingChecklist.map((item) => (
+              <div key={item.title}>
+                <span>{item.status}</span>
+                <b>{item.title}</b>
+                <small>{item.detail}</small>
+              </div>
+            ))}
+          </div>
           <h4>Top pages</h4>
           {topPages.map(([key, count]) => <MetricRow key={key} label={key.replace('https://nuzenio.com', '')} value={count} />)}
           <h4>Search queries</h4>
