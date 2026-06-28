@@ -2159,6 +2159,7 @@ function Home({
 
         <TrustStrip articles={articles} lastUpdated={lastUpdated} location={location} />
         {isRootHome && <WhyNuzenioPanel location={location} />}
+        {isRootHome && <ExploreNewsHubs />}
         <NewsBriefingPanel
           articles={articles}
           lastUpdated={lastUpdated}
@@ -2751,6 +2752,63 @@ function WhyNuzenioPanel({ location }) {
             <summary>{question}</summary>
             <p>{answer}</p>
           </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ExploreNewsHubs() {
+  const hubGroups = [
+    {
+      label: 'Fast updates',
+      intro: 'Follow the newest stories and developing headlines.',
+      slugs: ['latest-news', 'breaking-news', 'world-news', 'local-news'],
+    },
+    {
+      label: 'Money and power',
+      intro: 'Track business, markets, finance, startups, and politics.',
+      slugs: ['business-news', 'finance-news', 'market-news', 'startup-news', 'politics-news'],
+    },
+    {
+      label: 'Future and science',
+      intro: 'Read AI, technology, space, climate, health, and science coverage.',
+      slugs: ['ai-news', 'technology-news', 'science-news', 'space-news', 'climate-news', 'health-news'],
+    },
+    {
+      label: 'Watch',
+      intro: 'Open video reports and live news channels.',
+      slugs: ['live-news', 'video-news', 'sports-news', 'entertainment-news'],
+    },
+  ].map((group) => ({
+    ...group,
+    pages: group.slugs
+      .map((slug) => seoLandingPages.find((page) => page.slug === slug))
+      .filter(Boolean),
+  }));
+
+  return (
+    <section className="exploreNewsHubs" aria-label="Explore more Nuzenio news hubs">
+      <div className="homeTopicHead">
+        <div>
+          <h2>Explore more news</h2>
+          <p>Go deeper into high-interest news hubs without crowding the main navigation.</p>
+        </div>
+        <a href="/latest-news">Latest News <ChevronRight size={14} /></a>
+      </div>
+      <div className="exploreHubGrid">
+        {hubGroups.map((group) => (
+          <div key={group.label} className="exploreHubGroup">
+            <b>{group.label}</b>
+            <span>{group.intro}</span>
+            <div>
+              {group.pages.map((page) => (
+                <a key={page.slug} href={`/${page.slug}`}>
+                  {page.label}
+                </a>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </section>
