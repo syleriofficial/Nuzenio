@@ -337,8 +337,47 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         type: 'Internal links',
       })),
     ].sort((a, b) => b.priority - a.priority).slice(0, 10);
-    return { actions, categories, growthQueue, sourcePerformance, strongCategories, weakCategories };
-  }, [analytics, cacheRows, crawlLogs, searchQueries, sources, topPages]);
+    const weeklyPlan = [
+      {
+        day: 'Day 1',
+        title: 'Freshness reset',
+        task: weakCategories.length ? `Refresh ${weakCategories.slice(0, 5).map((item) => item.category).join(', ')} pages and recheck news sitemap.` : 'Keep all core pages fresh and verify news sitemap.',
+      },
+      {
+        day: 'Day 2',
+        title: 'Source expansion',
+        task: sourcePerformance.some((item) => item.health !== 'healthy' && item.health !== 'enabled')
+          ? 'Fix unhealthy RSS sources, then add at least 3 approved publisher feeds.'
+          : 'Add at least 3 approved publisher RSS feeds in weak categories.',
+      },
+      {
+        day: 'Day 3',
+        title: 'Keyword pages',
+        task: searchQueries.length ? `Open and improve pages for ${searchQueries.slice(0, 4).map(([query]) => query).join(', ')}.` : 'Use Search Console to find 5 queries and refresh matching Nuzenio hubs.',
+      },
+      {
+        day: 'Day 4',
+        title: 'Internal links',
+        task: topPages.length ? 'Add links from top pages to weak categories, country pages, and topic pages.' : 'Build links from Home, Latest News, Breaking News, AI News, and World News.',
+      },
+      {
+        day: 'Day 5',
+        title: 'Discover readiness',
+        task: 'Check fresh article images, timestamps, publisher attribution, summaries, and original links.',
+      },
+      {
+        day: 'Day 6',
+        title: 'Retention',
+        task: newsletters.length ? 'Promote newsletter and daily brief on high-traffic pages.' : 'Push newsletter signup and daily brief messaging on Home and category pages.',
+      },
+      {
+        day: 'Day 7',
+        title: 'Review and repeat',
+        task: 'Review Traffic Command Center, archive stale targets, and restart from highest priority queue items.',
+      },
+    ];
+    return { actions, categories, growthQueue, sourcePerformance, strongCategories, weakCategories, weeklyPlan };
+  }, [analytics, cacheRows, crawlLogs, newsletters, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
   const mostFollowedTopics = useMemo(() => topEntries(groupCount(followSignals.topics, 'topic'), 8), [followSignals]);
@@ -1231,6 +1270,18 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   : <a className="growthQueueAction" href={item.href}>{item.actionLabel}</a>}
               </div>
             )) : <p className="adminHint">Growth queue appears after cache, search, and page-view signals are available.</p>}
+          </div>
+          <div className="trafficCommandBlock trafficCommandWide">
+            <h4>7-day growth plan</h4>
+            <div className="weeklyGrowthPlan">
+              {trafficCommand.weeklyPlan.map((item) => (
+                <div key={item.day}>
+                  <span>{item.day}</span>
+                  <b>{item.title}</b>
+                  <small>{item.task}</small>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="trafficCommandBlock">
             <h4>Weak pages needing fresh news</h4>

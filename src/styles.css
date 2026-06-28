@@ -793,6 +793,46 @@ button {
   line-height: 1.35;
 }
 
+.weeklyGrowthPlan {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weeklyGrowthPlan div {
+  min-width: 0;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.weeklyGrowthPlan span,
+.weeklyGrowthPlan b,
+.weeklyGrowthPlan small {
+  display: block;
+}
+
+.weeklyGrowthPlan span {
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.weeklyGrowthPlan b {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.weeklyGrowthPlan small {
+  margin-top: 4px;
+  color: #64748b;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .trafficAction,
 .trafficPageRow,
 .sourcePerformanceRow {
@@ -6047,6 +6087,10 @@ button {
   }
 
   .growthQueueRow > a:first-child {
+    grid-template-columns: 1fr;
+  }
+
+  .weeklyGrowthPlan {
     grid-template-columns: 1fr;
   }
 
