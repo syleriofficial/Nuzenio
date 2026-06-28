@@ -20,7 +20,7 @@ const categories = [
   ['science', '0.75'],
 ];
 
-const includeAdvancedIntelligencePages = false;
+const includeAdvancedIntelligencePages = true;
 const countries = ['IN', 'US', 'GB', 'CA', 'AU', 'AE', 'BD', 'PK', 'SG', 'ZA', 'DE', 'FR', 'ES', 'BR', 'RU', 'JP', 'KR'];
 const intelligenceCountries = includeAdvancedIntelligencePages ? ['us', 'uk', 'in', 'ca', 'au', 'de', 'fr', 'jp', 'kr', 'br'] : [];
 const intelligenceTopics = includeAdvancedIntelligencePages ? ['ai', 'economy', 'markets', 'climate', 'energy', 'space', 'science', 'startups'] : [];

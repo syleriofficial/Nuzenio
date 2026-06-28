@@ -2763,29 +2763,40 @@ function ExploreNewsHubs() {
     {
       label: 'Fast updates',
       intro: 'Follow the newest stories and developing headlines.',
-      slugs: ['latest-news', 'breaking-news', 'world-news', 'local-news'],
+      links: pagesFromLandingSlugs(['latest-news', 'breaking-news', 'world-news', 'local-news']),
     },
     {
       label: 'Money and power',
       intro: 'Track business, markets, finance, startups, and politics.',
-      slugs: ['business-news', 'finance-news', 'market-news', 'startup-news', 'politics-news'],
+      links: pagesFromLandingSlugs(['business-news', 'finance-news', 'market-news', 'startup-news', 'politics-news']),
     },
     {
       label: 'Future and science',
       intro: 'Read AI, technology, space, climate, health, and science coverage.',
-      slugs: ['ai-news', 'technology-news', 'science-news', 'space-news', 'climate-news', 'health-news'],
+      links: pagesFromLandingSlugs(['ai-news', 'technology-news', 'science-news', 'space-news', 'climate-news', 'health-news']),
     },
     {
       label: 'Watch',
       intro: 'Open video reports and live news channels.',
-      slugs: ['live-news', 'video-news', 'sports-news', 'entertainment-news'],
+      links: pagesFromLandingSlugs(['live-news', 'video-news', 'sports-news', 'entertainment-news']),
     },
-  ].map((group) => ({
-    ...group,
-    pages: group.slugs
-      .map((slug) => seoLandingPages.find((page) => page.slug === slug))
-      .filter(Boolean),
-  }));
+    {
+      label: 'Global editions',
+      intro: 'Open country intelligence pages for major news markets.',
+      links: intelligenceCountries.slice(0, 8).map((country) => ({
+        label: `${country.label} News`,
+        href: `/country/${country.slug}`,
+      })),
+    },
+    {
+      label: 'Topic intelligence',
+      intro: 'Follow durable topics that readers search for every day.',
+      links: topicIntelligence.slice(0, 8).map((topic) => ({
+        label: topic.label,
+        href: `/topic/${topic.slug}`,
+      })),
+    },
+  ];
 
   return (
     <section className="exploreNewsHubs" aria-label="Explore more Nuzenio news hubs">
@@ -2802,8 +2813,8 @@ function ExploreNewsHubs() {
             <b>{group.label}</b>
             <span>{group.intro}</span>
             <div>
-              {group.pages.map((page) => (
-                <a key={page.slug} href={`/${page.slug}`}>
+              {group.links.map((page) => (
+                <a key={page.href} href={page.href}>
                   {page.label}
                 </a>
               ))}
@@ -2813,6 +2824,13 @@ function ExploreNewsHubs() {
       </div>
     </section>
   );
+}
+
+function pagesFromLandingSlugs(slugs) {
+  return slugs
+    .map((slug) => seoLandingPages.find((page) => page.slug === slug))
+    .filter(Boolean)
+    .map((page) => ({ label: page.label, href: `/${page.slug}` }));
 }
 
 function TrustStrip({ articles, lastUpdated, location }) {
@@ -6208,6 +6226,8 @@ function siteNavigationSchema() {
     ['Live News', '/live'],
     ['Video News', '/video'],
     ...seoLandingPages.map((page) => [page.label, `/${page.slug}`]),
+    ...intelligenceCountries.slice(0, 10).map((country) => [`${country.label} News`, `/country/${country.slug}`]),
+    ...topicIntelligence.map((topic) => [`${topic.label} Topic`, `/topic/${topic.slug}`]),
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,

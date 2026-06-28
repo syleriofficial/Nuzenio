@@ -44,6 +44,24 @@ export function Footer({ copy, localEditions = [], onPrivacySettings, trafficHub
         ))}
         <a href="/local">More local news</a>
       </nav>
+      <nav className="footerLinkGroup" aria-label="Global country editions">
+        <strong>Global editions</strong>
+        <a href="/country/us">United States News</a>
+        <a href="/country/in">India News</a>
+        <a href="/country/uk">United Kingdom News</a>
+        <a href="/country/ca">Canada News</a>
+        <a href="/country/au">Australia News</a>
+        <a href="/country/de">Germany News</a>
+      </nav>
+      <nav className="footerLinkGroup" aria-label="Topic intelligence pages">
+        <strong>Topics</strong>
+        <a href="/topic/ai">AI</a>
+        <a href="/topic/economy">Economy</a>
+        <a href="/topic/markets">Markets</a>
+        <a href="/topic/climate">Climate</a>
+        <a href="/topic/space">Space</a>
+        <a href="/topic/startups">Startups</a>
+      </nav>
       <nav className="footerLinkGroup" aria-label="Nuzenio policies">
         <strong>Trust</strong>
         <a href="/about">About</a>
