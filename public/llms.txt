@@ -26,13 +26,17 @@
 - News Sitemap: https://nuzenio.com/news-sitemap.xml
 - Feed Directory: https://nuzenio.com/feeds
 - RSS Feed: https://nuzenio.com/feed.xml
+- Local RSS Feed: https://nuzenio.com/feed.xml?category=local
 - World RSS Feed: https://nuzenio.com/feed.xml?category=world
 - Business RSS Feed: https://nuzenio.com/feed.xml?category=business
 - Technology RSS Feed: https://nuzenio.com/feed.xml?category=tech
 - AI RSS Feed: https://nuzenio.com/feed.xml?category=ai
 - Sports RSS Feed: https://nuzenio.com/feed.xml?category=sports
+- Entertainment RSS Feed: https://nuzenio.com/feed.xml?category=entertainment
 - Health RSS Feed: https://nuzenio.com/feed.xml?category=health
 - Science RSS Feed: https://nuzenio.com/feed.xml?category=science
+- Live RSS Feed: https://nuzenio.com/feed.xml?category=live
+- Video RSS Feed: https://nuzenio.com/feed.xml?category=video
 - OpenSearch: https://nuzenio.com/opensearch.xml
 
 ## Trust And Policy Pages
