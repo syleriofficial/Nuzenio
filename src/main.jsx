@@ -2130,6 +2130,7 @@ function Home({
         </div>
 
         <TrustStrip articles={articles} lastUpdated={lastUpdated} location={location} />
+        {isRootHome && <WhyNuzenioPanel location={location} />}
         <NewsBriefingPanel
           articles={articles}
           lastUpdated={lastUpdated}
@@ -2657,6 +2658,53 @@ function NewsBriefingPanel({ articles, lastUpdated, location, refreshNews, statu
         <a href={categoryRoutes.ai}>
           AI <ChevronRight size={14} />
         </a>
+      </div>
+    </section>
+  );
+}
+
+function WhyNuzenioPanel({ location }) {
+  const place = location?.city || location?.region || countryLabel(location?.country || 'US');
+  const reasons = [
+    {
+      icon: Zap,
+      title: 'Fast clarity',
+      text: 'Top stories, trend signals, and short context without noisy feeds.',
+    },
+    {
+      icon: MapPin,
+      title: 'Local plus global',
+      text: `${place} headlines sit beside world, business, tech, video, and live coverage.`,
+    },
+    {
+      icon: Sparkles,
+      title: 'AI context',
+      text: 'Quick summaries, why it matters, key facts, and simple explanations stay separate from source links.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Source-first trust',
+      text: 'Publisher attribution, timestamps, original links, and correction routes remain visible.',
+    },
+  ];
+
+  return (
+    <section className="whyNuzenioPanel" aria-label="Why readers choose Nuzenio">
+      <div className="whyNuzenioIntro">
+        <span className="badge"><CheckCircle2 size={15} /> Why Nuzenio</span>
+        <h2>Trusted news, simplified.</h2>
+        <p>Nuzenio is built for readers who want clean headlines, local relevance, live/video coverage, and source-attributed AI context in one fast place.</p>
+      </div>
+      <div className="whyNuzenioGrid">
+        {reasons.map(({ icon: Icon, text, title }) => (
+          <div key={title} className="whyNuzenioItem">
+            <Icon size={20} />
+            <div>
+              <b>{title}</b>
+              <span>{text}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
