@@ -886,11 +886,21 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
 
   async function refreshCache() {
     setNotice('Refreshing live cache...');
-    const response = await fetch(`/api/news?category=${encodeURIComponent(cacheRefresh.category)}&country=${encodeURIComponent(cacheRefresh.country)}&language=en&fresh=${Date.now()}`);
-    const data = await response.json();
+    const data = await refreshCategory(cacheRefresh.category, cacheRefresh.country, { announce: false, reload: false });
     setNotice(data.ok ? `Cache refreshed: ${data.total || 0} articles loaded.` : `Refresh failed: ${data.error}`);
     await logAdmin('cache_refresh', data.ok ? 'ok' : 'error', { table: 'news_cache', id: `${cacheRefresh.category}-${cacheRefresh.country}`, message: data.error || `${data.total || 0} articles` });
     loadAdmin();
+  }
+
+  async function refreshCategory(category, country = cacheRefresh.country || 'US', options = {}) {
+    const { announce = true, reload = true } = options;
+    if (announce) setNotice(`Refreshing ${category} news cache...`);
+    const response = await fetch(`/api/news?category=${encodeURIComponent(category)}&country=${encodeURIComponent(country)}&language=en&fresh=${Date.now()}`);
+    const data = await response.json();
+    if (announce) setNotice(data.ok ? `${category} refreshed: ${data.total || 0} articles loaded.` : `${category} refresh failed: ${data.error}`);
+    await logAdmin('cache_refresh_category', data.ok ? 'ok' : 'error', { table: 'news_cache', id: `${category}-${country}`, message: data.error || `${data.total || 0} articles` });
+    if (reload) loadAdmin();
+    return data;
   }
 
   async function removeDuplicateCache() {
@@ -1158,10 +1168,13 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           <div className="trafficCommandBlock">
             <h4>Weak pages needing fresh news</h4>
             {trafficCommand.weakCategories.length ? trafficCommand.weakCategories.map((item) => (
-              <a className={`trafficPageRow ${item.status}`} href={item.href} key={item.category}>
-                <span>{item.category}</span>
-                <b>{item.count} cached · {freshnessLabel(item.newestHours)}</b>
-              </a>
+              <div className={`trafficPageRow ${item.status}`} key={item.category}>
+                <a href={item.href}>
+                  <span>{item.category}</span>
+                  <b>{item.count} cached · {freshnessLabel(item.newestHours)}</b>
+                </a>
+                <button onClick={() => refreshCategory(item.category)}><RefreshCw size={13} /> Refresh</button>
+              </div>
             )) : <p className="adminHint">All tracked categories have fresh cached stories.</p>}
           </div>
           <div className="trafficCommandBlock">
@@ -1182,6 +1195,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
               <div className="sourcePerformanceRow" key={source.id}>
                 <b>{source.name}</b>
                 <span>{source.category} · {source.health} · {source.inserted} new · {source.duplicates} dupes</span>
+                <button onClick={() => runCrawler('source', source.id)}><Activity size={13} /> Crawl</button>
               </div>
             )) : <p className="adminHint">Run the crawler to measure source performance.</p>}
           </div>

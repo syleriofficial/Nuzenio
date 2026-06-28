@@ -695,10 +695,34 @@ button {
 .trafficAction,
 .trafficPageRow,
 .sourcePerformanceRow {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
   border-top: 1px solid #eef2f7;
   padding: 9px 0;
   text-decoration: none;
+}
+
+.trafficAction {
+  grid-template-columns: 1fr;
+}
+
+.trafficPageRow a {
+  min-width: 0;
+  text-decoration: none;
+}
+
+.trafficPageRow button,
+.sourcePerformanceRow button {
+  min-height: 32px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 950;
 }
 
 .trafficAction:first-of-type,
