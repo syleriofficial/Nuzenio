@@ -3298,6 +3298,7 @@ function IntelligencePage({
           ))}
         </div>
 
+        <ReaderDemandPanel route={route} articles={articles} />
         <TrendSignalPanel trends={trends} openArticle={openArticle} />
         {isLanding && <SeoGrowthPanel route={route} articles={articles} />}
         {isEcosystem && <EcosystemPanel articles={articles} route={route} />}
@@ -3608,6 +3609,69 @@ function DiscoverReadinessPanel({ articles = [], route }) {
       )}
     </section>
   );
+}
+
+function ReaderDemandPanel({ articles = [], route }) {
+  const sourceCount = new Set(articles.map((article) => article.source).filter(Boolean)).size;
+  const keywords = pageIntentKeywords(route).slice(0, 8);
+  const countryLinks = intelligenceCountries
+    .filter((country) => route.type !== 'country' || country.slug !== route.slug)
+    .slice(0, 6)
+    .map((country) => ({
+      label: `${route.label} in ${country.label}`,
+      href: route.type === 'topic'
+        ? `/top-news?country=${encodeURIComponent(country.code)}&q=${encodeURIComponent(route.query || route.label)}`
+        : `/country/${country.slug}`,
+    }));
+  const topicLinks = topicIntelligence
+    .filter((topic) => route.type !== 'topic' || topic.slug !== route.slug)
+    .filter((topic) => route.category ? topic.category === route.category || ['ai', 'economy', 'markets', 'science'].includes(topic.slug) : true)
+    .slice(0, 6)
+    .map((topic) => ({
+      label: route.type === 'country' ? `${topic.label} in ${route.label}` : topic.label,
+      href: route.type === 'country'
+        ? `/top-news?country=${encodeURIComponent(route.country || 'US')}&q=${encodeURIComponent(topic.query || topic.label)}`
+        : `/topic/${topic.slug}`,
+    }));
+
+  return (
+    <section className="readerDemandPanel" aria-label={`${route.label} reader demand and discovery`}>
+      <div>
+        <span>Reader demand</span>
+        <h3>Why this page can rank</h3>
+        <p>{route.label} combines fresh headlines, publisher attribution, related topics, country paths, and source diversity in one clean discovery page.</p>
+      </div>
+      <div className="readerDemandStats">
+        <div><b>{articles.length}</b><small>live stories</small></div>
+        <div><b>{sourceCount || 'Live'}</b><small>publisher sources</small></div>
+        <div><b>{keywords.length}</b><small>search intents</small></div>
+      </div>
+      <div className="readerDemandLinks">
+        <LinkCluster title="Search intents" items={keywords.map((keyword) => ({ label: keyword, href: `/top-news?q=${encodeURIComponent(keyword)}` }))} />
+        <LinkCluster title="Country paths" items={countryLinks} />
+        <LinkCluster title="Topic paths" items={topicLinks} />
+      </div>
+    </section>
+  );
+}
+
+function pageIntentKeywords(route) {
+  const label = route?.label || 'News';
+  const base = [
+    `${label} latest news`,
+    `${label} breaking news`,
+    `${label} today`,
+    `${label} updates`,
+    `${label} headlines`,
+  ];
+  if (route?.type === 'country') {
+    base.push(`${label} politics`, `${label} business`, `${label} technology`, `${label} sports`);
+  } else if (route?.type === 'topic') {
+    base.push(`${label} analysis`, `${label} companies`, `${label} policy`, `${label} trends`);
+  } else if (route?.category) {
+    base.push(`${route.category} news`, `${label} live`, `${label} explained`);
+  }
+  return [...new Set(base)];
 }
 
 function classifyEntityLabel(label = '') {

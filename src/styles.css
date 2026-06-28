@@ -3230,6 +3230,80 @@ button {
   color: #fff;
 }
 
+.readerDemandPanel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(160px, 0.45fr) minmax(0, 1.28fr);
+  gap: 12px;
+  margin: 16px 0;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.readerDemandPanel > div:first-child span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.readerDemandPanel h3 {
+  margin: 8px 0;
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1.12;
+}
+
+.readerDemandPanel p {
+  margin: 0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.readerDemandStats {
+  display: grid;
+  gap: 8px;
+}
+
+.readerDemandStats div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.readerDemandStats b,
+.readerDemandStats small {
+  display: block;
+}
+
+.readerDemandStats b {
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.readerDemandStats small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.readerDemandLinks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.readerDemandLinks .linkCluster {
+  min-width: 0;
+  padding: 10px;
+}
+
 .trendSignalGrid,
 .internalLinkGraph {
   display: grid;
@@ -5667,12 +5741,14 @@ button {
   .personalizedHero,
   .dailyBriefPanel,
   .followPanel,
+  .readerDemandPanel,
   .seoGrowthPanel,
   .trendSignalGrid,
   .internalLinkGraph {
     grid-template-columns: 1fr;
   }
 
+  .readerDemandLinks,
   .seoGrowthGrid {
     grid-template-columns: 1fr;
   }
