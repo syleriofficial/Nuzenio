@@ -20,26 +20,26 @@ export function Footer({ copy, localEditions = [], onPrivacySettings, trafficHub
       </nav>
       <nav className="footerLinkGroup" aria-label="Nuzenio policies">
         <strong>Trust</strong>
-        <a href="/about.html">About</a>
-        <a href="/contact.html">Contact</a>
-        <a href="/sources.html">Sources</a>
-        <a href="/editorial-policy.html">Editorial Policy</a>
-        <a href="/fact-checking-policy.html">Fact-Checking Policy</a>
-        <a href="/ai-policy.html">AI Policy</a>
-        <a href="/corrections.html">Corrections</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+        <a href="/sources">Sources</a>
+        <a href="/editorial-policy">Editorial Policy</a>
+        <a href="/fact-checking-policy">Fact-Checking Policy</a>
+        <a href="/ai-policy">AI Policy</a>
+        <a href="/corrections">Corrections</a>
       </nav>
       <nav className="footerLinkGroup" aria-label="Nuzenio business and technical links">
         <strong>Platform</strong>
-        <a href="/advertise.html">Advertise</a>
-        <a href="/newsletter.html">Newsletter</a>
-        <a href="/submit-source.html">Submit Source</a>
-        <a href="/publisher-dashboard.html">Publisher Dashboard</a>
-        <a href="/publisher-verify.html">Publisher Verification</a>
-        <a href="/feeds.html">Feeds</a>
+        <a href="/advertise">Advertise</a>
+        <a href="/newsletter">Newsletter</a>
+        <a href="/submit-source">Submit Source</a>
+        <a href="/publisher-dashboard">Publisher Dashboard</a>
+        <a href="/publisher-verify">Publisher Verification</a>
+        <a href="/feeds">Feeds</a>
         <a href="/feed.xml">RSS</a>
-        <a href="/privacy.html">Privacy</a>
-        <a href="/terms.html">Terms</a>
-        <a href="/affiliate-disclosure.html">Affiliate Disclosure</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/affiliate-disclosure">Affiliate Disclosure</a>
         <a href="/humans.txt">Humans</a>
         <a href="/llms.txt">LLMs</a>
         <button type="button" onClick={onPrivacySettings}>Privacy settings</button>

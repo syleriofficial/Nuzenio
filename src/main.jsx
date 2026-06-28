@@ -4177,7 +4177,7 @@ function EditorialTransparencyPanel({ route, articles = [] }) {
         <div><span>Page owner</span><b>{route.type === 'author' ? route.name : 'Nuzenio News Desk'}</b></div>
         <div><span>Source attribution</span><b>{latest?.source || route.label}</b></div>
         <div><span>Update history</span><b>{latest ? formatDate(latest.pubDate) : 'Awaiting live source'}</b></div>
-        <div><span>Correction route</span><b><a href="/corrections.html">Corrections policy</a></b></div>
+        <div><span>Correction route</span><b><a href="/corrections">Corrections policy</a></b></div>
       </div>
     </section>
   );

@@ -269,6 +269,193 @@
   status = 200
 
 [[redirects]]
+  from = "/about.html"
+  to = "/about"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/sources.html"
+  to = "/sources"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/editorial-policy.html"
+  to = "/editorial-policy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/fact-checking-policy.html"
+  to = "/fact-checking-policy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ai-policy.html"
+  to = "/ai-policy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/corrections.html"
+  to = "/corrections"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/corrections-policy.html"
+  to = "/corrections-policy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/contact.html"
+  to = "/contact"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/submit-source.html"
+  to = "/submit-source"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/publisher-dashboard.html"
+  to = "/publisher-dashboard"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/publisher-verify.html"
+  to = "/publisher-verify"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/advertise.html"
+  to = "/advertise"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/newsletter.html"
+  to = "/newsletter"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/feeds.html"
+  to = "/feeds"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/privacy.html"
+  to = "/privacy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/terms.html"
+  to = "/terms"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/affiliate-disclosure.html"
+  to = "/affiliate-disclosure"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/about"
+  to = "/about.html"
+  status = 200
+
+[[redirects]]
+  from = "/sources"
+  to = "/sources.html"
+  status = 200
+
+[[redirects]]
+  from = "/editorial-policy"
+  to = "/editorial-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/fact-checking-policy"
+  to = "/fact-checking-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/ai-policy"
+  to = "/ai-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/corrections"
+  to = "/corrections.html"
+  status = 200
+
+[[redirects]]
+  from = "/corrections-policy"
+  to = "/corrections-policy.html"
+  status = 200
+
+[[redirects]]
+  from = "/contact"
+  to = "/contact.html"
+  status = 200
+
+[[redirects]]
+  from = "/submit-source"
+  to = "/submit-source.html"
+  status = 200
+
+[[redirects]]
+  from = "/publisher-dashboard"
+  to = "/publisher-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/publisher-verify"
+  to = "/publisher-verify.html"
+  status = 200
+
+[[redirects]]
+  from = "/advertise"
+  to = "/advertise.html"
+  status = 200
+
+[[redirects]]
+  from = "/newsletter"
+  to = "/newsletter.html"
+  status = 200
+
+[[redirects]]
+  from = "/feeds"
+  to = "/feeds.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+
+[[redirects]]
+  from = "/affiliate-disclosure"
+  to = "/affiliate-disclosure.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

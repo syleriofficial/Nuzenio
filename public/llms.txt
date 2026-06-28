@@ -13,10 +13,10 @@
 - AI News: https://nuzenio.com/ai
 - Live News: https://nuzenio.com/live
 - Video News: https://nuzenio.com/video
-- Newsletter: https://nuzenio.com/newsletter.html
-- Submit Source: https://nuzenio.com/submit-source.html
-- Publisher Dashboard: https://nuzenio.com/publisher-dashboard.html
-- Publisher Verification: https://nuzenio.com/publisher-verify.html
+- Newsletter: https://nuzenio.com/newsletter
+- Submit Source: https://nuzenio.com/submit-source
+- Publisher Dashboard: https://nuzenio.com/publisher-dashboard
+- Publisher Verification: https://nuzenio.com/publisher-verify
 
 ## Feeds And Discovery
 
@@ -24,7 +24,7 @@
 - Sitemap Index: https://nuzenio.com/sitemap-index.xml
 - Language Sitemap: https://nuzenio.com/sitemap-languages.xml
 - News Sitemap: https://nuzenio.com/news-sitemap.xml
-- Feed Directory: https://nuzenio.com/feeds.html
+- Feed Directory: https://nuzenio.com/feeds
 - RSS Feed: https://nuzenio.com/feed.xml
 - World RSS Feed: https://nuzenio.com/feed.xml?category=world
 - Business RSS Feed: https://nuzenio.com/feed.xml?category=business
@@ -37,14 +37,14 @@
 
 ## Trust And Policy Pages
 
-- About: https://nuzenio.com/about.html
-- Sources: https://nuzenio.com/sources.html
-- Editorial Policy: https://nuzenio.com/editorial-policy.html
-- AI Policy: https://nuzenio.com/ai-policy.html
-- Corrections: https://nuzenio.com/corrections.html
-- Privacy: https://nuzenio.com/privacy.html
-- Terms: https://nuzenio.com/terms.html
-- Affiliate Disclosure: https://nuzenio.com/affiliate-disclosure.html
+- About: https://nuzenio.com/about
+- Sources: https://nuzenio.com/sources
+- Editorial Policy: https://nuzenio.com/editorial-policy
+- AI Policy: https://nuzenio.com/ai-policy
+- Corrections: https://nuzenio.com/corrections
+- Privacy: https://nuzenio.com/privacy
+- Terms: https://nuzenio.com/terms
+- Affiliate Disclosure: https://nuzenio.com/affiliate-disclosure
 - Security Contact: https://nuzenio.com/.well-known/security.txt
 
 ## Content Notes

@@ -9,12 +9,12 @@ Editorial Model: Source-attributed aggregation, short summaries, original publis
 
 Owner: SyleriOfficial
 Contact: contect@nuzenio.com
-Corrections: https://nuzenio.com/corrections.html
-Editorial Policy: https://nuzenio.com/editorial-policy.html
-AI Policy: https://nuzenio.com/ai-policy.html
-Privacy Policy: https://nuzenio.com/privacy.html
-Source Policy: https://nuzenio.com/sources.html
-Affiliate Disclosure: https://nuzenio.com/affiliate-disclosure.html
+Corrections: https://nuzenio.com/corrections
+Editorial Policy: https://nuzenio.com/editorial-policy
+AI Policy: https://nuzenio.com/ai-policy
+Privacy Policy: https://nuzenio.com/privacy
+Source Policy: https://nuzenio.com/sources
+Affiliate Disclosure: https://nuzenio.com/affiliate-disclosure
 
 /* Technology */
 
