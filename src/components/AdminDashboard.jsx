@@ -339,11 +339,15 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     ].sort((a, b) => b.priority - a.priority).slice(0, 10);
     const weeklyPlan = [
       {
+        actionHref: weakCategories[0]?.href || '/news-sitemap.xml',
+        actionLabel: weakCategories.length ? 'Open weakest page' : 'Open news sitemap',
         day: 'Day 1',
         title: 'Freshness reset',
         task: weakCategories.length ? `Refresh ${weakCategories.slice(0, 5).map((item) => item.category).join(', ')} pages and recheck news sitemap.` : 'Keep all core pages fresh and verify news sitemap.',
       },
       {
+        actionHref: '#rss-source-manager',
+        actionLabel: 'Open sources',
         day: 'Day 2',
         title: 'Source expansion',
         task: sourcePerformance.some((item) => item.health !== 'healthy' && item.health !== 'enabled')
@@ -351,26 +355,36 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
           : 'Add at least 3 approved publisher RSS feeds in weak categories.',
       },
       {
+        actionHref: searchQueries[0] ? `/top-news?q=${encodeURIComponent(searchQueries[0][0])}` : '/latest-news',
+        actionLabel: searchQueries[0] ? 'Open keyword' : 'Open latest',
         day: 'Day 3',
         title: 'Keyword pages',
         task: searchQueries.length ? `Open and improve pages for ${searchQueries.slice(0, 4).map(([query]) => query).join(', ')}.` : 'Use Search Console to find 5 queries and refresh matching Nuzenio hubs.',
       },
       {
+        actionHref: topPages[0]?.[0] || '/',
+        actionLabel: 'Open page',
         day: 'Day 4',
         title: 'Internal links',
         task: topPages.length ? 'Add links from top pages to weak categories, country pages, and topic pages.' : 'Build links from Home, Latest News, Breaking News, AI News, and World News.',
       },
       {
+        actionHref: '/news-sitemap.xml',
+        actionLabel: 'Open sitemap',
         day: 'Day 5',
         title: 'Discover readiness',
         task: 'Check fresh article images, timestamps, publisher attribution, summaries, and original links.',
       },
       {
+        actionHref: '/newsletter',
+        actionLabel: 'Open newsletter',
         day: 'Day 6',
         title: 'Retention',
         task: newsletters.length ? 'Promote newsletter and daily brief on high-traffic pages.' : 'Push newsletter signup and daily brief messaging on Home and category pages.',
       },
       {
+        actionHref: '/admin',
+        actionLabel: 'Review admin',
         day: 'Day 7',
         title: 'Review and repeat',
         task: 'Review Traffic Command Center, archive stale targets, and restart from highest priority queue items.',
@@ -1279,6 +1293,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                   <span>{item.day}</span>
                   <b>{item.title}</b>
                   <small>{item.task}</small>
+                  <a href={item.actionHref}>{item.actionLabel}</a>
                 </div>
               ))}
             </div>
@@ -1572,7 +1587,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <p className="adminHint">There is no separate public “admin news” page. Admin-approved sources flow into the same Nuzenio public news experience readers use.</p>
       </AdminPanel>
 
-      <AdminPanel title="RSS Source Manager">
+      <AdminPanel id="rss-source-manager" title="RSS Source Manager">
         <form className="adminForm" onSubmit={saveSource}>
           <input value={sourceForm.name} onChange={(event) => setSourceForm({ ...sourceForm, name: event.target.value })} placeholder="Source name" required />
           <input value={sourceForm.url} onChange={(event) => setSourceForm({ ...sourceForm, url: event.target.value })} placeholder="RSS URL" type="url" required />
@@ -2010,9 +2025,9 @@ function StatCard({ icon: Icon, label, value }) {
   );
 }
 
-function AdminPanel({ title, children }) {
+function AdminPanel({ id, title, children }) {
   return (
-    <section className="adminPanel">
+    <section className="adminPanel" id={id}>
       <h2>{title}</h2>
       {children}
     </section>

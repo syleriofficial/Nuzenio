@@ -809,7 +809,8 @@ button {
 
 .weeklyGrowthPlan span,
 .weeklyGrowthPlan b,
-.weeklyGrowthPlan small {
+.weeklyGrowthPlan small,
+.weeklyGrowthPlan a {
   display: block;
 }
 
@@ -831,6 +832,19 @@ button {
   color: #64748b;
   font-weight: 800;
   line-height: 1.35;
+}
+
+.weeklyGrowthPlan a {
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 950;
+  text-decoration: none;
 }
 
 .trafficAction,
