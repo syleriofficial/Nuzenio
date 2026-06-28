@@ -307,7 +307,27 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       topPages.length ? 'Improve internal links from top traffic pages to weak categories' : 'Drive first analytics events from homepage and category pages',
       'Check /news-sitemap.xml after every crawler run',
     ];
-    return { actions, categories, sourcePerformance, strongCategories, weakCategories };
+    const growthQueue = [
+      ...weakCategories.slice(0, 4).map((item) => ({
+        label: `${item.category} news page`,
+        detail: `${item.count} cached stories · ${freshnessLabel(item.newestHours)}`,
+        href: item.href,
+        type: 'Freshness',
+      })),
+      ...searchQueries.slice(0, 4).map(([query, count]) => ({
+        label: query,
+        detail: `${count} search signals · refresh matching page/topic`,
+        href: `/top-news?q=${encodeURIComponent(query)}`,
+        type: 'Keyword',
+      })),
+      ...topPages.slice(0, 3).map(([page, count]) => ({
+        label: page.replace(/^https?:\/\/[^/]+/i, '') || '/',
+        detail: `${count} visits · add links to weak pages`,
+        href: page.startsWith('http') ? page : page,
+        type: 'Internal links',
+      })),
+    ].slice(0, 10);
+    return { actions, categories, growthQueue, sourcePerformance, strongCategories, weakCategories };
   }, [analytics, cacheRows, crawlLogs, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
@@ -1186,6 +1206,16 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             {trafficCommand.actions.map((action) => (
               <div className="trafficAction" key={action}><span>Next</span><b>{action}</b></div>
             ))}
+          </div>
+          <div className="trafficCommandBlock trafficCommandWide">
+            <h4>SEO Growth Queue</h4>
+            {trafficCommand.growthQueue.length ? trafficCommand.growthQueue.map((item) => (
+              <a className="growthQueueRow" href={item.href} key={`${item.type}-${item.label}`}>
+                <span>{item.type}</span>
+                <b>{item.label}</b>
+                <small>{item.detail}</small>
+              </a>
+            )) : <p className="adminHint">Growth queue appears after cache, search, and page-view signals are available.</p>}
           </div>
           <div className="trafficCommandBlock">
             <h4>Weak pages needing fresh news</h4>
