@@ -5316,7 +5316,7 @@ button {
 
 .footer {
   display: grid;
-  grid-template-columns: minmax(180px, 0.85fr) repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(190px, 1.1fr) repeat(auto-fit, minmax(130px, 1fr));
   gap: 18px;
   align-items: start;
   margin: 0 5vw 28px;
