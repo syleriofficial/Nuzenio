@@ -6056,7 +6056,7 @@ function organizationSchema() {
     image: `${productionOrigin}/og-image.png`,
     description: 'Nuzenio is a professional multi-language news platform for local news, world headlines, live news, video news, source attribution, and AI-powered context.',
     slogan: 'Trusted news, simplified.',
-    sameAs: ['https://github.com/syleriofficial/Nuzenio'],
+    sameAs: [productionOrigin],
   };
 }
 
