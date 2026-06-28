@@ -5237,6 +5237,58 @@ button {
   margin-top: 14px;
 }
 
+.articleDiscoveryLinks {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 72%);
+  padding: 14px;
+}
+
+.articleDiscoveryLinks h3 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.articleDiscoveryLinks p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.articleDiscoveryLinks nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.articleDiscoveryLinks a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.articleDiscoveryLinks a:hover {
+  border-color: var(--blue);
+  background: #dbeafe;
+}
+
 .faqPanel details {
   border-top: 1px solid #eef2f7;
   padding: 12px 0;
@@ -5264,6 +5316,7 @@ button {
   color: var(--text);
   padding: 10px;
   text-align: start;
+  text-decoration: none;
 }
 
 .relatedStoryCard:hover {
@@ -5619,6 +5672,14 @@ button {
 @media (max-width: 820px) {
   .exploreHubGrid {
     grid-template-columns: 1fr;
+  }
+
+  .articleDiscoveryLinks {
+    grid-template-columns: 1fr;
+  }
+
+  .articleDiscoveryLinks nav {
+    justify-content: flex-start;
   }
 
   .publisherIdentity,

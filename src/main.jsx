@@ -5300,6 +5300,7 @@ function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, 
   const faqs = buildFaq(article);
   const isVideo = isVideoArticle(article);
   const related = buildRelatedArticles(article, articles, 4);
+  const discoveryLinks = buildArticleDiscoveryLinks(article);
   const showAi = aiSummaryEnabled(article, aiSettings);
   return (
     <div className="modalOverlay" onClick={onClose}>
@@ -5435,6 +5436,7 @@ function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, 
             </div>
           </section>
         )}
+        <ArticleDiscoveryLinks links={discoveryLinks} />
         <AlsoReportedBy article={article} openArticle={openArticle} />
         <div className="sourceBox">
           <h3>{copy.sourceAttribution}</h3>
@@ -5469,10 +5471,57 @@ function ArticleModal({ adSlots, affiliateLinks, aiSettings, article, articles, 
   );
 }
 
+function buildArticleDiscoveryLinks(article) {
+  const category = article.category || 'top';
+  const country = article.country || article.countryCode || 'US';
+  const categoryLabel = categories.find(([key]) => key === category)?.[1] || 'Top News';
+  const categoryHref = categoryRoutes[category] || '/top-news';
+  const landing = seoLandingPages.find((page) => page.category === category)
+    || seoLandingPages.find((page) => page.slug === 'latest-news');
+  const links = [
+    { label: `${categoryLabel} feed`, href: categoryHref },
+    { label: `${countryLabel(country)} headlines`, href: `${categoryHref}?country=${encodeURIComponent(country)}` },
+  ];
+  if (landing) links.push({ label: landing.label, href: `/${landing.slug}` });
+  if (article.source) {
+    links.push({
+      label: `More from ${article.source}`,
+      href: `/top-news?q=${encodeURIComponent(article.source)}`,
+    });
+  }
+  return links.filter((item, index, list) => list.findIndex((candidate) => candidate.href === item.href) === index).slice(0, 5);
+}
+
+function ArticleDiscoveryLinks({ links = [] }) {
+  if (!links.length) return null;
+  return (
+    <section className="articleDiscoveryLinks" aria-label="Continue exploring Nuzenio">
+      <div>
+        <h3>Continue exploring</h3>
+        <p>More Nuzenio pages connected to this story.</p>
+      </div>
+      <nav>
+        {links.map((link) => (
+          <a key={link.href} href={link.href}>
+            {link.label} <ChevronRight size={14} />
+          </a>
+        ))}
+      </nav>
+    </section>
+  );
+}
+
 function RelatedStoryCard({ article, openArticle }) {
   const image = article.image || videoThumbnail(article);
   return (
-    <button className="relatedStoryCard" onClick={() => openArticle(article)}>
+    <a
+      className="relatedStoryCard"
+      href={articleHref(article)}
+      onClick={(event) => {
+        event.preventDefault();
+        openArticle(article);
+      }}
+    >
       <div className="relatedThumb">
         <ImageWithFallback
           src={image}
@@ -5489,7 +5538,7 @@ function RelatedStoryCard({ article, openArticle }) {
         <span>{article.source} · {formatFreshAge(article.pubDate)}</span>
         <b>{displayTitle(article)}</b>
       </div>
-    </button>
+    </a>
   );
 }
 
