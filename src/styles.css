@@ -577,6 +577,51 @@ button {
   line-height: 1.35;
 }
 
+.publicPlacementGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.publicPlacementGrid div {
+  min-width: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fbff 0%, #fff 72%);
+  padding: 12px;
+}
+
+.publicPlacementGrid span {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.publicPlacementGrid b,
+.publicPlacementGrid small {
+  display: block;
+}
+
+.publicPlacementGrid b {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.publicPlacementGrid small {
+  margin-top: 5px;
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .adminTableWrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -5777,6 +5822,7 @@ button {
   .publisherFactGrid,
   .sourceIntelligenceGrid,
   .originalTypeGrid,
+  .publicPlacementGrid,
   .transparencyGrid {
     grid-template-columns: 1fr;
   }

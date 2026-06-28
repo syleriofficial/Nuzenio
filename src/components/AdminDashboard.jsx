@@ -91,8 +91,23 @@ const seoIndexingChecklist = [
 ];
 
 const aiCategoryOptions = ['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'local'];
+const cacheRefreshCategories = ['top', 'local', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment', 'live', 'video'];
 const originalContentTypes = ['analysis', 'explainer', 'fact_check', 'opinion', 'research'];
 const editorialStatuses = ['draft', 'review', 'scheduled', 'published', 'archived'];
+const publicCategoryRoutes = {
+  ai: '/ai',
+  business: '/business',
+  entertainment: '/entertainment',
+  health: '/health',
+  live: '/live',
+  local: '/local',
+  science: '/science',
+  sports: '/sports',
+  tech: '/technology',
+  top: '/top-news',
+  video: '/video',
+  world: '/world',
+};
 
 const defaultAiSettings = {
   key: 'global',
@@ -119,6 +134,23 @@ function localDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function publicPlacementLinks(source = {}) {
+  const category = source.category || 'top';
+  const country = String(source.country || '').toUpperCase();
+  const categoryPath = publicCategoryRoutes[category] || '/top-news';
+  const links = [
+    { label: 'Home sections', href: '/' },
+    { label: `${category} page`, href: categoryPath },
+    { label: 'Latest News hub', href: '/latest-news' },
+    { label: 'RSS feed', href: `/feed.xml?category=${encodeURIComponent(category)}` },
+  ];
+  if (country && country !== 'GLOBAL') {
+    links.push({ label: `${country} edition`, href: `${categoryPath}?country=${encodeURIComponent(country)}` });
+  }
+  if (category === 'local') links.push({ label: 'Local page', href: '/local' });
+  return links;
 }
 
 export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
@@ -699,7 +731,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       return;
     }
     await updateFeedSubmissionStatus(submission, 'approved', 'Approved and added to rss_sources');
-    setNotice(`${payload.name} approved and added to RSS Source Manager.`);
+    setNotice(`${payload.name} approved and added to RSS Source Manager. Run crawler now to publish fresh items into public pages.`);
     loadAdmin();
   }
 
@@ -1231,6 +1263,37 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <AdminPanel title="Articles by country">{articlesByCountry.map(([key, count]) => <MetricRow key={key} label={key} value={count} />)}</AdminPanel>
       </section>
 
+      <AdminPanel title="Where approved RSS news appears">
+        <div className="publicPlacementGrid">
+          <div>
+            <span>1</span>
+            <b>Add or approve source</b>
+            <small>Use RSS Source Manager or Publisher Source Review. Keep the source enabled and set the correct category, country, and language.</small>
+          </div>
+          <div>
+            <span>2</span>
+            <b>Run crawler</b>
+            <small>Use Crawl on one source, or Run crawler now. The crawler stores only title, short summary, source, timestamp, image, category, country, and original link.</small>
+          </div>
+          <div>
+            <span>3</span>
+            <b>Public pages update</b>
+            <small>Articles appear on Home, category pages, country editions, Local if relevant, article pages, RSS feeds, and news sitemap.</small>
+          </div>
+          <div>
+            <span>4</span>
+            <b>Google discovery</b>
+            <small>Fresh cached stories can enter /news-sitemap.xml and category RSS feeds with publisher attribution and image metadata.</small>
+          </div>
+        </div>
+        <div className="adminToolbar">
+          <a className="primaryAction" href="/top-news">Open public Top News</a>
+          <a href="/feeds">Open feed directory</a>
+          <a href="/news-sitemap.xml">Open news sitemap</a>
+        </div>
+        <p className="adminHint">There is no separate public “admin news” page. Admin-approved sources flow into the same Nuzenio public news experience readers use.</p>
+      </AdminPanel>
+
       <AdminPanel title="RSS Source Manager">
         <form className="adminForm" onSubmit={saveSource}>
           <input value={sourceForm.name} onChange={(event) => setSourceForm({ ...sourceForm, name: event.target.value })} placeholder="Source name" required />
@@ -1256,6 +1319,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
                 <button onClick={() => updateSource(source, { enabled: !source.enabled })}>{source.enabled ? 'Disable' : 'Enable'}</button>
                 <button onClick={() => testSource(source)}>Test</button>
                 <button onClick={() => runCrawler('source', source.id)}>Crawl</button>
+                {publicPlacementLinks(source).slice(1, 3).map((link) => <a key={`${source.id}-${link.href}`} href={link.href}>{link.label}</a>)}
                 <button className="dangerAction" onClick={() => deleteRow('rss_sources', source.id, source.name)}><Trash2 size={14} /></button>
               </td>
             </tr>
@@ -1266,7 +1330,7 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
       <AdminPanel title="News Cache Manager">
         <div className="adminToolbar">
           <select value={cacheRefresh.category} onChange={(event) => setCacheRefresh({ ...cacheRefresh, category: event.target.value })}>
-            {['top', 'world', 'business', 'tech', 'ai', 'sports', 'health', 'science', 'entertainment'].map((item) => <option key={item}>{item}</option>)}
+            {cacheRefreshCategories.map((item) => <option key={item}>{item}</option>)}
           </select>
           <input value={cacheRefresh.country} onChange={(event) => setCacheRefresh({ ...cacheRefresh, country: event.target.value.toUpperCase() })} />
           <button onClick={refreshCache}><RefreshCw size={15} /> Refresh cache</button>
