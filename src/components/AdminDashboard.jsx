@@ -312,21 +312,27 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         label: `${item.category} news page`,
         detail: `${item.count} cached stories · ${freshnessLabel(item.newestHours)}`,
         href: item.href,
+        priority: Math.min(100, 70 + Math.max(0, item.newestHours === Infinity ? 24 : item.newestHours) + Math.max(0, 8 - item.count) * 2),
+        reason: item.newestHours > 24 || item.newestHours === Infinity ? 'Stale page risk' : 'Needs more fresh stories',
         type: 'Freshness',
       })),
       ...searchQueries.slice(0, 4).map(([query, count]) => ({
         label: query,
         detail: `${count} search signals · refresh matching page/topic`,
         href: `/top-news?q=${encodeURIComponent(query)}`,
+        priority: Math.min(100, 55 + Number(count || 0) * 8),
+        reason: 'Reader search demand',
         type: 'Keyword',
       })),
       ...topPages.slice(0, 3).map(([page, count]) => ({
         label: page.replace(/^https?:\/\/[^/]+/i, '') || '/',
         detail: `${count} visits · add links to weak pages`,
         href: page.startsWith('http') ? page : page,
+        priority: Math.min(100, 40 + Number(count || 0) * 5),
+        reason: 'Internal-link leverage',
         type: 'Internal links',
       })),
-    ].slice(0, 10);
+    ].sort((a, b) => b.priority - a.priority).slice(0, 10);
     return { actions, categories, growthQueue, sourcePerformance, strongCategories, weakCategories };
   }, [analytics, cacheRows, crawlLogs, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
@@ -1212,8 +1218,8 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
             {trafficCommand.growthQueue.length ? trafficCommand.growthQueue.map((item) => (
               <a className="growthQueueRow" href={item.href} key={`${item.type}-${item.label}`}>
                 <span>{item.type}</span>
-                <b>{item.label}</b>
-                <small>{item.detail}</small>
+                <b>{item.label}<em>{item.priority}</em></b>
+                <small>{item.reason} · {item.detail}</small>
               </a>
             )) : <p className="adminHint">Growth queue appears after cache, search, and page-view signals are available.</p>}
           </div>
