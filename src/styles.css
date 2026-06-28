@@ -622,6 +622,123 @@ button {
   line-height: 1.35;
 }
 
+.trafficCommandHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.trafficCommandHeader span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.trafficCommandHeader h3 {
+  margin: 8px 0 5px;
+  color: #0f172a;
+  font-size: 26px;
+  line-height: 1.12;
+}
+
+.trafficCommandHeader p {
+  margin: 0;
+  color: #64748b;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.trafficScoreCard {
+  display: grid;
+  place-items: center;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  padding: 14px;
+}
+
+.trafficScoreCard b {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.trafficScoreCard small {
+  color: #166534;
+  font-weight: 950;
+}
+
+.trafficCommandGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trafficCommandBlock {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.trafficCommandBlock h4 {
+  margin: 0 0 10px;
+}
+
+.trafficAction,
+.trafficPageRow,
+.sourcePerformanceRow {
+  display: block;
+  border-top: 1px solid #eef2f7;
+  padding: 9px 0;
+  text-decoration: none;
+}
+
+.trafficAction:first-of-type,
+.trafficPageRow:first-of-type,
+.sourcePerformanceRow:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.trafficAction span,
+.trafficPageRow span,
+.sourcePerformanceRow span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.trafficAction b,
+.trafficPageRow b,
+.sourcePerformanceRow b {
+  display: block;
+  margin-top: 2px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.trafficPageRow.good b {
+  color: #166534;
+}
+
+.trafficPageRow.warn b {
+  color: #92400e;
+}
+
+.trafficPageRow.danger b {
+  color: var(--red);
+}
+
 .adminTableWrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -5780,6 +5897,8 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .trafficCommandHeader,
+  .trafficCommandGrid,
   .intelligenceHero,
   .discoverReadinessPanel,
   .originalJournalismPanel,

@@ -153,6 +153,27 @@ function publicPlacementLinks(source = {}) {
   return links;
 }
 
+function hoursSince(value) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return Infinity;
+  return Math.max(0, Math.round((Date.now() - time) / 36e5));
+}
+
+function freshnessLabel(hours) {
+  if (!Number.isFinite(hours)) return 'No cache';
+  if (hours <= 2) return `${hours}h fresh`;
+  if (hours <= 12) return `${hours}h ok`;
+  if (hours <= 24) return `${hours}h aging`;
+  return `${hours}h stale`;
+}
+
+function freshnessStatus(hours) {
+  if (!Number.isFinite(hours)) return 'danger';
+  if (hours <= 6) return 'good';
+  if (hours <= 24) return 'warn';
+  return 'danger';
+}
+
 export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -236,6 +257,58 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
     return impressions ? `${((clicks / impressions) * 100).toFixed(2)}%` : 'Connect GSC';
   }, [analytics]);
   const sourceCoverage = useMemo(() => topEntries(groupCount(cacheRows, 'source'), 12), [cacheRows]);
+  const trafficCommand = useMemo(() => {
+    const categories = cacheRefreshCategories.map((category) => {
+      const rows = cacheRows.filter((article) => article.category === category);
+      const newestHours = rows.length ? Math.min(...rows.map((article) => hoursSince(article.published_at))) : Infinity;
+      const pageViews = analytics.filter((event) => {
+        const page = String(event.metadata?.page_location || '');
+        return page.includes(publicCategoryRoutes[category] || `/${category}`);
+      }).length;
+      return {
+        category,
+        href: publicCategoryRoutes[category] || '/top-news',
+        count: rows.length,
+        newestHours,
+        pageViews,
+        status: freshnessStatus(newestHours),
+      };
+    });
+    const weakCategories = categories
+      .filter((item) => item.count < 8 || item.newestHours > 12)
+      .sort((a, b) => (b.newestHours - a.newestHours) || (a.count - b.count))
+      .slice(0, 8);
+    const strongCategories = [...categories]
+      .filter((item) => item.count)
+      .sort((a, b) => b.pageViews - a.pageViews || a.newestHours - b.newestHours)
+      .slice(0, 6);
+    const sourcePerformance = sources
+      .map((source) => {
+        const logsForSource = crawlLogs.filter((log) => log.source_id === source.id);
+        const inserted = logsForSource.reduce((sum, log) => sum + Number(log.inserted_count || 0), 0);
+        const duplicates = logsForSource.reduce((sum, log) => sum + Number(log.duplicate_count || 0), 0);
+        const newestLog = logsForSource[0];
+        return {
+          id: source.id,
+          name: source.name,
+          category: source.category || 'top',
+          health: source.health_status || (source.enabled ? 'enabled' : 'disabled'),
+          inserted,
+          duplicates,
+          lastCrawl: newestLog?.created_at || source.last_crawled_at,
+        };
+      })
+      .sort((a, b) => b.inserted - a.inserted || hoursSince(a.lastCrawl) - hoursSince(b.lastCrawl))
+      .slice(0, 8);
+    const actions = [
+      weakCategories.length ? `Refresh weak categories: ${weakCategories.slice(0, 3).map((item) => item.category).join(', ')}` : 'Keep all core categories fresh today',
+      sourcePerformance.some((item) => item.health !== 'healthy' && item.health !== 'enabled') ? 'Review unhealthy RSS sources' : 'Add 3-5 more approved publisher RSS sources',
+      searchQueries.length ? `Create/refresh pages for: ${searchQueries.slice(0, 3).map(([query]) => query).join(', ')}` : 'Connect Search Console query exports when available',
+      topPages.length ? 'Improve internal links from top traffic pages to weak categories' : 'Drive first analytics events from homepage and category pages',
+      'Check /news-sitemap.xml after every crawler run',
+    ];
+    return { actions, categories, sourcePerformance, strongCategories, weakCategories };
+  }, [analytics, cacheRows, crawlLogs, searchQueries, sources, topPages]);
   const originalByStatus = useMemo(() => topEntries(groupCount(originalArticles, 'status'), 8), [originalArticles]);
   const originalByType = useMemo(() => topEntries(groupCount(originalArticles, 'content_type'), 8), [originalArticles]);
   const mostFollowedTopics = useMemo(() => topEntries(groupCount(followSignals.topics, 'topic'), 8), [followSignals]);
@@ -1062,6 +1135,67 @@ export default function AdminDashboard({ supabase, user, onBack, onLogin, onLogo
         <StatCard icon={Globe2} label="Publishers" value={overview.publisherCount || 0} />
         <StatCard icon={Activity} label="Recent errors" value={logs.filter((log) => log.status === 'error').length} />
       </section>
+
+      <AdminPanel title="Nuzenio Traffic Command Center">
+        <div className="trafficCommandHeader">
+          <div>
+            <span><BarChart3 size={15} /> Million-views growth control</span>
+            <h3>What to improve today</h3>
+            <p>Uses live cache, analytics events, RSS source health, crawl logs, and search signals. No fake traffic numbers are shown.</p>
+          </div>
+          <div className="trafficScoreCard">
+            <b>{trafficCommand.categories.filter((item) => item.status === 'good').length}/{trafficCommand.categories.length}</b>
+            <small>fresh categories</small>
+          </div>
+        </div>
+        <div className="trafficCommandGrid">
+          <div className="trafficCommandBlock">
+            <h4>Daily action checklist</h4>
+            {trafficCommand.actions.map((action) => (
+              <div className="trafficAction" key={action}><span>Next</span><b>{action}</b></div>
+            ))}
+          </div>
+          <div className="trafficCommandBlock">
+            <h4>Weak pages needing fresh news</h4>
+            {trafficCommand.weakCategories.length ? trafficCommand.weakCategories.map((item) => (
+              <a className={`trafficPageRow ${item.status}`} href={item.href} key={item.category}>
+                <span>{item.category}</span>
+                <b>{item.count} cached · {freshnessLabel(item.newestHours)}</b>
+              </a>
+            )) : <p className="adminHint">All tracked categories have fresh cached stories.</p>}
+          </div>
+          <div className="trafficCommandBlock">
+            <h4>Top traffic pages</h4>
+            {topPages.length ? topPages.slice(0, 6).map(([page, count]) => (
+              <MetricRow key={page} label={page.replace(/^https?:\/\/[^/]+/i, '')} value={count} />
+            )) : <p className="adminHint">Page-view analytics will appear after visitors load public pages.</p>}
+          </div>
+          <div className="trafficCommandBlock">
+            <h4>Search queries</h4>
+            {searchQueries.length ? searchQueries.slice(0, 6).map(([query, count]) => (
+              <MetricRow key={query} label={query} value={count} />
+            )) : <p className="adminHint">Search events and GSC imports will show keyword opportunities here.</p>}
+          </div>
+          <div className="trafficCommandBlock">
+            <h4>RSS source performance</h4>
+            {trafficCommand.sourcePerformance.length ? trafficCommand.sourcePerformance.map((source) => (
+              <div className="sourcePerformanceRow" key={source.id}>
+                <b>{source.name}</b>
+                <span>{source.category} · {source.health} · {source.inserted} new · {source.duplicates} dupes</span>
+              </div>
+            )) : <p className="adminHint">Run the crawler to measure source performance.</p>}
+          </div>
+          <div className="trafficCommandBlock">
+            <h4>Strong pages to link from</h4>
+            {trafficCommand.strongCategories.length ? trafficCommand.strongCategories.map((item) => (
+              <a className="trafficPageRow good" href={item.href} key={item.category}>
+                <span>{item.category}</span>
+                <b>{item.pageViews} views · {freshnessLabel(item.newestHours)}</b>
+              </a>
+            )) : <p className="adminHint">Strong page signals appear after traffic and fresh cache data grow.</p>}
+          </div>
+        </div>
+      </AdminPanel>
 
       <section className="adminGrid twoColumn">
         <AdminPanel title="RSS Crawling Engine">
