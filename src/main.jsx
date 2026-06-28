@@ -5609,7 +5609,7 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   if (intelligenceRoute?.type === 'country') return `${intelligenceRoute.label} News Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'topic') return `${intelligenceRoute.label} Topic Intelligence | Nuzenio`;
   if (intelligenceRoute?.type === 'hub') return `${intelligenceRoute.label} | Nuzenio`;
-  if (intelligenceRoute?.type === 'landing') return `${intelligenceRoute.label} | Nuzenio`;
+  if (intelligenceRoute?.type === 'landing') return landingSeoTitle(intelligenceRoute);
   if (intelligenceRoute?.type === 'data') {
     const ecosystemTitles = {
       ecosystem: 'Global News Ecosystem, Research, Data & Intelligence | Nuzenio',
@@ -5640,6 +5640,31 @@ function pageSeoTitle({ category, intelligenceRoute, isRootHome, location, langu
   return `${sectionTitle} for ${place} | Nuzenio`;
 }
 
+function landingSeoTitle(route) {
+  const titles = {
+    'latest-news': 'Latest News Today - Live Headlines & Top Stories | Nuzenio',
+    'breaking-news': 'Breaking News Live - Developing Stories & Updates | Nuzenio',
+    'local-news': 'Local News Today - Nearby Headlines by Location | Nuzenio',
+    'world-news': 'World News Today - Global Headlines & International Updates | Nuzenio',
+    'technology-news': 'Technology News Today - AI, Gadgets, Startups & Platforms | Nuzenio',
+    'business-news': 'Business News Today - Economy, Companies & Markets | Nuzenio',
+    'finance-news': 'Finance News Today - Markets, Banking & Economy | Nuzenio',
+    'market-news': 'Market News Today - Stocks, Bonds, Earnings & Commodities | Nuzenio',
+    'sports-news': 'Sports News Today - Scores, Matches & Highlights | Nuzenio',
+    'entertainment-news': 'Entertainment News Today - Movies, Streaming & Culture | Nuzenio',
+    'ai-news': 'AI News Today - Artificial Intelligence, Chips & Models | Nuzenio',
+    'startup-news': 'Startup News Today - Funding, Founders & Venture Capital | Nuzenio',
+    'science-news': 'Science News Today - Research, Discoveries & Innovation | Nuzenio',
+    'space-news': 'Space News Today - NASA, Rockets, Satellites & Astronomy | Nuzenio',
+    'climate-news': 'Climate News Today - Weather, Energy & Environment | Nuzenio',
+    'health-news': 'Health News Today - Medicine, Wellness & Public Health | Nuzenio',
+    'live-news': 'Live News Channels - Watch Source-Attributed News Streams | Nuzenio',
+    'video-news': 'Video News Today - Reports, Interviews & Explainers | Nuzenio',
+    'politics-news': 'Politics News Today - Elections, Government & Policy | Nuzenio',
+  };
+  return titles[route.slug] || `${route.label} Today - Live Headlines & Updates | Nuzenio`;
+}
+
 function pageSeoDescription({ category, intelligenceRoute, isRootHome, location, language, articles = [], searchTerm }) {
   if (searchTerm) {
     const place = pageSeoPlace(category, location);
@@ -5659,7 +5684,7 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
     return `${intelligenceRoute.label} on Nuzenio: evergreen topic intelligence, live RSS updates, related entities, internal links, source clusters, timestamps, and E-E-A-T signals.`;
   }
   if (intelligenceRoute?.type === 'landing') {
-    return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent} Includes source attribution, update timestamps, related stories, and Discover-ready mobile reading.`;
+    return landingSeoDescription(intelligenceRoute);
   }
   if (intelligenceRoute?.type === 'data') {
     return `${intelligenceRoute.label} on Nuzenio: ${intelligenceRoute.intent || 'Enterprise-grade news data platform with public API v1, knowledge graph, story graph, entity relationships, trend detection, and API-management foundation.'}`;
@@ -5695,6 +5720,31 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
   return `${action} ${sectionTitle} for ${place} on Nuzenio with live RSS news, AI summaries, source attribution, video news, and live news in ${nativeLanguage}.`;
 }
 
+function landingSeoDescription(route) {
+  const descriptions = {
+    'latest-news': 'Read the latest news today on Nuzenio with live publisher-sourced headlines, breaking updates, source attribution, timestamps, and fast mobile reading.',
+    'breaking-news': 'Follow breaking news live on Nuzenio with developing stories, source-attributed updates, fast alerts, related coverage, and original publisher links.',
+    'local-news': 'Get local news by location on Nuzenio with nearby headlines, city and region updates, manual location control, source attribution, and fresh RSS coverage.',
+    'world-news': 'Read world news today on Nuzenio with international headlines, diplomacy, conflicts, global policy, source attribution, and fresh publisher updates.',
+    'technology-news': 'Track technology news on Nuzenio across AI, gadgets, startups, chips, apps, platforms, policy, research, and source-attributed publisher coverage.',
+    'business-news': 'Read business news today on Nuzenio with economy, companies, jobs, policy, markets, source attribution, and fresh publisher-sourced updates.',
+    'finance-news': 'Follow finance news today on Nuzenio with markets, banking, investing, inflation, economy, companies, timestamps, and original publisher links.',
+    'market-news': 'Track market news on Nuzenio with stocks, bonds, commodities, currencies, earnings, investors, source attribution, and fresh market headlines.',
+    'sports-news': 'Read sports news today on Nuzenio with match updates, leagues, teams, highlights, source-attributed headlines, and fast mobile reading.',
+    'entertainment-news': 'Follow entertainment news on Nuzenio with movies, streaming, music, celebrity, television, culture, source attribution, and fresh publisher updates.',
+    'ai-news': 'Track AI news today on Nuzenio with artificial intelligence models, chips, startups, policy, research, companies, source attribution, and context.',
+    'startup-news': 'Read startup news on Nuzenio with funding, founders, venture capital, IPOs, product launches, technology companies, and publisher-sourced coverage.',
+    'science-news': 'Read science news today on Nuzenio with research, discoveries, space, climate, health science, innovation, source attribution, and fresh updates.',
+    'space-news': 'Follow space news on Nuzenio with NASA, rockets, satellites, moon and Mars missions, astronomy, launches, source attribution, and fresh updates.',
+    'climate-news': 'Read climate news on Nuzenio with weather extremes, emissions, energy transition, environment policy, science, source attribution, and fresh updates.',
+    'health-news': 'Read health news today on Nuzenio with medicine, public health, wellness, hospitals, research, source attribution, and fresh publisher coverage.',
+    'live-news': 'Watch live news channels on Nuzenio with source-attributed streams, language-aware discovery, fast playback, and clear publisher links.',
+    'video-news': 'Watch video news on Nuzenio with recorded reports, interviews, explainers, publisher attribution, thumbnails, and original source links.',
+    'politics-news': 'Read politics news today on Nuzenio with elections, government, policy, diplomacy, legislatures, public affairs, source attribution, and updates.',
+  };
+  return descriptions[route.slug] || `${route.label} on Nuzenio: ${route.intent} Includes source attribution, timestamps, related stories, and Discover-ready mobile reading.`;
+}
+
 function pageJsonLd(url, { context, description, image, title }) {
   const sectionTitle = context.searchTerm
     ? `Search results for ${context.searchTerm}`
@@ -5717,6 +5767,8 @@ function pageJsonLd(url, { context, description, image, title }) {
   };
   const websiteId = `${productionOrigin}/#website`;
   const organizationId = `${productionOrigin}/#organization`;
+  const relatedLandingLinks = relatedSeoLandingLinks(context);
+  const pageKeywords = pageSeoKeywords(context);
 
   return {
     '@context': 'https://schema.org',
@@ -5749,12 +5801,18 @@ function pageJsonLd(url, { context, description, image, title }) {
         name: title,
         description,
         image,
+        headline: title,
+        mainEntityOfPage: url,
         isPartOf: { '@id': websiteId },
         publisher: { '@id': organizationId },
         inLanguage: context.language.code,
+        isAccessibleForFree: true,
+        keywords: pageKeywords,
         about: isLocalPage ? localPlace : sectionTitle,
+        mentions: pageKeywords.map((name) => ({ '@type': 'Thing', name })),
         spatialCoverage: localPlace,
         contentLocation: isLocalPage ? localPlace : undefined,
+        hasPart: relatedLandingLinks,
         audience: isLocalPage ? {
           '@type': 'Audience',
           audienceType: 'Local news readers',
@@ -5766,6 +5824,46 @@ function pageJsonLd(url, { context, description, image, title }) {
       breadcrumbSchema(context, url, title),
     ],
   };
+}
+
+function pageSeoKeywords(context) {
+  const route = context.intelligenceRoute;
+  if (route?.type === 'landing') {
+    const base = [
+      route.label,
+      route.category ? `${route.category} news` : 'news',
+      'latest news',
+      'breaking news',
+      'live headlines',
+      'publisher sourced news',
+      'source attribution',
+    ];
+    if (route.query) base.push(...route.query.split(/\s+/).filter((item) => item.length > 3).slice(0, 8));
+    return [...new Set(base)];
+  }
+  if (context.searchTerm) return [context.searchTerm, `${context.category || 'top'} news`, pageSeoPlace(context.category, context.location)];
+  return [
+    sectionContent(context.category, uiCopy(context.language.code), context.location).title,
+    `${context.category || 'top'} news`,
+    pageSeoPlace(context.category, context.location),
+    'Nuzenio',
+  ];
+}
+
+function relatedSeoLandingLinks(context) {
+  const route = context.intelligenceRoute;
+  const currentSlug = route?.slug;
+  const category = route?.category || context.category || 'top';
+  return seoLandingPages
+    .filter((page) => page.slug !== currentSlug)
+    .filter((page) => page.category === category || ['latest-news', 'breaking-news', 'world-news'].includes(page.slug))
+    .slice(0, 6)
+    .map((page) => ({
+      '@type': 'WebPage',
+      name: page.label,
+      url: `${productionOrigin}/${page.slug}`,
+      description: page.intent,
+    }));
 }
 
 function articleJsonLd(article, url, { context, description, image, title }) {
