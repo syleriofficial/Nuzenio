@@ -2687,6 +2687,20 @@ function WhyNuzenioPanel({ location }) {
       text: 'Publisher attribution, timestamps, original links, and correction routes remain visible.',
     },
   ];
+  const promises = [
+    {
+      question: 'Why should readers use Nuzenio?',
+      answer: 'Clean headlines, local relevance, live/video coverage, AI summaries, and visible source attribution in one fast news experience.',
+    },
+    {
+      question: 'Does Nuzenio copy full publisher articles?',
+      answer: 'No. Nuzenio shows titles, short summaries, timestamps, source names, and original publisher links.',
+    },
+    {
+      question: 'How does Nuzenio use AI?',
+      answer: 'AI helps with summaries, key facts, simple explanations, and why-it-matters context while source links stay visible.',
+    },
+  ];
 
   return (
     <section className="whyNuzenioPanel" aria-label="Why readers choose Nuzenio">
@@ -2704,6 +2718,14 @@ function WhyNuzenioPanel({ location }) {
               <span>{text}</span>
             </div>
           </div>
+        ))}
+      </div>
+      <div className="readerPromiseList" aria-label="Nuzenio reader promise">
+        {promises.map(({ answer, question }) => (
+          <details key={question}>
+            <summary>{question}</summary>
+            <p>{answer}</p>
+          </details>
         ))}
       </div>
     </section>

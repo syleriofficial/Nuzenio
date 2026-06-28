@@ -2344,6 +2344,36 @@ button {
   line-height: 1.4;
 }
 
+.readerPromiseList {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.readerPromiseList details {
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 11px 12px;
+}
+
+.readerPromiseList summary {
+  cursor: pointer;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 950;
+  list-style-position: outside;
+}
+
+.readerPromiseList p {
+  margin: 8px 0 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .newsBriefingPanel {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr) auto;
@@ -6514,6 +6544,10 @@ textarea:focus-visible {
   }
 
   .whyNuzenioGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .readerPromiseList {
     grid-template-columns: 1fr;
   }
 }
