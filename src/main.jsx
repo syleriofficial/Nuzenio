@@ -2317,7 +2317,7 @@ function SearchIntelligencePanel({ articles = [], searchTerm }) {
       <div className="searchSignalGrid">
         <div>
           <b>Topics</b>
-          {topics.map((topic) => <a key={topic.label} href={`/entity/${slugifyTitle(topic.label)}`}>{topic.label}</a>)}
+          {topics.map((topic) => <a key={topic.label} href={`/top-news?q=${encodeURIComponent(topic.label)}`}>{topic.label}</a>)}
         </div>
         <div>
           <b>Entities</b>
@@ -3083,14 +3083,14 @@ function IntelligencePage({
 
         <div className="intelligenceLinkBar">
           {intelligenceCountries.slice(0, 10).map((country) => (
-            <a key={country.slug} className={route.type === 'country' && route.slug === country.slug ? 'active' : ''} href={`/country/${country.slug}`}>
+            <a key={country.slug} className={route.type === 'country' && route.slug === country.slug ? 'active' : ''} href={`/top-news?country=${encodeURIComponent(country.code)}`}>
               {country.label}
             </a>
           ))}
         </div>
         <div className="intelligenceLinkBar topicLinks">
           {topicIntelligence.map((topic) => (
-            <a key={topic.slug} className={route.type === 'topic' && route.slug === topic.slug ? 'active' : ''} href={`/topic/${topic.slug}`}>
+            <a key={topic.slug} className={route.type === 'topic' && route.slug === topic.slug ? 'active' : ''} href={liveTopicHref(topic)}>
               {topic.label}
             </a>
           ))}
@@ -3251,7 +3251,7 @@ function buildIntelligenceSections(route, articles, homeSectionFeeds = {}) {
 
   if (route.type === 'country') {
     return [
-      { key: 'top', title: 'Top headlines', intro: 'The most important stories right now.', articles: articles.slice(0, 6), href: `/country/${route.slug}` },
+      { key: 'top', title: 'Top headlines', intro: 'The most important stories right now.', articles: articles.slice(0, 6), href: `/top-news?country=${encodeURIComponent(route.country || 'US')}` },
       { key: 'politics', title: 'Politics', intro: 'Government, policy, elections, courts, and public affairs.', articles: filterByKeywords(articles, ['government', 'election', 'minister', 'policy', 'court', 'president', 'parliament']).slice(0, 6) },
       { key: 'business', title: 'Business', intro: 'Companies, economy, markets, and money.', articles: (homeSectionFeeds.business || filterByKeywords(articles, ['business', 'market', 'stock', 'economy', 'bank'])).slice(0, 6), href: '/business' },
       { key: 'tech', title: 'Technology', intro: 'Technology, AI, startups, chips, apps, and platforms.', articles: (homeSectionFeeds.aiTech || filterByKeywords(articles, ['technology', 'ai', 'startup', 'chip', 'software'])).slice(0, 6), href: '/technology' },
@@ -3337,7 +3337,7 @@ function extractEntities(articles = []) {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([label, count]) => ({
     label,
     count,
-    href: `/entity/${slugifyTitle(label)}`,
+    href: `/top-news?q=${encodeURIComponent(label)}`,
   }));
 }
 
@@ -3347,7 +3347,7 @@ function relatedCountryLinks(route, articles = []) {
     .filter((country) => route.type !== 'country' || country.slug !== route.slug)
     .filter((country) => articleCountries.size === 0 || articleCountries.has(country.code) || ['US', 'GB', 'IN'].includes(country.code))
     .slice(0, 6)
-    .map((country) => ({ label: country.label, href: `/country/${country.slug}` }));
+    .map((country) => ({ label: country.label, href: `/top-news?country=${encodeURIComponent(country.code)}` }));
 }
 
 function relatedTopicLinks(route, articles = []) {
@@ -3356,7 +3356,24 @@ function relatedTopicLinks(route, articles = []) {
     .filter((topic) => route.type !== 'topic' || topic.slug !== route.slug)
     .filter((topic) => text.includes(topic.slug) || text.includes(topic.label.toLowerCase()) || ['ai', 'economy', 'markets', 'science'].includes(topic.slug))
     .slice(0, 8)
-    .map((topic) => ({ label: topic.label, href: `/topic/${topic.slug}` }));
+    .map((topic) => ({ label: topic.label, href: liveTopicHref(topic) }));
+}
+
+function liveTopicHref(topic) {
+  const direct = {
+    ai: '/ai-news',
+    economy: '/business-news',
+    markets: '/market-news',
+    climate: '/climate-news',
+    energy: '/business-news',
+    space: '/space-news',
+    science: '/science-news',
+    startups: '/startup-news',
+  };
+  if (direct[topic.slug]) return direct[topic.slug];
+  const landing = seoLandingPages.find((page) => page.category === topic.category);
+  if (landing) return `/${landing.slug}`;
+  return `/top-news?q=${encodeURIComponent(topic.query || topic.label)}`;
 }
 
 function TrendSignalPanel({ trends, openArticle }) {
@@ -3713,7 +3730,7 @@ function NewsArchivePanel({ articles = [] }) {
         <button className="primaryAction">Search archive</button>
       </form>
       <div className="archiveSignalGrid">
-        <div><b>Topic archive</b>{topics.map((topic) => <a key={topic.label} href={`/entity/${slugifyTitle(topic.label)}`}>{topic.label}</a>)}</div>
+        <div><b>Topic archive</b>{topics.map((topic) => <a key={topic.label} href={`/top-news?q=${encodeURIComponent(topic.label)}`}>{topic.label}</a>)}</div>
         <div><b>Publisher archive</b>{sources.map((source) => <span key={source.source}>{source.source}</span>)}</div>
         <div><b>Timeline archive</b>{articles.slice(0, 5).map((article) => <span key={article.id}>{formatFreshAge(article.pubDate)} · {article.source}</span>)}</div>
       </div>
@@ -4169,9 +4186,9 @@ function EditorialTransparencyPanel({ route, articles = [] }) {
 function InternalLinkGraph({ entities, relatedCountries, relatedTopics, topics }) {
   return (
     <section className="internalLinkGraph">
-      <LinkCluster title="Trending topics" items={topics.map((topic) => ({ label: `${topic.label} (${topic.count})`, href: `/entity/${slugifyTitle(topic.label)}` }))} />
+      <LinkCluster title="Trending topics" items={topics.map((topic) => ({ label: `${topic.label} (${topic.count})`, href: `/top-news?q=${encodeURIComponent(topic.label)}` }))} />
       <LinkCluster title="Related countries" items={relatedCountries} />
-      <LinkCluster title="Related entities" items={entities} />
+      <LinkCluster title="Related entities" items={entities.map((entity) => ({ ...entity, href: `/top-news?q=${encodeURIComponent(entity.label)}` }))} />
       <LinkCluster title="Related intelligence topics" items={relatedTopics} />
     </section>
   );
@@ -4198,11 +4215,11 @@ function SeoGrowthPanel({ route, articles = [] }) {
     .map((page) => ({ label: page.label, href: `/${page.slug}` }));
   const countryPages = intelligenceCountries
     .slice(0, 6)
-    .map((country) => ({ label: `${country.label} news`, href: `/country/${country.slug}` }));
+    .map((country) => ({ label: `${country.label} news`, href: `/top-news?country=${encodeURIComponent(country.code)}` }));
   const topicPages = topicIntelligence
     .filter((topic) => topic.category === route.category || ['ai', 'economy', 'markets', 'science'].includes(topic.slug))
     .slice(0, 8)
-    .map((topic) => ({ label: `${topic.label} updates`, href: `/topic/${topic.slug}` }));
+    .map((topic) => ({ label: `${topic.label} updates`, href: liveTopicHref(topic) }));
   const localPages = featuredLocalEditions
     .slice(0, 8)
     .map((edition) => ({ label: edition.label, href: edition.href }));
@@ -5834,6 +5851,7 @@ function siteNavigationSchema() {
     ['Science News', '/science'],
     ['Live News', '/live'],
     ['Video News', '/video'],
+    ...seoLandingPages.map((page) => [page.label, `/${page.slug}`]),
   ].map(([name, path]) => ({
     '@type': 'SiteNavigationElement',
     name,
