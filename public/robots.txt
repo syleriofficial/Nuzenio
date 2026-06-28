@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin
+Disallow: /login
 
 Sitemap: https://nuzenio.com/sitemap.xml
 Sitemap: https://nuzenio.com/sitemap-index.xml
