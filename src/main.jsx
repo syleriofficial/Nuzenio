@@ -5870,8 +5870,46 @@ function pageJsonLd(url, { context, description, image, title }) {
       },
       itemListSchema(context.articles || [], context),
       breadcrumbSchema(context, url, title),
+      ...readerPromiseSchema(context),
     ],
   };
+}
+
+function readerPromiseSchema(context) {
+  if (!context.isRootHome && context.intelligenceRoute?.type !== 'landing') return [];
+  return [
+    {
+      '@type': 'FAQPage',
+      '@id': `${productionUrl(contextUrlForSeo(context))}#why-nuzenio`,
+      name: 'Why readers choose Nuzenio',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Why should readers use Nuzenio?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Nuzenio combines clean headlines, local relevance, live and video coverage, AI summaries, and visible source attribution in one fast news experience.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Does Nuzenio copy full publisher articles?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. Nuzenio shows publisher-sourced titles, short summaries, timestamps, source names, and original publisher links while keeping full article rights with the original publisher.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How does Nuzenio use AI?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Nuzenio uses AI as a reading aid for short summaries, key facts, simple explanations, and why-it-matters context, while keeping source links visible and separate from AI context.',
+          },
+        },
+      ],
+    },
+  ];
 }
 
 function pageSeoKeywords(context) {
