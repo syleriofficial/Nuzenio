@@ -1567,7 +1567,6 @@ function App() {
       {!analyticsConsent && (
         <AnalyticsConsentBanner onAccept={() => chooseAnalyticsConsent('granted')} onDecline={() => chooseAnalyticsConsent('denied')} />
       )}
-      <PWAInstallPrompt />
       <AdSlot slots={adSlots} name="footer-banner" label="Footer advertising inventory" />
       <Footer
         copy={copy}
@@ -1655,7 +1654,6 @@ function LoginPage({
               Supabase env missing. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, or `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
             </p>
           )}
-          {authNotice && <div className="authNotice inline">{authNotice}</div>}
         </div>
 
         <div className="accountCard">
@@ -1748,56 +1746,6 @@ function AnalyticsConsentBanner({ onAccept, onDecline }) {
   );
 }
 
-function PWAInstallPrompt() {
-  const [installEvent, setInstallEvent] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(() => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone);
-  const [dismissed, setDismissed] = useState(() => readLocal('nuzenio_install_prompt_dismissed', false));
-
-  useEffect(() => {
-    function handlePrompt(event) {
-      event.preventDefault();
-      setInstallEvent(event);
-    }
-    function handleInstalled() {
-      setIsInstalled(true);
-      setInstallEvent(null);
-    }
-    window.addEventListener('beforeinstallprompt', handlePrompt);
-    window.addEventListener('appinstalled', handleInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handlePrompt);
-      window.removeEventListener('appinstalled', handleInstalled);
-    };
-  }, []);
-
-  async function installApp() {
-    if (!installEvent) return;
-    installEvent.prompt();
-    await installEvent.userChoice.catch(() => null);
-    setInstallEvent(null);
-    setDismissed(true);
-    writeLocal('nuzenio_install_prompt_dismissed', true);
-  }
-
-  function dismiss() {
-    setDismissed(true);
-    writeLocal('nuzenio_install_prompt_dismissed', true);
-  }
-
-  if (isInstalled || dismissed || !installEvent) return null;
-
-  return (
-    <div className="installPrompt" role="dialog" aria-label="Install Nuzenio app">
-      <div>
-        <b>Install Nuzenio</b>
-        <span>Faster launch, offline shell, and mobile app navigation.</span>
-      </div>
-      <button className="primaryAction" onClick={installApp}>Install</button>
-      <button onClick={dismiss} aria-label="Dismiss install prompt">Later</button>
-    </div>
-  );
-}
-
 function Header({
   authNotice,
   breakingArticles,
@@ -1883,18 +1831,12 @@ function Header({
             Admin
           </button>
         )}
-        {user ? (
+        {user && (
           <button className="loginBtn" onClick={logout}>
             <LogOut size={17} /> {copy.logout}
           </button>
-        ) : (
-          <button className="loginBtn" onClick={navigateLogin}>
-            <LogIn size={17} /> {copy.login}
-          </button>
         )}
       </div>
-
-      {authNotice && <div className="authNotice">{authNotice}</div>}
 
       <nav className="nav" aria-label="Primary navigation">
         <a

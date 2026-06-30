@@ -86,7 +86,6 @@ export function Newsletter({ copy, language, location }) {
 }
 
 export function RetentionPanel({ location, supabase, user }) {
-  const [notificationPermission, setNotificationPermission] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
   const [preferences, setPreferences] = useState({
     preferred_country: location.country || 'US',
     preferred_categories: DEFAULT_CATEGORIES,
@@ -151,25 +150,6 @@ export function RetentionPanel({ location, supabase, user }) {
     });
   }
 
-  async function requestNotificationPermission() {
-    if (typeof Notification === 'undefined') {
-      setNotificationPermission('unsupported');
-      return;
-    }
-    const nextPermission = await Notification.requestPermission();
-    setNotificationPermission(nextPermission);
-    if (nextPermission === 'granted') {
-      setPreferences((current) => ({
-        ...current,
-        push_notifications: true,
-        breaking_alerts: true,
-      }));
-      trackEvent('notification_permission', { status: 'granted' });
-    } else {
-      trackEvent('notification_permission', { status: nextPermission });
-    }
-  }
-
   return (
     <div className="railCard retentionPanel">
       <h3>
@@ -208,27 +188,8 @@ export function RetentionPanel({ location, supabase, user }) {
           checked={preferences.email_notifications}
           onChange={(event) => setPreferences({ ...preferences, email_notifications: event.target.checked, marketing_consent: event.target.checked })}
         />
-        <span>Email notification ready</span>
+        <span>Email digest ready</span>
       </label>
-      <label className="consentCheck">
-        <input
-          type="checkbox"
-          checked={preferences.push_notifications}
-          onChange={(event) => setPreferences({ ...preferences, push_notifications: event.target.checked })}
-        />
-        <span>Future push notifications</span>
-      </label>
-      <label className="consentCheck">
-        <input
-          type="checkbox"
-          checked={preferences.breaking_alerts}
-          onChange={(event) => setPreferences({ ...preferences, breaking_alerts: event.target.checked })}
-        />
-        <span>Breaking news alerts</span>
-      </label>
-      <button type="button" onClick={requestNotificationPermission} disabled={notificationPermission === 'granted' || notificationPermission === 'unsupported'}>
-        {notificationPermission === 'granted' ? 'Notifications allowed' : notificationPermission === 'unsupported' ? 'Notifications unsupported' : 'Enable notifications'}
-      </button>
       <button onClick={savePreferences}>Save preferences</button>
       <small>{user ? 'Stored privately in your Nuzenio account.' : 'Login required to sync preferences.'}</small>
       {message && <small>{message}</small>}

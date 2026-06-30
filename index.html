@@ -32,7 +32,6 @@
   <link rel="icon" type="image/svg+xml" href="/icon.svg"/>
   <link rel="apple-touch-icon" href="/icon-192.png"/>
   <link rel="mask-icon" href="/icon.svg" color="#2563eb"/>
-  <link rel="manifest" href="/site.webmanifest"/>
   <link rel="preload" as="image" href="/logo.svg" type="image/svg+xml"/>
   <link rel="preconnect" href="https://www.google.com">
   <link rel="dns-prefetch" href="https://www.google.com">
@@ -197,9 +196,9 @@
   <script type="module" src="/src/main.jsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
+      navigator.serviceWorker.getRegistrations()
+        .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+        .catch(() => {});
     }
   </script>
 </body>
