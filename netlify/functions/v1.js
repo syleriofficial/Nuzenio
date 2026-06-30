@@ -44,16 +44,21 @@ const supportedLanguages = [
   { code: 'ta', name: 'Tamil', native_name: 'தமிழ்', direction: 'ltr', region: 'India / Sri Lanka' },
   { code: 'te', name: 'Telugu', native_name: 'తెలుగు', direction: 'ltr', region: 'India' },
   { code: 'mr', name: 'Marathi', native_name: 'मराठी', direction: 'ltr', region: 'India' },
+  { code: 'gu', name: 'Gujarati', native_name: 'ગુજરાતી', direction: 'ltr', region: 'India' },
+  { code: 'kn', name: 'Kannada', native_name: 'ಕನ್ನಡ', direction: 'ltr', region: 'India' },
+  { code: 'ml', name: 'Malayalam', native_name: 'മലയാളം', direction: 'ltr', region: 'India' },
+  { code: 'pa', name: 'Punjabi', native_name: 'ਪੰਜਾਬੀ', direction: 'ltr', region: 'India / Pakistan' },
   { code: 'ur', name: 'Urdu', native_name: 'اردو', direction: 'rtl', region: 'Pakistan / India' },
+  { code: 'ru', name: 'Russian', native_name: 'Русский', direction: 'ltr', region: 'Russia / Eurasia' },
 ];
 
 const regionalEditions = [
-  { slug: 'india', name: 'India', countries: ['IN'], languages: ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'ur'] },
+  { slug: 'india', name: 'India', countries: ['IN'], languages: ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur'] },
   { slug: 'usa', name: 'USA', countries: ['US'], languages: ['en', 'es'] },
   { slug: 'uk', name: 'UK', countries: ['GB'], languages: ['en'] },
   { slug: 'canada', name: 'Canada', countries: ['CA'], languages: ['en', 'fr'] },
   { slug: 'australia', name: 'Australia', countries: ['AU'], languages: ['en'] },
-  { slug: 'europe', name: 'Europe', countries: ['DE', 'FR', 'ES'], languages: ['en', 'fr', 'de', 'es', 'pt'] },
+  { slug: 'europe', name: 'Europe', countries: ['DE', 'FR', 'ES', 'RU'], languages: ['en', 'fr', 'de', 'es', 'pt', 'ru'] },
   { slug: 'middle-east', name: 'Middle East', countries: ['AE'], languages: ['en', 'ar', 'ur'] },
   { slug: 'asia-pacific', name: 'Asia-Pacific', countries: ['JP', 'KR', 'SG', 'AU'], languages: ['en', 'ja', 'ko', 'zh'] },
 ];
