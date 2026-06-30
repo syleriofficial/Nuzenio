@@ -10,7 +10,7 @@ const TOPICS = {
   science: 'SCIENCE',
 };
 
-const SUPPORTED_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur']);
+const SUPPORTED_LANGUAGES = new Set(['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur', 'ar', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ko']);
 
 const DEFAULT_RSS_SOURCES = [
   {
@@ -1583,37 +1583,106 @@ function buildSummary(text) {
 
 function buildWhyItMatters(category, source, language = 'en') {
   const topic = category === 'top' || category === 'local' ? 'public interest' : category;
-  if (language === 'hi') {
-    const hindiTopic = category === 'top' || category === 'local' ? 'जनहित' : category;
-    return `यह ${hindiTopic} खबर ${source} से ट्रैक की गई है क्योंकि इसका असर पाठकों, बाजार, नीति, संस्कृति या रोजमर्रा के फैसलों पर पड़ सकता है।`;
-  }
-  if (language === 'ar') {
-    return `يتم تتبع هذا الخبر من ${source} لأنه قد يؤثر في القراء أو الأسواق أو السياسات أو الثقافة أو القرارات اليومية.`;
-  }
-  if (language === 'es') {
-    return `Esta noticia se sigue desde ${source} porque puede afectar a lectores, mercados, políticas, cultura o decisiones diarias.`;
-  }
+  const templates = {
+    ar: `يتم تتبع هذا الخبر من ${source} لأنه قد يؤثر في القراء أو الأسواق أو السياسات أو الثقافة أو القرارات اليومية.`,
+    bn: `${source} থেকে এই জনস্বার্থের খবরটি ট্র্যাক করা হচ্ছে, কারণ এটি পাঠক, বাজার, নীতি, সংস্কৃতি বা দৈনন্দিন সিদ্ধান্তে প্রভাব ফেলতে পারে।`,
+    de: `Dieser Bericht von ${source} wird verfolgt, weil er Leser, Märkte, Politik, Kultur oder Alltagsentscheidungen betreffen kann.`,
+    es: `Esta noticia se sigue desde ${source} porque puede afectar a lectores, mercados, políticas, cultura o decisiones diarias.`,
+    fr: `Ce sujet de ${source} est suivi car il peut affecter les lecteurs, les marchés, les politiques publiques, la culture ou les décisions quotidiennes.`,
+    gu: `${source} માંથી આ જનહિતની ખબર ટ્રેક કરવામાં આવી રહી છે, કારણ કે તે વાચકો, બજારો, નીતિ, સંસ્કૃતિ અથવા રોજિંદા નિર્ણયોને અસર કરી શકે છે.`,
+    hi: `यह ${category === 'top' || category === 'local' ? 'जनहित' : topic} खबर ${source} से ट्रैक की गई है क्योंकि इसका असर पाठकों, बाजार, नीति, संस्कृति या रोजमर्रा के फैसलों पर पड़ सकता है।`,
+    ja: `${source} のこのニュースは、読者、市場、政策、文化、日々の判断に影響する可能性があるため追跡されています。`,
+    kn: `${source} ನಿಂದ ಈ ಸಾರ್ವಜನಿಕ ಹಿತಾಸಕ್ತಿ ಸುದ್ದಿಯನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ, ಏಕೆಂದರೆ ಇದು ಓದುಗರಿಗೆ, ಮಾರುಕಟ್ಟೆಗಳಿಗೆ, ನೀತಿಗೆ, ಸಂಸ್ಕೃತಿಗೆ ಅಥವಾ ದೈನಂದಿನ ನಿರ್ಧಾರಗಳಿಗೆ ಪರಿಣಾಮ ಬೀರುವ ಸಾಧ್ಯತೆ ಇದೆ.`,
+    ko: `${source}의 이 뉴스는 독자, 시장, 정책, 문화 또는 일상적 판단에 영향을 줄 수 있어 추적됩니다.`,
+    ml: `${source}ൽ നിന്നുള്ള ഈ പൊതുതാൽപ്പര്യ വാർത്ത വായനക്കാരെയും വിപണികളെയും നയങ്ങളെയും സംസ്കാരത്തെയും ദൈനംദിന തീരുമാനങ്ങളെയും ബാധിക്കാവുന്നതിനാൽ ട്രാക്ക് ചെയ്യുന്നു.`,
+    mr: `${source} कडील ही जनहिताची बातमी वाचक, बाजार, धोरण, संस्कृती किंवा दैनंदिन निर्णयांवर परिणाम करू शकते म्हणून ट्रॅक केली जात आहे.`,
+    pa: `${source} ਤੋਂ ਇਹ ਜਨ-ਹਿੱਤ ਖਬਰ ਟ੍ਰੈਕ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ ਕਿਉਂਕਿ ਇਹ ਪਾਠਕਾਂ, ਬਾਜ਼ਾਰਾਂ, ਨੀਤੀ, ਸਭਿਆਚਾਰ ਜਾਂ ਰੋਜ਼ਾਨਾ ਫੈਸਲਿਆਂ ਨੂੰ ਪ੍ਰਭਾਵਿਤ ਕਰ ਸਕਦੀ ਹੈ।`,
+    pt: `Esta notícia de ${source} é acompanhada porque pode afetar leitores, mercados, políticas, cultura ou decisões diárias.`,
+    ru: `Этот материал от ${source} отслеживается, потому что он может повлиять на читателей, рынки, политику, культуру или повседневные решения.`,
+    ta: `${source} இலிருந்து இந்த பொதுநலச் செய்தி கண்காணிக்கப்படுகிறது; இது வாசகர்கள், சந்தைகள், கொள்கை, கலாசாரம் அல்லது தினசரி முடிவுகளை பாதிக்கலாம்.`,
+    te: `${source} నుండి ఈ ప్రజాహిత వార్తను ట్రాక్ చేస్తున్నారు, ఎందుకంటే ఇది పాఠకులు, మార్కెట్లు, విధానం, సంస్కృతి లేదా రోజువారీ నిర్ణయాలపై ప్రభావం చూపవచ్చు.`,
+    ur: `${source} سے اس عوامی دلچسپی کی خبر کو ٹریک کیا جا رہا ہے کیونکہ یہ قارئین، بازاروں، پالیسی، ثقافت یا روزمرہ فیصلوں پر اثر ڈال سکتی ہے۔`,
+    zh: `Nuzenio 正在跟踪来自 ${source} 的这条公共关注报道，因为它可能影响读者、市场、政策、文化或日常决策。`,
+  };
+  if (templates[language]) return templates[language];
   return `This ${topic} report is being tracked from ${source} because it may affect readers, markets, policy, culture, or daily decisions.`;
 }
 
 function localizedLiveSummary(name, language = 'en') {
-  if (language === 'hi') return `${name} लाइव न्यूज़ स्ट्रीम`;
-  if (language === 'ar') return `بث إخباري مباشر من ${name}`;
-  if (language === 'es') return `Transmisión de noticias en vivo de ${name}`;
+  const templates = {
+    ar: `بث إخباري مباشر من ${name}`,
+    bn: `${name} লাইভ সংবাদ স্ট্রিম`,
+    de: `${name} Live-Nachrichtenstream`,
+    es: `Transmisión de noticias en vivo de ${name}`,
+    fr: `Flux d'actualités en direct de ${name}`,
+    gu: `${name} લાઈવ સમાચાર સ્ટ્રીમ`,
+    hi: `${name} लाइव न्यूज़ स्ट्रीम`,
+    ja: `${name} ライブニュース配信`,
+    kn: `${name} ಲೈವ್ ಸುದ್ದಿ ಸ್ಟ್ರೀಮ್`,
+    ko: `${name} 라이브 뉴스 스트림`,
+    ml: `${name} ലൈവ് വാർത്ത സ്ട്രീം`,
+    mr: `${name} लाइव्ह न्यूज स्ट्रीम`,
+    pa: `${name} ਲਾਈਵ ਨਿਊਜ਼ ਸਟ੍ਰੀਮ`,
+    pt: `Transmissão de notícias ao vivo de ${name}`,
+    ru: `Прямая новостная трансляция ${name}`,
+    ta: `${name} நேரலை செய்தி ஸ்ட்ரீம்`,
+    te: `${name} లైవ్ న్యూస్ స్ట్రీమ్`,
+    ur: `${name} لائیو نیوز اسٹریم`,
+    zh: `${name} 直播新闻`,
+  };
+  if (templates[language]) return templates[language];
   return `${name} live news stream`;
 }
 
 function localizedApprovedLiveBrief(name, language = 'en') {
-  if (language === 'hi') return `${name} Nuzenio पर स्वीकृत लाइव न्यूज़ स्रोत के रूप में उपलब्ध है।`;
-  if (language === 'ar') return `${name} متاح على Nuzenio كمصدر إخباري مباشر معتمد.`;
-  if (language === 'es') return `${name} está disponible en Nuzenio como fuente aprobada de noticias en vivo.`;
+  const templates = {
+    ar: `${name} متاح على Nuzenio كمصدر إخباري مباشر معتمد.`,
+    bn: `${name} Nuzenio-তে অনুমোদিত লাইভ সংবাদ উৎস হিসেবে উপলব্ধ।`,
+    de: `${name} ist auf Nuzenio als geprüfte Live-Nachrichtenquelle verfügbar.`,
+    es: `${name} está disponible en Nuzenio como fuente aprobada de noticias en vivo.`,
+    fr: `${name} est disponible sur Nuzenio comme source d'actualité en direct approuvée.`,
+    gu: `${name} Nuzenio પર મંજૂર લાઈવ સમાચાર સ્ત્રોત તરીકે ઉપલબ્ધ છે.`,
+    hi: `${name} Nuzenio पर स्वीकृत लाइव न्यूज़ स्रोत के रूप में उपलब्ध है।`,
+    ja: `${name} はNuzenioで承認済みライブニュースソースとして利用できます。`,
+    kn: `${name} Nuzenio ನಲ್ಲಿ ಅನುಮೋದಿತ ಲೈವ್ ಸುದ್ದಿ ಮೂಲವಾಗಿ ಲಭ್ಯವಿದೆ.`,
+    ko: `${name}은 Nuzenio에서 승인된 라이브 뉴스 출처로 제공됩니다.`,
+    ml: `${name} Nuzenioയിൽ അംഗീകൃത ലൈവ് വാർത്ത ഉറവിടമായി ലഭ്യമാണ്.`,
+    mr: `${name} Nuzenio वर मंजूर लाइव्ह न्यूज स्रोत म्हणून उपलब्ध आहे.`,
+    pa: `${name} Nuzenio ਉੱਤੇ ਮਨਜ਼ੂਰਸ਼ੁਦਾ ਲਾਈਵ ਨਿਊਜ਼ ਸਰੋਤ ਵਜੋਂ ਉਪਲਬਧ ਹੈ।`,
+    pt: `${name} está disponível no Nuzenio como fonte aprovada de notícias ao vivo.`,
+    ru: `${name} доступен на Nuzenio как одобренный источник прямых новостей.`,
+    ta: `${name} Nuzenio-வில் அங்கீகரிக்கப்பட்ட நேரலை செய்தி மூலமாக கிடைக்கிறது.`,
+    te: `${name} Nuzenioలో ఆమోదించిన లైవ్ న్యూస్ మూలంగా అందుబాటులో ఉంది.`,
+    ur: `${name} Nuzenio پر منظور شدہ لائیو نیوز ذریعہ کے طور پر دستیاب ہے۔`,
+    zh: `${name} 是 Nuzenio 已批准的直播新闻来源。`,
+  };
+  if (templates[language]) return templates[language];
   return `${name} is available as an approved live news source on Nuzenio.`;
 }
 
 function localizedLiveWhatHappened(name, language = 'en') {
-  if (language === 'hi') return `${name} का लाइव न्यूज़ स्ट्रीम देखें।`;
-  if (language === 'ar') return `شاهد البث الإخباري المباشر من ${name}.`;
-  if (language === 'es') return `Mira la transmisión de noticias en vivo de ${name}.`;
+  const templates = {
+    ar: `شاهد البث الإخباري المباشر من ${name}.`,
+    bn: `${name}-এর লাইভ সংবাদ স্ট্রিম দেখুন।`,
+    de: `Sehen Sie den Live-Nachrichtenstream von ${name}.`,
+    es: `Mira la transmisión de noticias en vivo de ${name}.`,
+    fr: `Regardez le direct d'actualité de ${name}.`,
+    gu: `${name} નો લાઈવ સમાચાર સ્ટ્રીમ જુઓ.`,
+    hi: `${name} का लाइव न्यूज़ स्ट्रीम देखें।`,
+    ja: `${name} のライブニュース配信をご覧ください。`,
+    kn: `${name} ನ ಲೈವ್ ಸುದ್ದಿ ಸ್ಟ್ರೀಮ್ ನೋಡಿ.`,
+    ko: `${name}의 라이브 뉴스 스트림을 시청하세요.`,
+    ml: `${name}യുടെ ലൈവ് വാർത്ത സ്ട്രീം കാണുക.`,
+    mr: `${name} चे लाइव्ह न्यूज स्ट्रीम पहा.`,
+    pa: `${name} ਦਾ ਲਾਈਵ ਨਿਊਜ਼ ਸਟ੍ਰੀਮ ਵੇਖੋ।`,
+    pt: `Assista à transmissão de notícias ao vivo de ${name}.`,
+    ru: `Смотрите прямую новостную трансляцию ${name}.`,
+    ta: `${name} நேரலை செய்தி ஸ்ட்ரீமைப் பாருங்கள்.`,
+    te: `${name} లైవ్ న్యూస్ స్ట్రీమ్ చూడండి.`,
+    ur: `${name} کی لائیو نیوز اسٹریم دیکھیں۔`,
+    zh: `观看 ${name} 的直播新闻。`,
+  };
+  if (templates[language]) return templates[language];
   return `Watch the live news stream from ${name}.`;
 }
 
@@ -1626,9 +1695,29 @@ function localizedApprovedLiveWhyItMatters(provider, language = 'en') {
 }
 
 function localizedVideoWhatHappened(category, source, language = 'en') {
-  if (language === 'hi') return `${source} का ${category === 'live' ? 'लाइव ' : ''}YouTube न्यूज़ वीडियो देखें।`;
-  if (language === 'ar') return `شاهد فيديو أخبار ${category === 'live' ? 'مباشرا ' : ''}على YouTube من ${source}.`;
-  if (language === 'es') return `Mira este video de noticias ${category === 'live' ? 'en vivo ' : ''}de YouTube de ${source}.`;
+  const liveWord = category === 'live';
+  const templates = {
+    ar: `شاهد فيديو أخبار ${liveWord ? 'مباشرا ' : ''}على YouTube من ${source}.`,
+    bn: `${source}-এর ${liveWord ? 'লাইভ ' : ''}YouTube সংবাদ ভিডিও দেখুন।`,
+    de: `Sehen Sie dieses ${liveWord ? 'Live-' : ''}YouTube-Nachrichtenvideo von ${source}.`,
+    es: `Mira este video de noticias ${liveWord ? 'en vivo ' : ''}de YouTube de ${source}.`,
+    fr: `Regardez cette vidéo d'actualité ${liveWord ? 'en direct ' : ''}sur YouTube de ${source}.`,
+    gu: `${source} નું ${liveWord ? 'લાઈવ ' : ''}YouTube સમાચાર વિડિયો જુઓ.`,
+    hi: `${source} का ${liveWord ? 'लाइव ' : ''}YouTube न्यूज़ वीडियो देखें।`,
+    ja: `${source} の${liveWord ? 'ライブ' : ''}YouTubeニュース動画をご覧ください。`,
+    kn: `${source} ನ ${liveWord ? 'ಲೈವ್ ' : ''}YouTube ಸುದ್ದಿ ವೀಡಿಯೊ ನೋಡಿ.`,
+    ko: `${source}의 ${liveWord ? '라이브 ' : ''}YouTube 뉴스 영상을 시청하세요.`,
+    ml: `${source}യുടെ ${liveWord ? 'ലൈവ് ' : ''}YouTube വാർത്ത വീഡിയോ കാണുക.`,
+    mr: `${source} चे ${liveWord ? 'लाइव्ह ' : ''}YouTube न्यूज व्हिडिओ पहा.`,
+    pa: `${source} ਦਾ ${liveWord ? 'ਲਾਈਵ ' : ''}YouTube ਨਿਊਜ਼ ਵੀਡੀਓ ਵੇਖੋ।`,
+    pt: `Assista a este video de notícias ${liveWord ? 'ao vivo ' : ''}no YouTube de ${source}.`,
+    ru: `Смотрите ${liveWord ? 'прямое ' : ''}новостное видео YouTube от ${source}.`,
+    ta: `${source} இன் ${liveWord ? 'நேரலை ' : ''}YouTube செய்தி வீடியோவைப் பாருங்கள்.`,
+    te: `${source} యొక్క ${liveWord ? 'లైవ్ ' : ''}YouTube వార్తల వీడియో చూడండి.`,
+    ur: `${source} کی ${liveWord ? 'لائیو ' : ''}YouTube نیوز ویڈیو دیکھیں۔`,
+    zh: `观看来自 ${source} 的${liveWord ? '直播' : ''} YouTube 新闻视频。`,
+  };
+  if (templates[language]) return templates[language];
   return `Watch this ${category === 'live' ? 'live ' : ''}YouTube news video from ${source}.`;
 }
 

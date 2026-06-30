@@ -2008,19 +2008,24 @@ insert into public.languages (code, name, native_name, direction, region, enable
 values
   ('en', 'English', 'English', 'ltr', 'Global', true),
   ('hi', 'Hindi', 'हिन्दी', 'ltr', 'India', true),
-  ('es', 'Spanish', 'Español', 'ltr', 'Latin America', true),
-  ('fr', 'French', 'Français', 'ltr', 'Europe / Africa', true),
-  ('de', 'German', 'Deutsch', 'ltr', 'Europe', true),
-  ('pt', 'Portuguese', 'Português', 'ltr', 'Brazil / Portugal', true),
-  ('ar', 'Arabic', 'العربية', 'rtl', 'Middle East', true),
-  ('ja', 'Japanese', '日本語', 'ltr', 'Japan', true),
-  ('ko', 'Korean', '한국어', 'ltr', 'South Korea', true),
-  ('zh', 'Chinese', '中文', 'ltr', 'Greater China', true),
   ('bn', 'Bengali', 'বাংলা', 'ltr', 'Bangladesh / India', true),
   ('ta', 'Tamil', 'தமிழ்', 'ltr', 'India / Sri Lanka', true),
   ('te', 'Telugu', 'తెలుగు', 'ltr', 'India', true),
   ('mr', 'Marathi', 'मराठी', 'ltr', 'India', true),
-  ('ur', 'Urdu', 'اردو', 'rtl', 'Pakistan / India', true)
+  ('gu', 'Gujarati', 'ગુજરાતી', 'ltr', 'India', true),
+  ('kn', 'Kannada', 'ಕನ್ನಡ', 'ltr', 'India', true),
+  ('ml', 'Malayalam', 'മലയാളം', 'ltr', 'India', true),
+  ('pa', 'Punjabi', 'ਪੰਜਾਬੀ', 'ltr', 'India / Pakistan', true),
+  ('ur', 'Urdu', 'اردو', 'rtl', 'Pakistan / India', true),
+  ('ar', 'Arabic', 'العربية', 'rtl', 'Middle East', true),
+  ('es', 'Spanish', 'Español', 'ltr', 'Latin America', true),
+  ('fr', 'French', 'Français', 'ltr', 'Europe / Africa', true),
+  ('de', 'German', 'Deutsch', 'ltr', 'Europe', true),
+  ('pt', 'Portuguese', 'Português', 'ltr', 'Brazil / Portugal', true),
+  ('ru', 'Russian', 'Русский', 'ltr', 'Russia / Eurasia', true),
+  ('zh', 'Chinese', '中文', 'ltr', 'Greater China', true),
+  ('ja', 'Japanese', '日本語', 'ltr', 'Japan', true),
+  ('ko', 'Korean', '한국어', 'ltr', 'South Korea', true)
 on conflict (code) do update set
   name = excluded.name,
   native_name = excluded.native_name,
@@ -2030,12 +2035,12 @@ on conflict (code) do update set
 
 insert into public.regional_editions (slug, name, countries, languages, default_country, default_language, enabled)
 values
-  ('india', 'India', array['IN'], array['en','hi','bn','ta','te','mr','ur'], 'IN', 'hi', true),
+  ('india', 'India', array['IN'], array['en','hi','bn','ta','te','mr','gu','kn','ml','pa','ur'], 'IN', 'hi', true),
   ('usa', 'USA', array['US'], array['en','es'], 'US', 'en', true),
   ('uk', 'UK', array['GB'], array['en'], 'GB', 'en', true),
   ('canada', 'Canada', array['CA'], array['en','fr'], 'CA', 'en', true),
   ('australia', 'Australia', array['AU'], array['en'], 'AU', 'en', true),
-  ('europe', 'Europe', array['DE','FR','ES'], array['en','fr','de','es','pt'], 'DE', 'en', true),
+  ('europe', 'Europe', array['DE','FR','ES','RU'], array['en','fr','de','es','pt','ru'], 'DE', 'en', true),
   ('middle-east', 'Middle East', array['AE'], array['en','ar','ur'], 'AE', 'ar', true),
   ('asia-pacific', 'Asia-Pacific', array['JP','KR','SG','AU'], array['en','ja','ko','zh'], 'JP', 'en', true)
 on conflict (slug) do update set

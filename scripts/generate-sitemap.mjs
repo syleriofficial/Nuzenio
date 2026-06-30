@@ -3,7 +3,7 @@ import { countryOptionCodes, localPlacePresets } from '../src/constants/locale.j
 import { seoLandingPages } from '../src/constants/navigation.js';
 
 const siteUrl = 'https://nuzenio.com';
-const languages = ['en', 'hi', 'es', 'fr', 'de', 'pt', 'ar', 'ja', 'ko', 'zh', 'bn', 'ta', 'te', 'mr', 'ur'];
+const languages = ['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur', 'ar', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ko'];
 
 const categories = [
   ['top-news', '0.95'],
