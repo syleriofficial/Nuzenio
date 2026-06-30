@@ -1133,7 +1133,7 @@ function App() {
       document.title = 'Login | Nuzenio';
       setCanonical(loginUrl);
       setMeta('meta[name="robots"]', 'content', 'noindex, nofollow');
-      setMeta('meta[name="description"]', 'content', 'Login to Nuzenio with Google to sync saved articles, reading history, topics, sources, newsletters, and notification preferences.');
+      setMeta('meta[name="description"]', 'content', 'Login to Nuzenio with Google to sync saved articles, reading history, topics, sources, and newsletters.');
       setMeta('meta[property="og:title"]', 'content', 'Login | Nuzenio');
       setMeta('meta[property="og:url"]', 'content', loginUrl);
       return;
@@ -1975,7 +1975,7 @@ function LoginPage({
     ['Saved articles', 'Sync important stories across devices.'],
     ['Reading history', 'Continue reading and improve recommendations.'],
     ['Personalized feed', 'Follow topics, countries, sources, authors, and entities.'],
-    ['Alerts ready', 'Use the same account for breaking news and digest preferences.'],
+    ['Digest ready', 'Use the same account for newsletter and reading preferences.'],
   ];
 
   return (
@@ -1986,7 +1986,7 @@ function LoginPage({
           <h2>{user ? `Welcome, ${displayName}` : 'Login to personalize Nuzenio'}</h2>
           <p>
             Use Google or email login to sync saved stories, reading history, topic follows, source follows,
-            newsletters, and future notification preferences.
+            and newsletter preferences.
           </p>
           <div className="loginActions">
             {user ? (
@@ -3532,7 +3532,7 @@ function IntelligencePage({
           : isArchive
             ? 'Historical story archive with topic, entity, publisher, country, timeline, and date-range discovery.'
             : isMobileApp
-              ? 'Android, iPhone, iPad, and PWA app foundation with shared accounts, offline reading, push alerts, and mobile analytics.'
+              ? 'Android, iPhone, iPad, and mobile web foundation with shared accounts, offline reading, and mobile analytics.'
               : isDashboard
                 ? 'A command center for real-time news volume, trend momentum, entities, story lifecycle, sentiment, publisher diversity, custom alerts, and enterprise exports.'
         : isTopic || isHub
@@ -4294,10 +4294,10 @@ function MobileAppPlatformPanel({ articles = [] }) {
   const latest = articles[0];
   const features = [
     ['Android', 'Capacitor-ready wrapper using the same Nuzenio web app and API backend.'],
-    ['iPhone', 'Standalone mobile app flow with bottom nav, offline shell, and push-ready preferences.'],
+    ['iPhone', 'Standalone mobile app flow with bottom nav, offline shell, and digest preferences.'],
     ['iPad', 'Responsive tablet layout using the same premium white news experience.'],
     ['Offline reading', 'Service worker cache plus Supabase sync tables for saved stories and summaries.'],
-    ['Push notifications', 'Breaking news, followed topics, daily briefing, and major world event channels.'],
+    ['Reader digests', 'Daily and weekly news briefing preferences for returning readers.'],
     ['Shared account', 'Google, Apple, email-ready auth with saved articles, follows, and preferences.'],
   ];
   return (
@@ -4305,7 +4305,7 @@ function MobileAppPlatformPanel({ articles = [] }) {
       <div>
         <span className="badge"><PlayCircle size={15} /> Android & iOS readiness</span>
         <h3>Nuzenio mobile apps share the same global news backend</h3>
-        <p>One account, one recommendation graph, one saved-article system, and one API layer across web, PWA, Android, iPhone, and iPad.</p>
+        <p>One account, one recommendation graph, one saved-article system, and one API layer across web, Android, iPhone, and iPad.</p>
       </div>
       <div className="mobileFeatureGrid">
         {features.map(([title, text]) => (
@@ -6312,7 +6312,7 @@ function pageSeoDescription({ category, intelligenceRoute, isRootHome, location,
     return 'Nuzenio news archive for historical stories, topic archive, entity archive, publisher archive, timeline tracking, and advanced date-range search.';
   }
   if (intelligenceRoute?.type === 'mobile') {
-    return 'Nuzenio mobile app foundation for Android, iPhone, iPad, PWA sync, offline reading, push notifications, shared accounts, saved articles, follows, and mobile analytics.';
+    return 'Nuzenio mobile app foundation for Android, iPhone, iPad, offline reading, shared accounts, saved articles, follows, and mobile analytics.';
   }
   if (intelligenceRoute?.type === 'dashboard') {
     return 'Nuzenio news intelligence dashboard tracks real-time volume, breaking stories, topic momentum, entity metrics, sentiment, publisher diversity, alerts, exports, and enterprise reports.';

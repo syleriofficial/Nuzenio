@@ -74,20 +74,5 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-self.addEventListener('push', (event) => {
-  const data = event.data?.json?.() || { title: 'Nuzenio', body: 'Breaking news update' };
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Nuzenio', {
-      body: data.body || 'Breaking news update',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      data: { url: data.url || '/' },
-    }),
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  event.waitUntil(clients.openWindow(url));
-});
+// Nuzenio intentionally keeps browser push notifications disabled.
+// The service worker is limited to offline/cache support so readers are not prompted for app-like alerts.

@@ -91,9 +91,7 @@ export function RetentionPanel({ location, supabase, user }) {
     preferred_categories: DEFAULT_CATEGORIES,
     digest_frequency: 'daily',
     email_notifications: false,
-    push_notifications: false,
     marketing_consent: false,
-    breaking_alerts: false,
   });
   const [message, setMessage] = useState('');
 
@@ -110,9 +108,7 @@ export function RetentionPanel({ location, supabase, user }) {
           preferred_categories: data.preferred_categories?.length ? data.preferred_categories : DEFAULT_CATEGORIES,
           digest_frequency: data.digest_frequency || 'daily',
           email_notifications: Boolean(data.email_notifications),
-          push_notifications: Boolean(data.push_notifications),
           marketing_consent: Boolean(data.marketing_consent),
-          breaking_alerts: Boolean(data.metadata?.breaking_alerts),
         });
       });
   }, [user?.id]);
@@ -134,7 +130,7 @@ export function RetentionPanel({ location, supabase, user }) {
     const payload = {
       user_id: user.id,
       ...preferences,
-      metadata: { breaking_alerts: preferences.breaking_alerts },
+      metadata: { digest_only: true },
       preferred_country: String(preferences.preferred_country || 'US').toUpperCase(),
     };
     const { error } = await supabase.from('user_preferences').upsert(payload, { onConflict: 'user_id' });
@@ -142,7 +138,7 @@ export function RetentionPanel({ location, supabase, user }) {
       setMessage(error.message);
       return;
     }
-    setMessage('Preferences saved for future digest and notification features.');
+    setMessage('Preferences saved for digest and reading personalization.');
     trackEvent('save_preferences', {
       country: payload.preferred_country,
       categories: payload.preferred_categories.join(','),
@@ -155,7 +151,7 @@ export function RetentionPanel({ location, supabase, user }) {
       <h3>
         <ShieldCheck size={18} /> Reader preferences
       </h3>
-      <p>Personalize country, topics, saved stories, reading history, and future notifications.</p>
+      <p>Personalize country, topics, saved stories, reading history, and newsletter digests.</p>
       <input
         value={preferences.preferred_country}
         onChange={(event) => setPreferences({ ...preferences, preferred_country: event.target.value.toUpperCase() })}
