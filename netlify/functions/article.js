@@ -23,6 +23,17 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
+function safeSummary(value = '', fallback = '') {
+  const clean = String(value || fallback || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (clean.length <= 260) return clean;
+  return `${clean.slice(0, 257).trim()}...`;
+}
+
 function normalizeCategory(value = 'top') {
   return /^[a-z-]+$/i.test(value) ? value : 'top';
 }
@@ -97,13 +108,16 @@ function htmlDocument({ article, articleId, category, country, language }) {
   const app = appUrl(slug, category, country);
   const isFound = Boolean(article);
   const title = article?.title ? `${article.title} | Nuzenio` : 'Story expired | Nuzenio';
-  const description = article?.summary || 'This RSS story is no longer available in Nuzenio live cache. Browse the latest source-attributed headlines on Nuzenio.';
+  const description = safeSummary(
+    article?.summary,
+    'This RSS story is no longer available in Nuzenio live cache. Browse the latest source-attributed headlines on Nuzenio.',
+  );
   const image = seoImage(article);
   const publishedAt = article?.pubDate || new Date().toISOString();
   const modifiedAt = article?.updatedAt || publishedAt;
   const source = article?.source || 'RSS publisher';
   const sourceUrl = article?.sourceUrl || article?.link || siteUrl;
-  const whatHappened = article?.whatHappened || article?.summary || description;
+  const whatHappened = safeSummary(article?.whatHappened || article?.summary, description);
   const whyItMatters = article?.whyItMatters || `Nuzenio tracks this story from ${source} with source attribution and a copyright-safe brief.`;
   const keyFacts = [
     article?.category ? `Category: ${article.category}` : '',

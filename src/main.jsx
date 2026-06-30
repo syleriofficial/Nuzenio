@@ -619,6 +619,10 @@ function isLocalPath(path = window.location.pathname) {
   return clean === categoryRoutes.local || clean.startsWith(`${categoryRoutes.local}/`);
 }
 
+function isBareLocalPath(path = window.location.pathname) {
+  return stripLanguagePrefix(path.replace(/\/+$/, '') || '/') === categoryRoutes.local;
+}
+
 function stripLanguagePrefix(path = '/') {
   const cleanPath = path.replace(/\/+$/, '') || '/';
   const [, maybeLang, rest = ''] = cleanPath.match(/^\/([a-z]{2})(\/.*)?$/i) || [];
@@ -780,6 +784,17 @@ function readLocalRouteLocation(path = normalizedPathname()) {
   };
 }
 
+function manualLocalSetupLocation(country = 'US') {
+  const normalizedCountry = normalizeCountry(country);
+  return {
+    country: normalizedCountry,
+    region: '',
+    city: '',
+    label: countryLabel(normalizedCountry),
+    source: 'fallback',
+  };
+}
+
 function initialCategory() {
   const path = normalizedPathname();
   const intelligenceRoute = readIntelligenceRoute(path);
@@ -813,6 +828,10 @@ function initialLocation() {
   }
   const localRouteLocation = readLocalRouteLocation();
   if (localRouteLocation) return localRouteLocation;
+  if (isBareLocalPath()) {
+    const urlCountry = readUrlParam('country');
+    return manualLocalSetupLocation(urlCountry || detectLocaleCountry().country);
+  }
   const urlCountry = readUrlParam('country');
   if (!urlCountry) {
     const saved = readLocal('nuzenio_location', null, 'newssetu_location');
@@ -861,7 +880,7 @@ function contextUrl({ category, location, language = languageByCode(currentLangu
 function homeContextUrl({ category, location, language }) {
   const url = contextUrl({ category, location, language });
   url.pathname = localizedPath(
-    category === 'local' ? localLocationPath(location) : categoryRoutes[category] || '/',
+    category === 'local' && !location.region && !location.city ? categoryRoutes.local : category === 'local' ? localLocationPath(location) : categoryRoutes[category] || '/',
     language?.code || currentLanguageCode(),
   );
   url.searchParams.delete('article');
@@ -963,6 +982,17 @@ function App() {
     if (urlQuery) {
       setQuery(urlQuery);
       searchNewsByTerm(urlQuery, { updateUrl: false });
+      return;
+    }
+    if (category === 'local' && isBareLocalPath() && !location.region && !location.city) {
+      newsRequestId.current += 1;
+      setArticles([]);
+      setLocalMeta(null);
+      setFeedSourceType('');
+      setFeedIsStale(false);
+      setIsLoadingNews(false);
+      setLastUpdated(null);
+      setStatus('Choose country, state, and city to load local news.');
       return;
     }
     loadNews(category, location.country, location.region, location.city, language.code);
@@ -1421,7 +1451,16 @@ function App() {
     setCategory(nextCategory);
     setQuery('');
     setMobileSearchOpen(false);
-    const url = homeContextUrl({ category: nextCategory, location, language });
+    const nextLocation = nextCategory === 'local'
+      ? manualLocalSetupLocation(location.country)
+      : location;
+    if (nextCategory === 'local') {
+      setLocation(nextLocation);
+      setLocalMeta(null);
+      setFeedSourceType('');
+      setFeedIsStale(false);
+    }
+    const url = homeContextUrl({ category: nextCategory, location: nextLocation, language });
     url.searchParams.delete('q');
     window.history.pushState({}, '', url);
     setIsLocalPage(nextCategory === 'local' && isLocalPath(url.pathname));
