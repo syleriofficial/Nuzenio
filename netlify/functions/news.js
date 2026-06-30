@@ -1688,9 +1688,28 @@ function localizedLiveWhatHappened(name, language = 'en') {
 
 function localizedApprovedLiveWhyItMatters(provider, language = 'en') {
   const label = providerLabel(provider);
-  if (language === 'hi') return `यह स्ट्रीम सीधे स्रोत attribution के साथ Nuzenio-approved ${label} स्रोत से लोड की गई है।`;
-  if (language === 'ar') return `يتم تحميل هذا البث من مصدر ${label} معتمد في Nuzenio مع إسناد مباشر للمصدر.`;
-  if (language === 'es') return `Esta transmisión se carga desde una fuente ${label} aprobada por Nuzenio con atribución directa.`;
+  const templates = {
+    ar: `يتم تحميل هذا البث من مصدر ${label} معتمد في Nuzenio مع إسناد مباشر للمصدر.`,
+    bn: `এই স্ট্রিমটি Nuzenio-অনুমোদিত ${label} উৎস থেকে সরাসরি উৎস-স্বীকৃতিসহ লোড করা হয়েছে।`,
+    de: `Dieser Stream wird von einer von Nuzenio geprüften ${label}-Quelle mit direkter Quellenangabe geladen.`,
+    es: `Esta transmisión se carga desde una fuente ${label} aprobada por Nuzenio con atribución directa.`,
+    fr: `Ce direct est chargé depuis une source ${label} approuvée par Nuzenio avec attribution directe.`,
+    gu: `આ સ્ટ્રીમ Nuzenio દ્વારા મંજૂર ${label} સ્ત્રોતથી સીધી source attribution સાથે લોડ થાય છે.`,
+    hi: `यह स्ट्रीम सीधे स्रोत attribution के साथ Nuzenio-approved ${label} स्रोत से लोड की गई है।`,
+    ja: `この配信はNuzenio承認済みの${label}ソースから、直接の出典表示付きで読み込まれます。`,
+    kn: `ಈ ಸ್ಟ್ರೀಮ್ Nuzenio ಅನುಮೋದಿತ ${label} ಮೂಲದಿಂದ ನೇರ ಮೂಲ ಉಲ್ಲೇಖದೊಂದಿಗೆ ಲೋಡ್ ಆಗಿದೆ.`,
+    ko: `이 스트림은 Nuzenio 승인 ${label} 출처에서 직접 출처 표시와 함께 로드됩니다.`,
+    ml: `ഈ സ്ട്രീം Nuzenio അംഗീകൃത ${label} ഉറവിടത്തിൽ നിന്ന് നേരിട്ടുള്ള ഉറവിട പരാമർശത്തോടെയാണ് ലോഡ് ചെയ്യുന്നത്.`,
+    mr: `हा स्ट्रीम Nuzenio-मंजूर ${label} स्रोतावरून थेट स्रोत attribution सह लोड केला आहे.`,
+    pa: `ਇਹ ਸਟ੍ਰੀਮ Nuzenio-ਮਨਜ਼ੂਰ ${label} ਸਰੋਤ ਤੋਂ ਸਿੱਧੀ ਸਰੋਤ attribution ਨਾਲ ਲੋਡ ਹੁੰਦੀ ਹੈ।`,
+    pt: `Esta transmissão é carregada de uma fonte ${label} aprovada pelo Nuzenio com atribuição direta.`,
+    ru: `Эта трансляция загружается из одобренного Nuzenio источника ${label} с прямой ссылкой на источник.`,
+    ta: `இந்த ஸ்ட்ரீம் Nuzenio அங்கீகரித்த ${label} மூலத்திலிருந்து நேரடி source attribution உடன் ஏற்றப்படுகிறது.`,
+    te: `ఈ స్ట్రీమ్ Nuzenio ఆమోదించిన ${label} మూలం నుండి ప్రత్యక్ష source attributionతో లోడ్ అవుతుంది.`,
+    ur: `یہ اسٹریم Nuzenio سے منظور شدہ ${label} ذریعہ سے براہ راست source attribution کے ساتھ لوڈ ہوتی ہے۔`,
+    zh: `此直播来自 Nuzenio 批准的 ${label} 来源，并带有直接来源标注。`,
+  };
+  if (templates[language]) return templates[language];
   return `This stream is loaded from a Nuzenio-approved ${label} source with direct attribution.`;
 }
 
@@ -1722,6 +1741,50 @@ function localizedVideoWhatHappened(category, source, language = 'en') {
 }
 
 function localizedVideoWhyItMatters(trustedChannelMode, language = 'en') {
+  const trustedTemplates = {
+    ar: 'يتم تحميل فيديو الأخبار القابل للتشغيل من قناة YouTube معتمدة في Nuzenio مع إسناد المصدر.',
+    bn: 'এই প্লেয়েবল YouTube সংবাদ ভিডিওটি Nuzenio-অনুমোদিত YouTube চ্যানেল থেকে উৎস-স্বীকৃতিসহ লোড হয়েছে।',
+    de: 'Dieses abspielbare YouTube-Nachrichtenvideo wird von einem von Nuzenio geprüften YouTube-Kanal mit Quellenangabe geladen.',
+    es: 'Este video de noticias reproducible se carga desde un canal de YouTube aprobado por Nuzenio con atribución de fuente.',
+    fr: 'Cette vidéo YouTube d’actualité est chargée depuis une chaîne approuvée par Nuzenio avec attribution de source.',
+    gu: 'આ playable YouTube સમાચાર વિડિયો Nuzenio-approved YouTube channel પરથી source attribution સાથે લોડ થાય છે.',
+    hi: 'यह playable YouTube न्यूज़ वीडियो Nuzenio-approved YouTube channel से source attribution के साथ लोड किया गया है।',
+    ja: 'この再生可能なYouTubeニュース動画は、Nuzenio承認済みYouTubeチャンネルから出典表示付きで読み込まれます。',
+    kn: 'ಈ ಪ್ಲೇ ಆಗುವ YouTube ಸುದ್ದಿ ವೀಡಿಯೊ Nuzenio ಅನುಮೋದಿತ YouTube ಚಾನೆಲ್‌ನಿಂದ ಮೂಲ ಉಲ್ಲೇಖದೊಂದಿಗೆ ಲೋಡ್ ಆಗಿದೆ.',
+    ko: '이 재생 가능한 YouTube 뉴스 영상은 Nuzenio 승인 YouTube 채널에서 출처 표시와 함께 로드됩니다.',
+    ml: 'ഈ പ്ലേ ചെയ്യാവുന്ന YouTube വാർത്ത വീഡിയോ Nuzenio അംഗീകൃത YouTube ചാനലിൽ നിന്ന് ഉറവിട പരാമർശത്തോടെയാണ് ലോഡ് ചെയ്യുന്നത്.',
+    mr: 'हा playable YouTube न्यूज व्हिडिओ Nuzenio-मंजूर YouTube channel वरून source attribution सह लोड केला आहे.',
+    pa: 'ਇਹ playable YouTube ਨਿਊਜ਼ ਵੀਡੀਓ Nuzenio-ਮਨਜ਼ੂਰ YouTube channel ਤੋਂ source attribution ਨਾਲ ਲੋਡ ਹੁੰਦੀ ਹੈ।',
+    pt: 'Este video de notícias reproduzível é carregado de um canal do YouTube aprovado pelo Nuzenio com atribuição de fonte.',
+    ru: 'Это воспроизводимое новостное видео YouTube загружается с одобренного Nuzenio канала YouTube с указанием источника.',
+    ta: 'இந்த playable YouTube செய்தி வீடியோ Nuzenio அங்கீகரித்த YouTube channel-இலிருந்து source attribution உடன் ஏற்றப்படுகிறது.',
+    te: 'ఈ playable YouTube వార్తల వీడియో Nuzenio ఆమోదించిన YouTube channel నుండి source attributionతో లోడ్ అవుతుంది.',
+    ur: 'یہ playable YouTube نیوز ویڈیو Nuzenio سے منظور شدہ YouTube channel سے source attribution کے ساتھ لوڈ ہوتی ہے۔',
+    zh: '此可播放的 YouTube 新闻视频来自 Nuzenio 批准的 YouTube 频道，并带有来源标注。',
+  };
+  const apiTemplates = {
+    ar: 'يتم تحميل فيديو الأخبار القابل للتشغيل عبر واجهة YouTube Data API الرسمية مع إسناد المصدر.',
+    bn: 'এই প্লেয়েবল YouTube সংবাদ ভিডিওটি অফিসিয়াল YouTube Data API দিয়ে উৎস-স্বীকৃতিসহ লোড হয়েছে।',
+    de: 'Dieses abspielbare YouTube-Nachrichtenvideo wird über die offizielle YouTube Data API mit Quellenangabe geladen.',
+    es: 'Este video de noticias reproducible se carga mediante la API oficial de YouTube Data con atribución de fuente.',
+    fr: 'Cette vidéo YouTube d’actualité est chargée via l’API officielle YouTube Data avec attribution de source.',
+    gu: 'આ playable YouTube સમાચાર વિડિયો official YouTube Data API દ્વારા source attribution સાથે લોડ થાય છે.',
+    hi: 'यह playable YouTube न्यूज़ वीडियो official YouTube Data API से source attribution के साथ लोड किया गया है।',
+    ja: 'この再生可能なYouTubeニュース動画は、公式YouTube Data API経由で出典表示付きで読み込まれます。',
+    kn: 'ಈ ಪ್ಲೇ ಆಗುವ YouTube ಸುದ್ದಿ ವೀಡಿಯೊ ಅಧಿಕೃತ YouTube Data API ಮೂಲಕ ಮೂಲ ಉಲ್ಲೇಖದೊಂದಿಗೆ ಲೋಡ್ ಆಗಿದೆ.',
+    ko: '이 재생 가능한 YouTube 뉴스 영상은 공식 YouTube Data API를 통해 출처 표시와 함께 로드됩니다.',
+    ml: 'ഈ പ്ലേ ചെയ്യാവുന്ന YouTube വാർത്ത വീഡിയോ ഔദ്യോഗിക YouTube Data API വഴി ഉറവിട പരാമർശത്തോടെയാണ് ലോഡ് ചെയ്യുന്നത്.',
+    mr: 'हा playable YouTube न्यूज व्हिडिओ official YouTube Data API मधून source attribution सह लोड केला आहे.',
+    pa: 'ਇਹ playable YouTube ਨਿਊਜ਼ ਵੀਡੀਓ official YouTube Data API ਰਾਹੀਂ source attribution ਨਾਲ ਲੋਡ ਹੁੰਦੀ ਹੈ।',
+    pt: 'Este video de notícias reproduzível é carregado pela API oficial YouTube Data com atribuição de fonte.',
+    ru: 'Это воспроизводимое новостное видео YouTube загружается через официальный YouTube Data API с указанием источника.',
+    ta: 'இந்த playable YouTube செய்தி வீடியோ official YouTube Data API வழியாக source attribution உடன் ஏற்றப்படுகிறது.',
+    te: 'ఈ playable YouTube వార్తల వీడియో official YouTube Data API ద్వారా source attributionతో లోడ్ అవుతుంది.',
+    ur: 'یہ playable YouTube نیوز ویڈیو official YouTube Data API کے ذریعے source attribution کے ساتھ لوڈ ہوتی ہے۔',
+    zh: '此可播放的 YouTube 新闻视频通过官方 YouTube Data API 加载，并带有来源标注。',
+  };
+  if (trustedChannelMode && trustedTemplates[language]) return trustedTemplates[language];
+  if (!trustedChannelMode && apiTemplates[language]) return apiTemplates[language];
   if (language === 'hi') {
     return trustedChannelMode
       ? 'यह playable YouTube न्यूज़ वीडियो Nuzenio-approved YouTube channel से source attribution के साथ लोड किया गया है।'
@@ -1743,15 +1806,28 @@ function localizedVideoWhyItMatters(trustedChannelMode, language = 'en') {
 }
 
 function localizedYouTubeSearchWhyItMatters(language = 'en') {
-  if (language === 'hi') {
-    return 'यह YouTube न्यूज़ वीडियो Nuzenio के अंदर सीधे source attribution और original YouTube link के साथ दिखाया गया है।';
-  }
-  if (language === 'ar') {
-    return 'يتم عرض فيديو الأخبار من YouTube داخل Nuzenio مع إسناد مباشر للمصدر ورابط YouTube الأصلي.';
-  }
-  if (language === 'es') {
-    return 'Este video de noticias de YouTube se muestra dentro de Nuzenio con atribución directa y enlace al video original.';
-  }
+  const templates = {
+    ar: 'يتم عرض فيديو الأخبار من YouTube داخل Nuzenio مع إسناد مباشر للمصدر ورابط YouTube الأصلي.',
+    bn: 'এই YouTube সংবাদ ভিডিওটি Nuzenio-এর ভেতরে সরাসরি উৎস-স্বীকৃতি এবং আসল YouTube লিঙ্কসহ দেখানো হয়েছে।',
+    de: 'Dieses YouTube-Nachrichtenvideo wird in Nuzenio mit direkter Quellenangabe und Original-YouTube-Link angezeigt.',
+    es: 'Este video de noticias de YouTube se muestra dentro de Nuzenio con atribución directa y enlace al video original.',
+    fr: 'Cette vidéo YouTube d’actualité est affichée dans Nuzenio avec attribution directe et lien YouTube original.',
+    gu: 'આ YouTube સમાચાર વિડિયો Nuzenio અંદર સીધી source attribution અને original YouTube link સાથે બતાવવામાં આવે છે.',
+    hi: 'यह YouTube न्यूज़ वीडियो Nuzenio के अंदर सीधे source attribution और original YouTube link के साथ दिखाया गया है।',
+    ja: 'このYouTubeニュース動画は、Nuzenio内で直接の出典表示と元のYouTubeリンク付きで表示されます。',
+    kn: 'ಈ YouTube ಸುದ್ದಿ ವೀಡಿಯೊ Nuzenio ಒಳಗೆ ನೇರ ಮೂಲ ಉಲ್ಲೇಖ ಮತ್ತು ಮೂಲ YouTube ಲಿಂಕ್ ಜೊತೆಗೆ ತೋರಿಸಲಾಗುತ್ತದೆ.',
+    ko: '이 YouTube 뉴스 영상은 Nuzenio 안에서 직접 출처 표시와 원본 YouTube 링크와 함께 표시됩니다.',
+    ml: 'ഈ YouTube വാർത്ത വീഡിയോ Nuzenioയിൽ നേരിട്ടുള്ള ഉറവിട പരാമർശത്തോടെയും യഥാർത്ഥ YouTube ലിങ്കോടെയും കാണിക്കുന്നു.',
+    mr: 'हा YouTube न्यूज व्हिडिओ Nuzenio मध्ये थेट source attribution आणि original YouTube link सह दाखवला आहे.',
+    pa: 'ਇਹ YouTube ਨਿਊਜ਼ ਵੀਡੀਓ Nuzenio ਦੇ ਅੰਦਰ ਸਿੱਧੀ source attribution ਅਤੇ original YouTube link ਨਾਲ ਦਿਖਾਈ ਜਾਂਦੀ ਹੈ।',
+    pt: 'Este video de notícias do YouTube é exibido dentro do Nuzenio com atribuição direta e link original do YouTube.',
+    ru: 'Это новостное видео YouTube показывается внутри Nuzenio с прямым указанием источника и ссылкой на оригинал YouTube.',
+    ta: 'இந்த YouTube செய்தி வீடியோ Nuzenio-விற்குள் நேரடி source attribution மற்றும் original YouTube link உடன் காட்டப்படுகிறது.',
+    te: 'ఈ YouTube వార్తల వీడియో Nuzenio లోపల ప్రత్యక్ష source attribution మరియు original YouTube linkతో చూపబడుతుంది.',
+    ur: 'یہ YouTube نیوز ویڈیو Nuzenio کے اندر براہ راست source attribution اور original YouTube link کے ساتھ دکھائی جاتی ہے۔',
+    zh: '此 YouTube 新闻视频在 Nuzenio 内显示，并带有直接来源标注和原始 YouTube 链接。',
+  };
+  if (templates[language]) return templates[language];
   return 'This YouTube news video is shown inside Nuzenio with direct source attribution and a link to the original YouTube page.';
 }
 
