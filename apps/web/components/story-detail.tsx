@@ -18,7 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import type { StoryCluster } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
 function FactSection({
@@ -90,7 +90,7 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
       : story;
   return (
     <article className="story-detail">
-      <Link className="back-link" href="/">
+      <Link className="back-link" href={`/?lang=${language}`}>
         <ChevronLeft /> {t('Back to Top', 'मुख्य समाचार पर वापस')}
       </Link>
       <header className="detail-hero">
@@ -245,7 +245,9 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
                   <div className="source-avatar">{source.short}</div>
                   <div>
                     <div className="source-name">
-                      <Link href={`/source/${source.slug}`}>{source.name}</Link>
+                      <Link href={`/source/${source.slug}?lang=${language}`}>
+                        {source.name}
+                      </Link>
                       <span>
                         {source.language} · {source.publishedAt}
                       </span>
@@ -255,6 +257,14 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
                       <small className="machine-label">
                         <Languages />{' '}
                         {t('Machine translation available', 'मशीन अनुवाद उपलब्ध')}
+                      </small>
+                    )}
+                    {source.isSyndicated && (
+                      <small className="machine-label">
+                        {t(
+                          'Syndicated copy · excluded from source count',
+                          'सिंडिकेटेड प्रति · स्रोत गणना से बाहर',
+                        )}
                       </small>
                     )}
                     <a

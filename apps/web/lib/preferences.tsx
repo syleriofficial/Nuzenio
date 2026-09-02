@@ -8,6 +8,7 @@ type Theme = 'light' | 'dark';
 interface PreferencesContextValue {
   language: Language;
   theme: Theme;
+  hydrated: boolean;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
   t: (english: string, hindi: string) => string;
@@ -22,16 +23,24 @@ export function PreferencesProvider({
 }) {
   const [language, setLanguageState] = useState<Language>('en');
   const [theme, setThemeState] = useState<Theme>('light');
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const queryLanguage = new URLSearchParams(window.location.search).get(
+      'lang',
+    );
     const storedLanguage = localStorage.getItem('nuzenio-language');
     const storedTheme = localStorage.getItem('nuzenio-theme');
-    if (storedLanguage === 'hi') setLanguageState('hi');
+    if (queryLanguage === 'hi' || queryLanguage === 'en') {
+      setLanguageState(queryLanguage);
+      localStorage.setItem('nuzenio-language', queryLanguage);
+    } else if (storedLanguage === 'hi') setLanguageState('hi');
     if (
       storedTheme === 'dark' ||
       (!storedTheme && matchMedia('(prefers-color-scheme: dark)').matches)
     )
       setThemeState('dark');
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -51,12 +60,13 @@ export function PreferencesProvider({
     () => ({
       language,
       theme,
+      hydrated,
       setLanguage,
       setTheme,
       t: (english: string, hindi: string) =>
         language === 'hi' ? hindi : english,
     }),
-    [language, theme],
+    [hydrated, language, theme],
   );
 
   return (

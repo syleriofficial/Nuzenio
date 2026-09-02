@@ -3,7 +3,7 @@
 import { MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { StoryCard } from '@/components/story-card';
-import type { StoryCluster } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
 export function FeedScreen({
@@ -62,14 +62,29 @@ export function FeedScreen({
         className="story-feed narrow-feed"
         aria-label={t(`${title} story clusters`, `${titleHi} स्टोरी क्लस्टर`)}
       >
-        {stories.map((story, index) => (
-          <StoryCard
-            key={story.slug}
-            story={story}
-            featured={index === 0}
-            showWhy={showWhy}
-          />
-        ))}
+        {stories.length ? (
+          stories.map((story, index) => (
+            <StoryCard
+              key={story.slug}
+              story={story}
+              featured={index === 0}
+              showWhy={showWhy}
+            />
+          ))
+        ) : (
+          <section className="empty-state">
+            <MapPin />
+            <h2>
+              {t('No published clusters yet', 'अभी कोई प्रकाशित क्लस्टर नहीं')}
+            </h2>
+            <p>
+              {t(
+                'Approved, evidence-backed reporting will appear here when available.',
+                'स्वीकृत और साक्ष्य-समर्थित रिपोर्टिंग उपलब्ध होने पर यहां दिखेगी।',
+              )}
+            </p>
+          </section>
+        )}
       </main>
     </>
   );

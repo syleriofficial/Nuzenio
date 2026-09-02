@@ -14,32 +14,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { StoryCard } from '@/components/story-card';
-import { storyClusters } from '@/lib/demo-data';
+import type { ReaderSourceProfile } from '@/lib/api-types';
 import { usePreferences } from '@/lib/preferences';
 
-export interface SourceProfile {
-  slug: string;
-  name: string;
-  organization: string;
-  description: string;
-  languages: string[];
-  domains: string[];
-  ownership: string;
-  rights: string;
-  feedHealth: string;
-  correctionPolicy: string;
-}
-
-export function SourceDetail({ source }: { source: SourceProfile }) {
-  const { t } = usePreferences();
+export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
+  const { language, t } = usePreferences();
   const [followed, setFollowed] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const stories = storyClusters.filter((story) =>
-    story.sources.some((item) => item.slug === source.slug),
-  );
+  const stories = source.recentClusters;
   return (
     <>
-      <Link className="back-link" href="/">
+      <Link className="back-link" href={`/?lang=${language}`}>
         <span aria-hidden="true">←</span>{' '}
         {t('Back to Top', 'मुख्य समाचार पर वापस')}
       </Link>

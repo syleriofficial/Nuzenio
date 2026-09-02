@@ -2,11 +2,16 @@
 
 import { StoryCard } from '@/components/story-card';
 import Link from 'next/link';
-import { storyClusters } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
-export function TopNewsPage() {
-  const { t } = usePreferences();
+export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
+  const { language, t } = usePreferences();
+  const sourceCount = new Set(
+    stories.flatMap((story) =>
+      story.sources.map((source) => source.organization),
+    ),
+  ).size;
   return (
     <>
       <section className="page-heading">
@@ -41,9 +46,29 @@ export function TopNewsPage() {
           className="story-feed"
           aria-label={t('Top story clusters', 'मुख्य स्टोरी क्लस्टर')}
         >
-          {storyClusters.slice(0, 5).map((story, index) => (
-            <StoryCard key={story.slug} story={story} featured={index === 0} />
-          ))}
+          {stories.length ? (
+            stories
+              .slice(0, 5)
+              .map((story, index) => (
+                <StoryCard
+                  key={story.slug}
+                  story={story}
+                  featured={index === 0}
+                />
+              ))
+          ) : (
+            <section className="empty-state">
+              <h2>
+                {t('No clusters in this edition', 'इस संस्करण में कोई क्लस्टर नहीं')}
+              </h2>
+              <p>
+                {t(
+                  'Approved, evidence-backed stories will appear here after publication.',
+                  'स्वीकृत और साक्ष्य-समर्थित स्टोरी प्रकाशन के बाद यहां दिखेंगी।',
+                )}
+              </p>
+            </section>
+          )}
         </main>
         <aside
           className="rail"
@@ -60,7 +85,7 @@ export function TopNewsPage() {
                 'राष्ट्रीय नीति, दिल्ली की हवा, बाजार और क्रिकेट—लगभग 4 मिनट में।',
               )}
             </p>
-            <Link className="text-link" href="/briefs">
+            <Link className="text-link" href={`/briefs?lang=${language}`}>
               {t('Read the morning brief', 'सुबह का ब्रीफ पढ़ें')}{' '}
               <span aria-hidden="true">→</span>
             </Link>
@@ -70,15 +95,17 @@ export function TopNewsPage() {
             <dl className="edition-stats">
               <div>
                 <dt>{t('Story clusters', 'स्टोरी क्लस्टर')}</dt>
-                <dd>24</dd>
+                <dd>{stories.length}</dd>
               </div>
               <div>
                 <dt>{t('Publisher groups', 'प्रकाशक समूह')}</dt>
-                <dd>61</dd>
+                <dd>{sourceCount}</dd>
               </div>
               <div>
                 <dt>{t('Official documents', 'आधिकारिक दस्तावेज')}</dt>
-                <dd>5</dd>
+                <dd>
+                  {stories.filter((story) => story.primaryDocument).length}
+                </dd>
               </div>
             </dl>
             <p className="rail-note">

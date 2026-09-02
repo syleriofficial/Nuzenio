@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { BellPlus, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StoryCard } from '@/components/story-card';
-import { storyClusters } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
 const availableTopics = [
@@ -15,7 +15,7 @@ const availableTopics = [
   'National',
 ];
 
-export function FollowingScreen() {
+export function FollowingScreen({ stories }: { stories: StoryCluster[] }) {
   const { t } = usePreferences();
   const [topics, setTopics] = useState<string[]>(['Business', 'Technology']);
   useEffect(() => {
@@ -31,7 +31,7 @@ export function FollowingScreen() {
     setTopics(next);
     localStorage.setItem('nuzenio-followed-topics', JSON.stringify(next));
   };
-  const followedStories = storyClusters.filter((story) =>
+  const followedStories = stories.filter((story) =>
     topics.includes(story.category),
   );
   return (

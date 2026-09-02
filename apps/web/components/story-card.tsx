@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { StoryCluster } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
 export function StoryCard({
@@ -112,7 +112,10 @@ export function StoryCard({
           </span>
         )}
       </div>
-      <a className="story-title-link" href={`/story/${story.slug}`}>
+      <a
+        className="story-title-link"
+        href={`/story/${story.slug}?lang=${language}`}
+      >
         <h2>{language === 'hi' ? story.headlineHi : story.headline}</h2>
       </a>
       <p className="story-brief">
@@ -146,7 +149,7 @@ export function StoryCard({
             <span key={source.slug}>{source.short}</span>
           ))}
         </div>
-        <a href={`/story/${story.slug}#sources`}>
+        <a href={`/story/${story.slug}?lang=${language}#sources`}>
           <strong>
             {story.independentSourceCount}{' '}
             {t('independent sources', 'स्वतंत्र स्रोत')}

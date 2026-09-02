@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Bookmark,
   Building2,
@@ -28,13 +29,19 @@ const nav = [
 ];
 
 function ShellContent({ children }: { children: React.ReactNode }) {
-  const { language, theme, setLanguage, setTheme, t } = usePreferences();
+  const { language, theme, hydrated, setLanguage, setTheme, t } =
+    usePreferences();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState('/');
+  const currentPath = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
-    setCurrentPath(window.location.pathname);
-  }, []);
+    if (!hydrated) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('lang') === language) return;
+    params.set('lang', language);
+    router.replace(`${currentPath}?${params.toString()}`);
+  }, [currentPath, hydrated, language, router]);
 
   useEffect(() => {
     const context = document.modelContext;
@@ -75,12 +82,17 @@ function ShellContent({ children }: { children: React.ReactNode }) {
 
   const isCurrent = (href: string) =>
     href === '/' ? currentPath === '/' : currentPath.startsWith(href);
+  const localizedHref = (href: string) => `${href}?lang=${language}`;
 
   return (
     <div className="app-frame">
       <header className="site-header">
         <div className="header-inner">
-          <Link className="brand" href="/" aria-label="Nuzenio home">
+          <Link
+            className="brand"
+            href={localizedHref('/')}
+            aria-label="Nuzenio home"
+          >
             <span className="brand-mark" aria-hidden="true">
               N
             </span>
@@ -93,7 +105,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             {nav.map(({ href, en, hi }) => (
               <Link
                 key={href}
-                href={href}
+                href={localizedHref(href)}
                 aria-current={isCurrent(href) ? 'page' : undefined}
               >
                 {t(en, hi)}
@@ -103,7 +115,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
           <div className="header-actions">
             <Link
               className={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}
-              href="/search"
+              href={localizedHref('/search')}
               aria-label={t('Search', 'खोजें')}
             >
               <Search />
@@ -152,14 +164,14 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             aria-label={t('Mobile navigation', 'मोबाइल नेविगेशन')}
           >
             {nav.map(({ href, en, hi, icon: Icon }) => (
-              <Link key={href} href={href}>
+              <Link key={href} href={localizedHref(href)}>
                 <Icon /> {t(en, hi)}
               </Link>
             ))}
-            <Link href="/search">
+            <Link href={localizedHref('/search')}>
               <Search /> {t('Search', 'खोजें')}
             </Link>
-            <Link href="/settings">
+            <Link href={localizedHref('/settings')}>
               <Settings /> {t('Settings', 'सेटिंग्स')}
             </Link>
           </nav>
@@ -173,7 +185,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
         {nav.map(({ href, en, hi, icon: Icon }) => (
           <Link
             key={href}
-            href={href}
+            href={localizedHref(href)}
             aria-current={isCurrent(href) ? 'page' : undefined}
           >
             <Icon />

@@ -8,6 +8,7 @@ from typing import Any
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     Float,
@@ -71,11 +72,21 @@ class PublisherOrganization(UUIDTimestampMixin, Base):
     __tablename__ = "publisher_organizations"
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(200), nullable=False, unique=True, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    ownership: Mapped[str] = mapped_column(String(300), default="")
+    correction_policy: Mapped[str] = mapped_column(Text, default="")
     country_code: Mapped[str] = mapped_column(String(2), default="IN")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     domains: Mapped[list[PublisherDomain]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
     )
+    rights_policies: Mapped[list[RightsPolicy]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
+    feeds: Mapped[list[SourceFeed]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
+    articles: Mapped[list[Article]] = relationship(back_populates="publisher_organization")
 
 
 class PublisherDomain(UUIDTimestampMixin, Base):
@@ -100,6 +111,8 @@ class RightsPolicy(UUIDTimestampMixin, Base):
     attribution_required: Mapped[bool] = mapped_column(Boolean, default=True)
     terms_url: Mapped[str | None] = mapped_column(String(1000))
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    organization: Mapped[PublisherOrganization] = relationship(back_populates="rights_policies")
+    feeds: Mapped[list[SourceFeed]] = relationship(back_populates="rights_policy")
 
 
 class SourceFeed(UUIDTimestampMixin, Base):
@@ -115,6 +128,9 @@ class SourceFeed(UUIDTimestampMixin, Base):
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     health_status: Mapped[str] = mapped_column(String(32), default="UNKNOWN")
+    organization: Mapped[PublisherOrganization] = relationship(back_populates="feeds")
+    rights_policy: Mapped[RightsPolicy] = relationship(back_populates="feeds")
+    articles: Mapped[list[Article]] = relationship(back_populates="feed")
 
 
 class Article(UUIDTimestampMixin, Base):
@@ -125,6 +141,7 @@ class Article(UUIDTimestampMixin, Base):
     )
     canonical_url: Mapped[str] = mapped_column(String(1400), unique=True)
     title: Mapped[str] = mapped_column(String(600))
+    title_hi: Mapped[str | None] = mapped_column(String(600))
     excerpt: Mapped[str | None] = mapped_column(Text)
     language: Mapped[str] = mapped_column(String(12))
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -132,6 +149,13 @@ class Article(UUIDTimestampMixin, Base):
         Enum(ContentStatus), default=ContentStatus.INGESTED
     )
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    feed: Mapped[SourceFeed] = relationship(back_populates="articles")
+    publisher_organization: Mapped[PublisherOrganization] = relationship(back_populates="articles")
+    fingerprint: Mapped[ArticleFingerprint | None] = relationship(
+        back_populates="article", cascade="all, delete-orphan", uselist=False
+    )
+    cluster_memberships: Mapped[list[ClusterArticle]] = relationship(back_populates="article")
+    evidence: Mapped[list[ClaimEvidence]] = relationship(back_populates="article")
 
 
 class ArticleFingerprint(UUIDTimestampMixin, Base):
@@ -143,12 +167,14 @@ class ArticleFingerprint(UUIDTimestampMixin, Base):
     normalized_url_hash: Mapped[str] = mapped_column(String(64), index=True)
     simhash: Mapped[str | None] = mapped_column(String(32), index=True)
     syndication_group: Mapped[str | None] = mapped_column(String(64), index=True)
+    article: Mapped[Article] = relationship(back_populates="fingerprint")
 
 
 class EventCluster(UUIDTimestampMixin, Base):
     __tablename__ = "event_clusters"
     slug: Mapped[str] = mapped_column(String(300), unique=True, index=True)
     neutral_headline: Mapped[str] = mapped_column(String(600))
+    neutral_headline_hi: Mapped[str] = mapped_column(String(600))
     category: Mapped[str] = mapped_column(String(80), index=True)
     location: Mapped[str | None] = mapped_column(String(160), index=True)
     status: Mapped[ContentStatus] = mapped_column(Enum(ContentStatus), default=ContentStatus.HELD)
@@ -158,9 +184,23 @@ class EventCluster(UUIDTimestampMixin, Base):
     )
     event_embedding: Mapped[list[float] | None] = mapped_column(Vector(768))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    display_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    timeline_json: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    why_shown: Mapped[str] = mapped_column(Text, default="")
+    why_shown_hi: Mapped[str] = mapped_column(Text, default="")
     articles: Mapped[list[ClusterArticle]] = relationship(
         back_populates="cluster", cascade="all, delete-orphan"
     )
+    claims: Mapped[list[Claim]] = relationship(
+        back_populates="cluster", cascade="all, delete-orphan"
+    )
+    summaries: Mapped[list[SummaryVersion]] = relationship(
+        back_populates="cluster", cascade="all, delete-orphan"
+    )
+    primary_documents: Mapped[list[PrimaryDocument]] = relationship(
+        back_populates="cluster", cascade="all, delete-orphan"
+    )
+    corrections: Mapped[list[Correction]] = relationship(back_populates="cluster")
     __table_args__ = (Index("ix_event_cluster_category_location", "category", "location"),)
 
 
@@ -176,6 +216,7 @@ class ClusterArticle(UUIDTimestampMixin, Base):
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
     is_syndicated_copy: Mapped[bool] = mapped_column(Boolean, default=False)
     cluster: Mapped[EventCluster] = relationship(back_populates="articles")
+    article: Mapped[Article] = relationship(back_populates="cluster_memberships")
     __table_args__ = (UniqueConstraint("cluster_id", "article_id", name="uq_cluster_article"),)
 
 
@@ -185,8 +226,13 @@ class Claim(UUIDTimestampMixin, Base):
         ForeignKey("event_clusters.id", ondelete="CASCADE"), index=True
     )
     text: Mapped[str] = mapped_column(Text)
+    text_hi: Mapped[str] = mapped_column(Text)
     state: Mapped[ClaimState] = mapped_column(Enum(ClaimState), index=True)
     materiality: Mapped[int] = mapped_column(Integer, default=1)
+    cluster: Mapped[EventCluster] = relationship(back_populates="claims")
+    evidence: Mapped[list[ClaimEvidence]] = relationship(
+        back_populates="claim", cascade="all, delete-orphan"
+    )
 
 
 class PrimaryDocument(UUIDTimestampMixin, Base):
@@ -195,10 +241,13 @@ class PrimaryDocument(UUIDTimestampMixin, Base):
         ForeignKey("event_clusters.id", ondelete="CASCADE"), index=True
     )
     title: Mapped[str] = mapped_column(String(600))
+    title_hi: Mapped[str | None] = mapped_column(String(600))
     issuer: Mapped[str] = mapped_column(String(300))
     url: Mapped[str] = mapped_column(String(1400), unique=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     document_hash: Mapped[str | None] = mapped_column(String(64))
+    cluster: Mapped[EventCluster] = relationship(back_populates="primary_documents")
+    evidence: Mapped[list[ClaimEvidence]] = relationship(back_populates="primary_document")
 
 
 class ClaimEvidence(UUIDTimestampMixin, Base):
@@ -214,6 +263,19 @@ class ClaimEvidence(UUIDTimestampMixin, Base):
     )
     locator: Mapped[str] = mapped_column(String(500))
     support_score: Mapped[float] = mapped_column(Float, default=1.0)
+    claim: Mapped[Claim] = relationship(back_populates="evidence")
+    article: Mapped[Article | None] = relationship(back_populates="evidence")
+    primary_document: Mapped[PrimaryDocument | None] = relationship(back_populates="evidence")
+    __table_args__ = (
+        CheckConstraint(
+            "num_nonnulls(article_id, primary_document_id) = 1",
+            name="ck_claim_evidence_one_source",
+        ),
+        CheckConstraint(
+            "support_score >= 0 AND support_score <= 1",
+            name="ck_claim_evidence_support_score",
+        ),
+    )
 
 
 class SummaryVersion(UUIDTimestampMixin, Base):
@@ -227,6 +289,7 @@ class SummaryVersion(UUIDTimestampMixin, Base):
     evidence_map: Mapped[dict[str, Any]] = mapped_column(JSONB)
     generator_name: Mapped[str] = mapped_column(String(100))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cluster: Mapped[EventCluster] = relationship(back_populates="summaries")
     __table_args__ = (
         UniqueConstraint("cluster_id", "version", "language", name="uq_summary_version_language"),
     )
@@ -239,8 +302,11 @@ class Correction(UUIDTimestampMixin, Base):
     )
     article_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("articles.id"), index=True)
     description: Mapped[str] = mapped_column(Text)
+    description_hi: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(32), default="OPEN")
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cluster: Mapped[EventCluster | None] = relationship(back_populates="corrections")
+    article: Mapped[Article | None] = relationship()
 
 
 class UserPreference(UUIDTimestampMixin, Base):
@@ -279,6 +345,9 @@ class Brief(UUIDTimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(400))
     cluster_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("edition", "period", "language", name="uq_brief_edition_period_language"),
+    )
 
 
 class Notification(UUIDTimestampMixin, Base):

@@ -2,41 +2,32 @@
 
 > One story. Multiple sources. Clear in 60 seconds.
 
-Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not publish original news. It is designed to ingest only approved RSS, API, licensed and official primary-source feeds, then organise related reporting into a single evidence-aware story cluster.
+Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not publish original news. Milestone 2A connects the existing bilingual PWA to a persistent FastAPI reader service backed by PostgreSQL, while preserving device-local reader preferences.
 
-Milestone 1 is a working, installable, bilingual demonstration PWA plus a production-oriented FastAPI and PostgreSQL foundation. Every story, publisher and external URL in the demo is fictional and clearly labelled in the product.
+Every seeded story, publisher, document and outbound URL is fictional demonstration data on reserved `.example` domains. No paid AI key, publisher credential, scraping, paywalled content or complete publisher article is used.
 
-## What is implemented
+## Milestone 2A
 
-### Web/PWA
+### Reader experience
 
-- Mobile-first responsive shell with Top, For You, Local, Briefs and Following navigation.
-- English/Hindi switching and persistent light/dark themes.
-- Top News story-cluster feed with save, follow, share, hide-source and more/less controls.
-- Full story-cluster page with neutral headline, 40–80 word brief, Confirmed/Developing/Disputed claims, organisation-level source count, headline comparison, publisher links, update timeline, primary documents, corrections and issue reporting.
-- Explainable For You recommendations.
-- Delhi NCR local pilot.
-- Morning and evening brief editions.
-- Publisher profile with ownership, verified domains, rights and correction policy.
-- Search loading, empty, results and simulated error states.
-- Settings for language, theme, local edition and personalisation controls.
-- Admin demonstrations for source registry, feed health, cluster merge/split, corrections and high-risk review.
-- Route-level loading, error and not-found states.
-- Manifest, icons, service worker and standalone PWA metadata.
-- Page-specific title/description/social metadata for story and source detail routes.
+- Preserves all Milestone 1 routes, mobile/desktop behavior, accessibility, English/Hindi switching, themes and PWA assets.
+- Loads Top, Local, story detail, source profile, search, morning brief and evening brief from FastAPI.
+- Keeps For You, follows, saves, hidden sources, theme and language preferences device-local.
+- Includes route loading, empty, not-found and recoverable error states.
+- Uses a typed server-friendly API client with runtime contract guards.
+- Never silently substitutes fixtures after an API failure. Optional fixture fallback requires `NUZENIO_ENABLE_DEMO_FALLBACK=true` and is disabled in production regardless of configuration.
 
-### API and content foundation
+### Persistent API
 
-- FastAPI health, demo cluster, pipeline preview and admin merge/split preview contracts.
-- SQLAlchemy entities for every requested domain object.
-- PostgreSQL-first schema with `vector(768)` event embeddings.
-- Docker Compose for pgvector/PostgreSQL and Redis.
-- Protocols for all pipeline stages and future OpenSearch integration.
-- Deterministic URL canonicalisation, fingerprinting, syndicated-copy detection, event clustering, classification, evidence mapping, summary generation, labelled translation and material-update detection.
-- Editorial review requirement for defined high-risk topics.
-- Seed command for the fictional demonstration fixture.
+- Alembic-owned PostgreSQL schema for publisher, rights, feed, article, fingerprint, cluster, evidence, summary, document, correction and brief records.
+- Transactional repository/service boundary with eager relationship loading.
+- Pagination, category/status/local filters, bilingual selection and consistent error envelopes.
+- Organization-level independent-source counting; multiple domains count once and syndicated copies do not inflate diversity.
+- Evidence-free claims are suppressed, and an evidence-free summary is unavailable rather than published.
+- Idempotent seven-cluster seed with English/Hindi summaries, claims/evidence, Delhi NCR stories, developing/disputed examples, primary documents, corrections and morning/evening briefs.
+- pgvector-ready `vector(768)` cluster embeddings and Redis-ready configuration. OpenSearch is intentionally still an interface only.
 
-See [architecture](docs/architecture.md) and [product decisions](docs/product-decisions.md) for the invariants and milestone boundaries.
+Detailed references: [architecture](docs/architecture.md), [API](docs/api.md), [environment](docs/environment.md), and [product decisions](docs/product-decisions.md).
 
 ## Repository structure
 
@@ -45,19 +36,24 @@ Nuzenio/
 ├── .github/workflows/ci.yml
 ├── apps/
 │   ├── api/
+│   │   ├── migrations/             # Alembic environment and reviewed revisions
 │   │   ├── src/nuzenio_api/
-│   │   │   ├── pipeline/
-│   │   │   ├── main.py
-│   │   │   ├── models.py
-│   │   │   ├── schemas.py
-│   │   │   └── seed.py
+│   │   │   ├── pipeline/           # deterministic provider interfaces/implementations
+│   │   │   ├── demo_data.py        # fictional canonical seed fixture
+│   │   │   ├── models.py           # SQLAlchemy domain model
+│   │   │   ├── repositories.py     # persistence queries
+│   │   │   ├── services.py         # transactional reader mapping/invariants
+│   │   │   ├── schemas.py          # public API contracts
+│   │   │   ├── main.py             # FastAPI routes
+│   │   │   └── seed.py             # idempotent database seed
 │   │   ├── tests/
+│   │   ├── Dockerfile
 │   │   └── pyproject.toml
 │   └── web/
-│       ├── app/
-│       ├── components/
-│       ├── lib/
-│       ├── public/
+│       ├── app/                     # Next.js App Router routes and route states
+│       ├── components/              # preserved Milestone 1 UI
+│       ├── lib/                     # typed API client, contracts, preferences
+│       ├── public/                  # PWA manifest, icons, service worker
 │       └── tests/
 ├── docs/
 ├── infra/postgres/init/
@@ -70,9 +66,7 @@ Nuzenio/
 
 - Node.js 22.13 or newer
 - Python 3.12 or newer
-- Docker with Compose, only when running PostgreSQL and Redis
-
-No paid AI key or publisher credential is required.
+- Docker Desktop or Docker Engine with Compose
 
 ## Local setup
 
@@ -83,91 +77,77 @@ cp .env.example .env
 npm install
 python3 -m venv apps/api/.venv
 apps/api/.venv/bin/pip install -e 'apps/api[dev]'
+docker compose up -d postgres redis
+cd apps/api
+.venv/bin/alembic -c alembic.ini upgrade head
+.venv/bin/python -m nuzenio_api.seed
+cd ../..
 ```
 
-Run the demonstration web app:
+Start the API and web app in separate terminals:
 
 ```bash
+apps/api/.venv/bin/uvicorn nuzenio_api.main:app --app-dir apps/api/src --reload --port 8000
 npm run dev:web
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`; API documentation is at `http://localhost:8000/docs`.
 
-Run the API without persistence:
-
-```bash
-apps/api/.venv/bin/uvicorn nuzenio_api.main:app --reload --port 8000
-```
-
-API documentation is available at `http://localhost:8000/docs`.
-
-Run PostgreSQL, pgvector and Redis, then seed demonstration records:
+Alternatively, start the migration-seeded API plus its dependencies with Compose:
 
 ```bash
-docker compose up -d
-apps/api/.venv/bin/python -m nuzenio_api.seed
+docker compose up --build api
 ```
 
-Validate the seed fixture without starting Docker:
+The Compose API command applies pending migrations and runs the idempotent fictional seed before starting Uvicorn.
+
+## Database operations
 
 ```bash
-apps/api/.venv/bin/python -m nuzenio_api.seed --dry-run
+cd apps/api
+.venv/bin/alembic -c alembic.ini current
+.venv/bin/alembic -c alembic.ini upgrade head
+.venv/bin/python -m nuzenio_api.seed
+.venv/bin/python -m nuzenio_api.seed --dry-run
 ```
+
+Do not call `Base.metadata.create_all()` for managed environments; Alembic is the schema authority.
 
 ## Quality commands
+
+With PostgreSQL and Redis running:
 
 ```bash
 npm run format:web
 npm run lint:web
 npm run test:web
 npm run build:web
-apps/api/.venv/bin/ruff check apps/api
 apps/api/.venv/bin/ruff format --check apps/api
+apps/api/.venv/bin/ruff check apps/api
 apps/api/.venv/bin/pytest apps/api/tests
+docker compose config --quiet
 ```
 
-CI runs the same lint, test and web build gates on pull requests and `main` pushes.
+API tests create, migrate, seed and remove a disposable `nuzenio_test` database. Override it with `NUZENIO_TEST_DATABASE_URL` when necessary. CI runs the same gates with PostgreSQL/pgvector and Redis service containers.
 
-## Required routes
+## Reader routes
 
-| Route | Milestone 1 surface |
+| Route | Data source |
 | --- | --- |
-| `/` | Top News cluster feed |
-| `/for-you` | Explainable personalised feed |
-| `/local` | Delhi NCR local pilot |
-| `/briefs` | Morning and evening briefs |
-| `/following` | Topic controls and followed feed |
-| `/story/[slug]` | Full story-cluster comparison |
-| `/source/[slug]` | Publisher organisation profile |
-| `/search` | Cluster search states |
-| `/settings` | Language, theme, area and personalisation |
-| `/admin` | Editorial and source operations demo |
+| `/` | `GET /v1/feed/top` |
+| `/for-you` | API feed plus device-local preferences/explanations |
+| `/local` | `GET /v1/feed/local` for Delhi NCR |
+| `/briefs` | Morning and evening brief endpoints |
+| `/following` | API feed plus device-local follows |
+| `/story/[slug]` | `GET /v1/clusters/{slug}` |
+| `/source/[slug]` | `GET /v1/sources/{slug}` |
+| `/search` | `GET /v1/search` |
+| `/settings` | Device-local settings |
+| `/admin` | Milestone 1 interaction previews; no persistent admin writes yet |
 
-## Content and rights safeguards
+## Milestone boundary
 
-- Full publisher articles are neither scraped nor stored by the demo.
-- `RightsPolicy.may_store_full_text` defaults to false.
-- Pipeline previews suppress unapproved feeds.
-- Sample summaries are fictional, source-attributed demonstration copy.
-- Organisation ownership and syndication state control source counts.
-- Unsupported factual sentences are removed; evidence-free summaries are suppressed.
-- High-risk clusters require editorial approval before publication.
-- Machine-translated cluster views are visibly labelled.
-
-## Milestone 2
-
-1. Connect the web application to authenticated FastAPI query and mutation endpoints.
-2. Add Alembic-managed migrations, database-backed repositories and transactional admin writes.
-3. Build publisher onboarding, feed polling, rights enforcement and per-feed rate/backoff controls.
-4. Add production duplicate/syndication evaluation datasets and embedding-assisted clustering.
-5. Implement editorial authentication, role-based access, dual-control high-risk publication and immutable audit exports.
-6. Add correction propagation, material-update notifications and browser push opt-in.
-7. Add evaluated Hindi/English translation providers, named-entity/number preservation checks and human override workflows.
-8. Build OpenSearch indexing, autocomplete and result-quality evaluation.
-9. Add user accounts, cross-device preferences and privacy/retention controls.
-10. Add comprehensive browser accessibility, PWA install/offline and end-to-end tests against real approved test feeds.
-11. Complete publisher licensing integrations and legal review before using any real content.
-12. Package the later Android application only after PWA analytics and product-quality gates are met.
+Not included: authentication, real publisher ingestion or polling, paid AI providers, OpenSearch deployment, browser push, Android packaging, production admin mutations, or deployment. See the recommended next scope in [product decisions](docs/product-decisions.md).
 
 ## Licence
 

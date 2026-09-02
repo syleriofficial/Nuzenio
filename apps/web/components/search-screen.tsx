@@ -1,32 +1,34 @@
 'use client';
 
-import { type SyntheticEvent, useState } from 'react';
-import { AlertTriangle, Search } from 'lucide-react';
+import { type SyntheticEvent, useState, useTransition } from 'react';
+import { Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StoryCard } from '@/components/story-card';
-import { storyClusters } from '@/lib/demo-data';
+import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 
-export function SearchScreen() {
+export function SearchScreen({
+  initialQuery,
+  stories,
+}: {
+  initialQuery: string;
+  stories: StoryCluster[];
+}) {
   const { t } = usePreferences();
-  const [input, setInput] = useState('');
-  const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [input, setInput] = useState(initialQuery);
+  const [loading, startTransition] = useTransition();
   const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLoading(true);
-    window.setTimeout(() => {
-      setQuery(input.trim());
-      setLoading(false);
-    }, 250);
+    const params = new URLSearchParams(searchParams.toString());
+    const query = input.trim();
+    if (query) params.set('q', query);
+    else params.delete('q');
+    startTransition(() => router.push(`/search?${params.toString()}`));
   };
-  const matches = storyClusters.filter((story) =>
-    `${story.headline} ${story.headlineHi} ${story.category} ${story.brief}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
-  const hasError = query.toLowerCase() === 'error';
   return (
     <>
       <section className="page-heading">
@@ -60,26 +62,7 @@ export function SearchScreen() {
           <span />
           <span />
         </div>
-      ) : hasError ? (
-        <div className="error-state" role="alert">
-          <AlertTriangle />
-          <h2>
-            {t(
-              'Search is temporarily unavailable',
-              'खोज अस्थायी रूप से उपलब्ध नहीं',
-            )}
-          </h2>
-          <p>
-            {t(
-              'Your query is safe. Please try again.',
-              'आपकी क्वेरी सुरक्षित है। कृपया फिर कोशिश करें।',
-            )}
-          </p>
-          <Button variant="outline" onClick={() => setQuery('')}>
-            {t('Try again', 'फिर कोशिश करें')}
-          </Button>
-        </div>
-      ) : !query ? (
+      ) : !initialQuery ? (
         <div className="empty-state">
           <Search />
           <h2>
@@ -92,9 +75,9 @@ export function SearchScreen() {
             )}
           </p>
         </div>
-      ) : matches.length ? (
+      ) : stories.length ? (
         <main className="story-feed narrow-feed" aria-live="polite">
-          {matches.map((story) => (
+          {stories.map((story) => (
             <StoryCard key={story.slug} story={story} />
           ))}
         </main>

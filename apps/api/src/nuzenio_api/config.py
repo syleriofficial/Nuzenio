@@ -10,8 +10,14 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: list[str] = ["http://localhost:3000"]
     demo_mode: bool = True
+    max_page_size: int = 50
+    sql_echo: bool = False
 
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="NUZENIO_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../../.env"),
+        env_prefix="NUZENIO_",
+        extra="ignore",
+    )
 
 
 @lru_cache

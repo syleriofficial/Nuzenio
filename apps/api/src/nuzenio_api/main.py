@@ -1,10 +1,13 @@
-from contextlib import asynccontextmanager
+from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from nuzenio_api.config import get_settings
-from nuzenio_api.demo_data import DEMO_CLUSTERS
+from nuzenio_api.db import get_db
+from nuzenio_api.errors import register_error_handlers
 from nuzenio_api.pipeline.demo import (
     DeterministicCanonicalizer,
     DeterministicClassifier,
@@ -15,57 +18,188 @@ from nuzenio_api.pipeline.demo import (
 from nuzenio_api.pipeline.interfaces import PipelineArticle
 from nuzenio_api.schemas import (
     AdminActionResponse,
+    BriefRead,
+    ClusterDetail,
     ClusterMergeRequest,
+    ClusterPage,
     ClusterSplitRequest,
-    ClusterSummary,
+    ErrorResponse,
     HealthResponse,
     PipelinePreviewRequest,
     PipelinePreviewResponse,
+    SourceProfileRead,
 )
+from nuzenio_api.services import ReaderService
 
 settings = get_settings()
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    # Database and Redis clients will be initialised here when persistence is enabled.
-    yield
-
+LanguageParam = Annotated[Literal["en", "hi"], Query(description="Response language")]
+PageParam = Annotated[int, Query(ge=1, description="One-based result page")]
+PageSizeParam = Annotated[
+    int,
+    Query(ge=1, le=settings.max_page_size, description="Results per page"),
+]
+StoryStatusParam = Annotated[
+    Literal["VERIFIED", "DEVELOPING", "DISPUTED"] | None,
+    Query(description="Filter by derived cluster state"),
+]
+SessionDep = Annotated[Session, Depends(get_db)]
+ERROR_RESPONSES = {
+    404: {"model": ErrorResponse},
+    422: {"model": ErrorResponse},
+    503: {"model": ErrorResponse},
+}
 
 app = FastAPI(
-    title="Nuzenio Content API",
-    version="0.1.0",
+    title="Nuzenio Reader API",
+    version="0.2.0",
     description=(
-        "Approved-feed ingestion, evidence mapping and story-cluster APIs. "
-        "The default provider is deterministic and uses demonstration data."
+        "Persistent reader contracts for approved-feed, evidence-backed fictional "
+        "story clusters. Nuzenio does not publish original news."
     ),
-    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type"],
 )
+register_error_handlers(app)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["system"])
-def health() -> HealthResponse:
-    return HealthResponse(status="ok", service="nuzenio-api", demo_mode=settings.demo_mode)
+def health(session: SessionDep) -> HealthResponse:
+    session.execute(text("SELECT 1"))
+    return HealthResponse(
+        status="ok",
+        service="nuzenio-api",
+        version=app.version,
+        persistence="postgresql",
+        cache="redis-ready",
+    )
 
 
-@app.get("/v1/demo/clusters", response_model=list[ClusterSummary], tags=["demo"])
-def list_demo_clusters() -> list[ClusterSummary]:
-    return DEMO_CLUSTERS
+@app.get(
+    "/v1/feed/top",
+    response_model=ClusterPage,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def top_feed(
+    session: SessionDep,
+    language: LanguageParam = "en",
+    page: PageParam = 1,
+    page_size: PageSizeParam = 10,
+    category: Annotated[str | None, Query(max_length=80)] = None,
+    status: StoryStatusParam = None,
+) -> ClusterPage:
+    return ReaderService(session).feed(
+        language=language,
+        page=page,
+        page_size=page_size,
+        category=category,
+        status=status,
+    )
 
 
-@app.get("/v1/demo/clusters/{slug}", response_model=ClusterSummary, tags=["demo"])
-def get_demo_cluster(slug: str) -> ClusterSummary:
-    cluster = next((item for item in DEMO_CLUSTERS if item.slug == slug), None)
-    if not cluster:
-        raise HTTPException(status_code=404, detail="cluster not found")
-    return cluster
+@app.get(
+    "/v1/feed/local",
+    response_model=ClusterPage,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def local_feed(
+    session: SessionDep,
+    language: LanguageParam = "en",
+    page: PageParam = 1,
+    page_size: PageSizeParam = 10,
+    area: Annotated[str, Query(min_length=2, max_length=160)] = "Delhi NCR",
+    status: StoryStatusParam = None,
+) -> ClusterPage:
+    return ReaderService(session).feed(
+        language=language,
+        page=page,
+        page_size=page_size,
+        location=area,
+        status=status,
+    )
+
+
+@app.get(
+    "/v1/clusters/{slug}",
+    response_model=ClusterDetail,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def cluster_detail(
+    slug: str,
+    session: SessionDep,
+    language: LanguageParam = "en",
+) -> ClusterDetail:
+    return ReaderService(session).cluster(slug=slug, language=language)
+
+
+@app.get(
+    "/v1/sources/{slug}",
+    response_model=SourceProfileRead,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def source_profile(
+    slug: str,
+    session: SessionDep,
+    language: LanguageParam = "en",
+) -> SourceProfileRead:
+    return ReaderService(session).source(slug=slug, language=language)
+
+
+@app.get(
+    "/v1/search",
+    response_model=ClusterPage,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def search(
+    q: Annotated[str, Query(min_length=1, max_length=200)],
+    session: SessionDep,
+    language: LanguageParam = "en",
+    page: PageParam = 1,
+    page_size: PageSizeParam = 10,
+    category: Annotated[str | None, Query(max_length=80)] = None,
+    status: StoryStatusParam = None,
+) -> ClusterPage:
+    return ReaderService(session).feed(
+        language=language,
+        page=page,
+        page_size=page_size,
+        category=category,
+        status=status,
+        query=q,
+    )
+
+
+def _brief(period: Literal["morning", "evening"], language: str, session: Session) -> BriefRead:
+    return ReaderService(session).brief(period=period, language=language)
+
+
+@app.get(
+    "/v1/briefs/morning",
+    response_model=BriefRead,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def morning_brief(session: SessionDep, language: LanguageParam = "en") -> BriefRead:
+    return _brief("morning", language, session)
+
+
+@app.get(
+    "/v1/briefs/evening",
+    response_model=BriefRead,
+    responses=ERROR_RESPONSES,
+    tags=["reader"],
+)
+def evening_brief(session: SessionDep, language: LanguageParam = "en") -> BriefRead:
+    return _brief("evening", language, session)
 
 
 @app.post("/v1/pipeline/preview", response_model=PipelinePreviewResponse, tags=["pipeline"])

@@ -1,61 +1,7 @@
-export type StoryStatus = 'VERIFIED' | 'DEVELOPING' | 'DISPUTED';
-export type RiskLevel = 'STANDARD' | 'HIGH';
-
-export interface Source {
-  name: string;
-  slug: string;
-  short: string;
-  organization: string;
-  domain: string;
-  language: 'English' | 'Hindi';
-  headline: string;
-  headlineHi?: string;
-  url: string;
-  publishedAt: string;
-  isSyndicated?: boolean;
-  machineTranslated?: boolean;
-}
-
-export interface TimelineEntry {
-  at: string;
-  title: string;
-  detail: string;
-}
-
-export interface StoryCluster {
-  slug: string;
-  category: string;
-  location?: string;
-  headline: string;
-  headlineHi: string;
-  brief: string;
-  briefHi: string;
-  status: StoryStatus;
-  statusLabel: string;
-  updated: string;
-  independentSourceCount: number;
-  riskLevel: RiskLevel;
-  reviewState: 'PUBLISHED' | 'EDITOR_REVIEWED';
-  sources: Source[];
-  confirmed: string[];
-  confirmedHi: string[];
-  developing: string[];
-  developingHi: string[];
-  disputed: string[];
-  disputedHi: string[];
-  timeline: TimelineEntry[];
-  primaryDocument?: {
-    title: string;
-    issuer: string;
-    url: string;
-    publishedAt: string;
-  };
-  corrections: { at: string; note: string }[];
-  whyShown: string;
-}
+import type { StoryCluster, StorySource } from '@/lib/story-types';
 
 const sources = {
-  janadesh: (headline: string, url: string): Source => ({
+  janadesh: (headline: string, url: string): StorySource => ({
     name: 'Janadesh',
     slug: 'janadesh',
     short: 'J',
@@ -67,7 +13,7 @@ const sources = {
     publishedAt: '09:18 IST',
     machineTranslated: true,
   }),
-  civic: (headline: string, url: string): Source => ({
+  civic: (headline: string, url: string): StorySource => ({
     name: 'The Civic Ledger',
     slug: 'civic-ledger',
     short: 'CL',
@@ -78,7 +24,7 @@ const sources = {
     url,
     publishedAt: '09:31 IST',
   }),
-  bharat: (headline: string, url: string): Source => ({
+  bharat: (headline: string, url: string): StorySource => ({
     name: 'Bharat Wire',
     slug: 'bharat-wire',
     short: 'BW',
@@ -89,7 +35,7 @@ const sources = {
     url,
     publishedAt: '09:05 IST',
   }),
-  publicBrief: (headline: string, url: string): Source => ({
+  publicBrief: (headline: string, url: string): StorySource => ({
     name: 'Public Brief',
     slug: 'public-brief',
     short: 'PB',
@@ -100,7 +46,7 @@ const sources = {
     url,
     publishedAt: '10:02 IST',
   }),
-  delhi: (headline: string, url: string): Source => ({
+  delhi: (headline: string, url: string): StorySource => ({
     name: 'Delhi Chronicle',
     slug: 'delhi-chronicle',
     short: 'DC',
@@ -111,7 +57,7 @@ const sources = {
     url,
     publishedAt: '08:42 IST',
   }),
-  capital: (headline: string, url: string): Source => ({
+  capital: (headline: string, url: string): StorySource => ({
     name: 'Capital Civic',
     slug: 'capital-civic',
     short: 'CC',
@@ -122,7 +68,7 @@ const sources = {
     url,
     publishedAt: '08:51 IST',
   }),
-  cityline: (headline: string, url: string): Source => ({
+  cityline: (headline: string, url: string): StorySource => ({
     name: 'Cityline Hindi',
     slug: 'cityline-hindi',
     short: 'CH',
@@ -134,7 +80,7 @@ const sources = {
     publishedAt: '08:46 IST',
     machineTranslated: true,
   }),
-  market: (headline: string, url: string): Source => ({
+  market: (headline: string, url: string): StorySource => ({
     name: 'Market Standard',
     slug: 'market-standard',
     short: 'MS',
@@ -145,7 +91,7 @@ const sources = {
     url,
     publishedAt: '07:55 IST',
   }),
-  rupee: (headline: string, url: string): Source => ({
+  rupee: (headline: string, url: string): StorySource => ({
     name: 'Rupee Desk',
     slug: 'rupee-desk',
     short: 'RD',
@@ -156,7 +102,7 @@ const sources = {
     url,
     publishedAt: '08:11 IST',
   }),
-  boundary: (headline: string, url: string): Source => ({
+  boundary: (headline: string, url: string): StorySource => ({
     name: 'Boundary India',
     slug: 'boundary-india',
     short: 'BI',
@@ -167,7 +113,7 @@ const sources = {
     url,
     publishedAt: '07:28 IST',
   }),
-  sports: (headline: string, url: string): Source => ({
+  sports: (headline: string, url: string): StorySource => ({
     name: 'National Sports Desk',
     slug: 'national-sports-desk',
     short: 'NS',
@@ -178,7 +124,7 @@ const sources = {
     url,
     publishedAt: '07:44 IST',
   }),
-  byte: (headline: string, url: string): Source => ({
+  byte: (headline: string, url: string): StorySource => ({
     name: 'The Byte Review',
     slug: 'byte-review',
     short: 'BR',
@@ -189,7 +135,7 @@ const sources = {
     url,
     publishedAt: '11:15 IST',
   }),
-  signal: (headline: string, url: string): Source => ({
+  signal: (headline: string, url: string): StorySource => ({
     name: 'Signal India',
     slug: 'signal-india',
     short: 'SI',

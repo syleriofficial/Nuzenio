@@ -3,20 +3,18 @@
 import { useState } from 'react';
 import { Clock3, MoonStar, SunMedium } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { storyClusters } from '@/lib/demo-data';
+import type { ReaderBrief } from '@/lib/api-types';
 import { usePreferences } from '@/lib/preferences';
 
-export function BriefsScreen() {
+export function BriefsScreen({
+  briefs,
+}: {
+  briefs: { morning: ReaderBrief; evening: ReaderBrief };
+}) {
   const { language, t } = usePreferences();
   const [edition, setEdition] = useState<'morning' | 'evening'>('morning');
-  const morning = [
-    storyClusters[0],
-    storyClusters[1],
-    storyClusters[2],
-    storyClusters[3],
-  ];
-  const evening = [storyClusters[4], storyClusters[5], storyClusters[6]];
-  const stories = edition === 'morning' ? morning : evening;
+  const brief = briefs[edition];
+  const stories = brief.stories;
   return (
     <>
       <section className="page-heading">
@@ -58,43 +56,49 @@ export function BriefsScreen() {
                 ? t('Morning brief', 'सुबह का ब्रीफ')
                 : t('Evening brief', 'शाम का ब्रीफ')}
             </p>
-            <h2>
-              {edition === 'morning'
-                ? t(
-                    'What matters before your day starts',
-                    'दिन शुरू होने से पहले जरूरी बातें',
-                  )
-                : t(
-                    'What changed while you were away',
-                    'आपके दूर रहने पर क्या बदला',
-                  )}
-            </h2>
+            <h2>{brief.title}</h2>
           </div>
           <span className="read-time">
             <Clock3 /> {stories.length + 1} {t('min read', 'मिनट')}
           </span>
         </header>
-        <ol className="brief-list">
-          {stories.map((story) => (
-            <li key={story.slug}>
-              <span className="brief-number" aria-hidden="true">
-                {String(stories.indexOf(story) + 1).padStart(2, '0')}
-              </span>
-              <div>
-                <span className="brief-category">{story.category}</span>
-                <a href={`/story/${story.slug}`}>
-                  <h3>
-                    {language === 'hi' ? story.headlineHi : story.headline}
-                  </h3>
-                </a>
-                <p>{language === 'hi' ? story.briefHi : story.brief}</p>
-                <a className="text-link" href={`/story/${story.slug}`}>
-                  {t('Compare sources', 'स्रोतों की तुलना')} →
-                </a>
-              </div>
-            </li>
-          ))}
-        </ol>
+        {stories.length ? (
+          <ol className="brief-list">
+            {stories.map((story) => (
+              <li key={story.slug}>
+                <span className="brief-number" aria-hidden="true">
+                  {String(stories.indexOf(story) + 1).padStart(2, '0')}
+                </span>
+                <div>
+                  <span className="brief-category">{story.category}</span>
+                  <a href={`/story/${story.slug}?lang=${language}`}>
+                    <h3>
+                      {language === 'hi' ? story.headlineHi : story.headline}
+                    </h3>
+                  </a>
+                  <p>{language === 'hi' ? story.briefHi : story.brief}</p>
+                  <a
+                    className="text-link"
+                    href={`/story/${story.slug}?lang=${language}`}
+                  >
+                    {t('Compare sources', 'स्रोतों की तुलना')} →
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="empty-state">
+            <Clock3 />
+            <h2>{t('This brief is empty', 'यह ब्रीफ खाली है')}</h2>
+            <p>
+              {t(
+                'Published story clusters will appear in the next edition.',
+                'प्रकाशित स्टोरी क्लस्टर अगले संस्करण में दिखाई देंगे।',
+              )}
+            </p>
+          </div>
+        )}
       </article>
     </>
   );
