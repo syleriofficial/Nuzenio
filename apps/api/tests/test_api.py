@@ -214,4 +214,5 @@ def test_split_schema_rejects_article_in_multiple_groups() -> None:
         "/v1/admin/clusters/split-preview",
         json={"clusterId": "cluster-a", "groups": [["a1"], ["a1", "a2"]]},
     )
-    assert response.status_code == 422
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "authentication_required"

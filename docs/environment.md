@@ -1,40 +1,63 @@
 # Environment variables
 
-Copy `.env.example` to `.env` for local development. Never commit real credentials.
+Copy `.env.example` to `.env` only for local development. Never commit a populated `.env`, tokens, database volumes or generated credentials.
 
 ## Web
 
-| Variable | Default/example | Purpose |
+| Variable | Local example | Purpose |
 | --- | --- | --- |
-| `NUZENIO_API_BASE_URL` | `http://localhost:8000` | Server-only API URL used by Next.js. Preferred for server rendering. |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Public-compatible fallback API URL. Do not place credentials in it. |
-| `NUZENIO_ENABLE_DEMO_FALLBACK` | `false` | Allows checked-in fixture fallback after network/5xx failures only in non-production development. |
+| `NUZENIO_API_BASE_URL` | `http://localhost:8000` | Server-only reader API URL; preferred during server rendering. |
+| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Browser-compatible reader API URL; must contain no credential. |
+| `NEXT_PUBLIC_ADMIN_API_BASE_URL` | `http://localhost:8000` | Credentialed admin API origin. CORS must explicitly allow the web origin. |
+| `NUZENIO_ENABLE_DEMO_FALLBACK` | `false` | Explicit fixture fallback for non-production reader connectivity/5xx failures only. |
 
-The client always disables demo fallback when `NODE_ENV=production`, even if the fallback variable is true. Valid API empty results and 4xx responses are never replaced with fixture data.
+Production code disables reader fixture fallback regardless of its configured value. Admin operations never have a fixture fallback.
 
-## API
+## Core API
 
-Pydantic settings use the `NUZENIO_` prefix.
-
-| Variable | Default/example | Purpose |
+| Variable | Local default | Purpose |
 | --- | --- | --- |
-| `NUZENIO_ENVIRONMENT` | `development` | Environment label. |
-| `NUZENIO_DATABASE_URL` | `postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio` | SQLAlchemy PostgreSQL URL. |
-| `NUZENIO_TEST_DATABASE_URL` | same host, database `nuzenio_test` | Disposable integration-test database. Consumed by tests, not application settings. |
-| `NUZENIO_REDIS_URL` | `redis://localhost:6379/0` | Reserved cache/job URL. Redis-backed jobs are not implemented yet. |
-| `NUZENIO_CORS_ORIGINS` | `["http://localhost:3000"]` | JSON array of allowed web origins. |
-| `NUZENIO_MAX_PAGE_SIZE` | `50` | Maximum accepted reader page size. |
-| `NUZENIO_SQL_ECHO` | `false` | Enables SQLAlchemy SQL logging for local diagnostics. |
-| `NUZENIO_DEMO_MODE` | `true` | Labels the local edition as fictional demonstration data. |
+| `NUZENIO_ENVIRONMENT` | `development` | Use `production` to enable fail-closed checks. |
+| `NUZENIO_DATABASE_URL` | local `nuzenio` PostgreSQL | SQLAlchemy/psycopg URL. |
+| `NUZENIO_TEST_DATABASE_URL` | local `nuzenio_test` | Disposable API-test database; name must contain `test`. |
+| `NUZENIO_REDIS_URL` | `redis://localhost:6379/0` | Ready/delayed feed queue. |
+| `NUZENIO_CORS_ORIGINS` | `["http://localhost:3000"]` | Exact JSON origin allow-list; production entries must be HTTPS. |
+| `NUZENIO_MAX_PAGE_SIZE` | `50` | Maximum public reader page size. |
+| `NUZENIO_SQL_ECHO` | `false` | Local SQL diagnostics. |
+| `NUZENIO_DEMO_MODE` | `true` | Enables explicitly fictional `.example` dry-run handling. Must be false in production. |
 
-Use a secret manager for production credentials. Milestone 2A does not include a production deployment configuration.
+## Staff security
 
-## Compose-only PostgreSQL
+| Variable | Local default | Purpose |
+| --- | --- | --- |
+| `NUZENIO_SESSION_COOKIE_NAME` | `nuzenio_staff_session` | HttpOnly session cookie name. |
+| `NUZENIO_CSRF_COOKIE_NAME` | `nuzenio_staff_csrf` | SameSite double-submit CSRF cookie name. |
+| `NUZENIO_SESSION_TTL_MINUTES` | `480` | Absolute session lifetime. |
+| `NUZENIO_COOKIE_SECURE` | `false` | Must be true in production so cookies require HTTPS. |
+| `NUZENIO_SESSION_HASH_PEPPER` | development placeholder | HMAC key for session/CSRF/login-subject hashes. Use a unique 32+ character secret in production. |
+| `NUZENIO_BOOTSTRAP_TOKEN` | empty | Secret expected by the interactive staff CLI in production. |
+| `NUZENIO_LOGIN_ATTEMPT_LIMIT` | `5` | Failed attempts before lockout. |
+| `NUZENIO_LOGIN_LOCKOUT_MINUTES` | `15` | Temporary lockout duration. |
+
+Changing the session pepper invalidates every existing cookie. Plan that rotation as a global logout. Neither the bootstrap token nor staff password is accepted as a CLI argument.
+
+## Feed worker and fetcher
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `POSTGRES_DB` | `nuzenio` | Local database name. |
-| `POSTGRES_USER` | `nuzenio` | Local database user. |
-| `POSTGRES_PASSWORD` | `nuzenio` | Local-only password. Replace outside local development. |
+| `NUZENIO_FEED_USER_AGENT` | `NuzenioFeedFetcher/0.3 ...` | Controlled outbound identity. |
+| `NUZENIO_FEED_TIMEOUT_SECONDS` | `10` | Per-request timeout. |
+| `NUZENIO_FEED_MAX_BYTES` | `2000000` | Maximum streamed response size. |
+| `NUZENIO_FEED_REDIRECT_LIMIT` | `3` | Maximum revalidated redirects. |
+| `NUZENIO_FEED_HTTPS_REQUIRED` | `true` | Production must remain true. |
+| `NUZENIO_FEED_KILL_SWITCH` | `false` | Globally prevents scheduling/execution when true. Compose overrides it to true for fictional seed feeds. |
 
-The Compose values in `.env.example` are local development defaults, not production credentials.
+Per-feed polling interval, rate limit and kill switch are persisted and versioned rather than environment variables.
+
+## Compose-only PostgreSQL
+
+`POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` default to `nuzenio` for isolated local Compose use. They are not production credentials. Use secret injection and a managed backup policy for any approved deployment.
+
+## Production validation
+
+When `NUZENIO_ENVIRONMENT=production`, settings construction fails if the session pepper is the placeholder/too short, secure cookies are off, demo mode is on, feed HTTPS is off, or any CORS origin is not HTTPS. This is configuration validation, not a deployment manifest.

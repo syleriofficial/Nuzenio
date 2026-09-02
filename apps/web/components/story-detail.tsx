@@ -89,7 +89,7 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
         }
       : story;
   return (
-    <article className="story-detail">
+    <main className="story-detail">
       <Link className="back-link" href={`/?lang=${language}`}>
         <ChevronLeft /> {t('Back to Top', 'मुख्य समाचार पर वापस')}
       </Link>
@@ -206,7 +206,7 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
       )}
 
       <div className="detail-layout">
-        <main>
+        <div className="detail-main">
           <section
             className="fact-grid"
             aria-label={t('Fact status', 'तथ्य स्थिति')}
@@ -338,7 +338,20 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
                 {story.corrections.map((item) => (
                   <li key={item.at}>
                     <time>{item.at}</time>
-                    <span>{item.note}</span>
+                    <span>
+                      <span>{item.note}</span>
+                      {item.resolution && <small>{item.resolution}</small>}
+                      {item.sourceUrl && (
+                        <a
+                          className="publisher-link"
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t('Correction source', 'सुधार स्रोत')} <ExternalLink />
+                        </a>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -351,7 +364,7 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
               </p>
             )}
           </section>
-        </main>
+        </div>
         <aside className="detail-rail">
           <div className="rail-card">
             <p className="eyebrow">{t('How this works', 'यह कैसे काम करता है')}</p>
@@ -361,7 +374,7 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
                 'एक घटना, चार दोहराए कार्ड नहीं',
               )}
             </h2>
-            <p className="quiet-copy">
+            <p className="quiet-copy rail-note">
               {t(
                 'Nuzenio groups related reporting, consolidates publisher ownership and removes probable wire copies before showing a source count.',
                 'Nuzenio संबंधित रिपोर्टिंग को समूहित करता है, प्रकाशक स्वामित्व जोड़ता है और स्रोत गणना से संभावित वायर प्रतियां हटाता है।',
@@ -386,6 +399,6 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
       <output className="sr-status" aria-live="polite">
         {message}
       </output>
-    </article>
+    </main>
   );
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Nuzenio fictional fixture</title>
+    <item>
+      <guid>fixture-item-001</guid>
+      <title>Fixture council publishes a demonstration transport note</title>
+      <link>https://janadesh.example/fixture-worker-item</link>
+      <description><![CDATA[<p>A fictional feed item for deterministic local tests.</p><script>ignored()</script>]]></description>
+      <pubDate>Wed, 02 Sep 2026 10:00:00 +0530</pubDate>
+    </item>
+  </channel>
+</rss>

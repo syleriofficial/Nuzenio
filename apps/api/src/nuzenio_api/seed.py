@@ -19,8 +19,11 @@ from nuzenio_api.models import (
     ClusterArticle,
     ContentStatus,
     Correction,
+    DecisionState,
+    EditionControl,
     EventCluster,
     FeedType,
+    OnboardingState,
     PrimaryDocument,
     PublisherDomain,
     PublisherOrganization,
@@ -53,18 +56,24 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         organization.ownership = item["ownership"]
         organization.correction_policy = item["correction_policy"]
         organization.active = True
+        organization.onboarding_state = OnboardingState.APPROVED
+        organization.contact_name = "Demonstration publisher desk"
+        organization.contact_email = f"corrections@{item['domains'][0]}"
+        organization.correction_route = f"https://{item['domains'][0]}/demo-corrections"
         for domain_name in item["domains"]:
             domain = session.scalar(
                 select(PublisherDomain).where(PublisherDomain.domain == domain_name)
             )
             if domain is None:
-                session.add(
-                    PublisherDomain(
-                        organization_id=organization.id,
-                        domain=domain_name,
-                        verified=True,
-                    )
+                domain = PublisherDomain(
+                    organization_id=organization.id,
+                    domain=domain_name,
+                    verified=True,
                 )
+                session.add(domain)
+            domain.verified = True
+            domain.onboarding_state = OnboardingState.APPROVED
+            domain.ownership_evidence = "Fictional fixture ownership record; not a real publisher."
         rights = session.scalar(
             select(RightsPolicy).where(RightsPolicy.organization_id == organization.id)
         )
@@ -80,7 +89,17 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         rights.may_store_excerpt = True
         rights.may_summarize = True
         rights.attribution_required = True
+        rights.may_use_headline = True
+        rights.may_use_thumbnail = False
+        rights.may_translate = True
+        rights.may_generate_audio = False
+        rights.may_display_full_text = False
+        rights.onboarding_state = OnboardingState.APPROVED
+        rights.evidence_url = f"https://{item['domains'][0]}/demo-rights"
         rights.metadata_json = {"demonstration_data": True}
+        primary_domain = session.scalar(
+            select(PublisherDomain).where(PublisherDomain.domain == item["domains"][0])
+        )
         for language in item["languages"]:
             feed_url = f"https://{item['domains'][0]}/demo-feed-{language}.xml"
             feed = session.scalar(select(SourceFeed).where(SourceFeed.url == feed_url))
@@ -95,6 +114,9 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
                 )
                 session.add(feed)
             feed.approved = True
+            feed.onboarding_state = OnboardingState.APPROVED
+            feed.domain_id = primary_domain.id if primary_domain else None
+            feed.kill_switch = False
             feed.health_status = item["health"]
             feed.last_success_at = _timestamp("2026-09-02T12:00:00+05:30")
         organizations[item["slug"]] = organization
@@ -325,6 +347,7 @@ def _seed_cluster(
             else "deterministic-evidence-first-v1"
         )
         summary.published_at = updated_at
+        summary.decision = DecisionState.APPROVED
 
     for correction_data in item["corrections"]:
         correction = session.scalar(
@@ -343,6 +366,11 @@ def _seed_cluster(
         correction.description_hi = correction_data[1]
         correction.status = "PUBLISHED"
         correction.published_at = _timestamp(correction_data[2])
+        correction.source_url = "https://example.com/official-mobility-clarification"
+        correction.evidence = "Fictional official clarification reference."
+        correction.resolution = correction_data[0]
+        correction.raised_at = _timestamp(correction_data[2])
+        correction.resolved_at = _timestamp(correction_data[2])
 
 
 def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, int | bool]:
@@ -375,6 +403,9 @@ def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, i
                 brief.title = brief_data[language]
                 brief.cluster_ids = brief_data["clusters"]
                 brief.published_at = _timestamp("2026-09-02T18:30:00+05:30")
+        edition = session.scalar(select(EditionControl).where(EditionControl.edition == "india"))
+        if edition is None:
+            session.add(EditionControl(edition="india", paused=False, version=1))
         session.flush()
         return {
             "demonstration_data": True,

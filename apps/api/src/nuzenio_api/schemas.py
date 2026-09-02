@@ -88,6 +88,10 @@ class CorrectionRead(APIModel):
     description: str
     status: str
     published_at: datetime | None = None
+    resolution: str | None = None
+    source_url: str | None = None
+    evidence: str | None = None
+    turnaround_seconds: float | None = None
 
 
 class ClusterCard(APIModel):

@@ -11,6 +11,8 @@ from nuzenio_api.models import (
     ClaimState,
     ClusterArticle,
     ContentStatus,
+    DecisionState,
+    EditionControl,
     EventCluster,
     PublisherOrganization,
     ReviewState,
@@ -33,6 +35,9 @@ def _cluster_options():
         selectinload(EventCluster.articles)
         .selectinload(ClusterArticle.article)
         .selectinload(Article.feed),
+        selectinload(EventCluster.articles)
+        .selectinload(ClusterArticle.article)
+        .selectinload(Article.corrections),
         selectinload(EventCluster.claims).selectinload(Claim.evidence),
         selectinload(EventCluster.claims)
         .selectinload(Claim.evidence)
@@ -69,6 +74,7 @@ class ReaderRepository:
                 and_(
                     func.length(func.trim(SummaryVersion.summary_text)) > 0,
                     SummaryVersion.evidence_map != {},
+                    SummaryVersion.decision == DecisionState.APPROVED,
                 )
             )
         )
@@ -204,6 +210,13 @@ class ReaderRepository:
             "articles": int(self.session.scalar(select(func.count(Article.id))) or 0),
             "claims": int(self.session.scalar(select(func.count(Claim.id))) or 0),
         }
+
+    def edition_paused(self, edition: str = "india") -> bool:
+        return bool(
+            self.session.scalar(
+                select(EditionControl.paused).where(EditionControl.edition == edition)
+            )
+        )
 
 
 def independent_organization_ids(cluster: EventCluster) -> set[object]:

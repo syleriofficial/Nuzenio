@@ -1,73 +1,95 @@
-# Reader API
+# Reader and editorial API
 
-Local base URL: `http://localhost:8000`. Interactive OpenAPI documentation is exposed at `/docs` and the machine-readable schema at `/openapi.json`.
-
-All response property names are camelCase. Dates use ISO 8601. Reader language is `en` or `hi` and defaults to `en`.
-
-## Endpoints
-
-| Method and path | Parameters | Response |
-| --- | --- | --- |
-| `GET /health` | none | Database health and service version |
-| `GET /v1/feed/top` | `language`, `page`, `page_size`, `category`, `status` | Paginated cluster cards |
-| `GET /v1/feed/local` | `language`, `page`, `page_size`, `area`, `status` | Paginated local cluster cards |
-| `GET /v1/clusters/{slug}` | `language` | Full cluster with claims/evidence, timeline, documents and corrections |
-| `GET /v1/sources/{slug}` | `language` | Publisher-organization profile and recent clusters |
-| `GET /v1/search` | required `q`; optional `language`, `page`, `page_size`, `category`, `status` | Paginated matching clusters |
-| `GET /v1/briefs/morning` | `language` | Published India morning brief |
-| `GET /v1/briefs/evening` | `language` | Published India evening brief |
-
-`status` is the derived story state: `VERIFIED`, `DEVELOPING` or `DISPUTED`. Page size must be between 1 and `NUZENIO_MAX_PAGE_SIZE` (50 by default).
-
-Search matches English/Hindi cluster headlines, summaries, article headlines, category, location and publisher name. It is PostgreSQL-backed in this milestone; OpenSearch is deliberately not enabled.
-
-## Paginated response
-
-```json
-{
-  "items": [],
-  "pagination": {
-    "page": 1,
-    "pageSize": 10,
-    "total": 0,
-    "totalPages": 0
-  }
-}
-```
-
-Cluster cards expose the neutral localized headline and brief, derived status, organization-level independent-source count, risk/review state, source headline comparison, evidence-backed claims, recommendation explanation and translation label.
-
-## Evidence and source rules
-
-- Claims without `ClaimEvidence` are excluded from responses.
-- A `SummaryVersion` without a non-empty evidence map is unavailable and the cluster is not rendered with that summary.
-- Multiple article URLs and domains owned by one `PublisherOrganization` count once.
-- `ClusterArticle.is_syndicated_copy=true` entries preserve attribution but do not increase `independentSourceCount`.
-- High-risk clusters are queryable only after `reviewState=APPROVED`; standard clusters may use `NOT_REQUIRED` or `APPROVED`.
-
-## Errors
-
-Reader errors use a consistent envelope:
+Local base URL: `http://localhost:8000`. OpenAPI is available at `/docs` and `/openapi.json`. JSON fields are camelCase; dates are ISO 8601. Errors use one envelope:
 
 ```json
 {
   "error": {
-    "code": "validation_error",
-    "message": "The request parameters or body are invalid.",
-    "status": 422,
-    "details": [
-      {
-        "location": ["query", "page"],
-        "message": "Input should be greater than or equal to 1",
-        "type": "greater_than_equal"
-      }
-    ]
+    "code": "version_conflict",
+    "message": "This record changed since it was loaded.",
+    "status": 409,
+    "details": null
   }
 }
 ```
 
-Expected codes include `cluster_not_found`, `source_not_found`, `brief_not_found`, `summary_unavailable`, `validation_error`, and `database_unavailable`.
+Each response includes `X-Request-ID`. A safe caller-supplied `X-Request-ID` is preserved; otherwise the API generates one.
 
-## Existing preview endpoints
+## Public reader endpoints
 
-Milestone 1 deterministic preview endpoints remain available at `/v1/pipeline/preview`, `/v1/admin/clusters/merge-preview`, and `/v1/admin/clusters/split-preview`. They are not persistent admin mutation endpoints and require no authentication only because they do not change state.
+| Method and path | Parameters | Result |
+| --- | --- | --- |
+| `GET /health` | — | Database-backed service health |
+| `GET /v1/feed/top` | `language`, `page`, `page_size`, `category`, `status` | Cluster page |
+| `GET /v1/feed/local` | above plus `area` | Delhi NCR/local cluster page |
+| `GET /v1/clusters/{slug}` | `language` | Cluster claims, evidence, sources, timeline, documents, corrections |
+| `GET /v1/sources/{slug}` | `language` | Organization profile and recent clusters |
+| `GET /v1/search` | `q`, language/paging/category/status | PostgreSQL search results |
+| `GET /v1/briefs/morning` | `language` | Published India morning brief |
+| `GET /v1/briefs/evening` | `language` | Published India evening brief |
+
+Reader page size is capped by `NUZENIO_MAX_PAGE_SIZE`. Public status is `VERIFIED`, `DEVELOPING` or `DISPUTED`. Missing resources return a 404 envelope; an editorial edition pause returns `503 edition_paused`.
+
+## Staff session endpoints
+
+| Method and path | Permission | Purpose |
+| --- | --- | --- |
+| `POST /v1/admin/auth/login` | public, rate limited | Create secure staff session and CSRF cookie |
+| `GET /v1/admin/auth/session` | authenticated | Refresh session metadata/CSRF token |
+| `POST /v1/admin/auth/logout` | authenticated + CSRF | Revoke current session and clear cookies |
+| `GET /v1/admin/staff` | `staff:manage` | Paginated/filterable staff list |
+| `PATCH /v1/admin/staff/{id}` | `staff:manage` + CSRF | Versioned role/active update |
+| `POST /v1/admin/staff/{id}/revoke-sessions` | same | Revoke a user’s sessions |
+
+Staff filters include `role`, `active` and `q`. Authentication uses cookies; state-changing calls also send the current `X-CSRF-Token`. Cross-origin credential use is restricted to configured CORS origins.
+
+## Editorial endpoints
+
+| Method and path | Permission | Purpose |
+| --- | --- | --- |
+| `GET /v1/admin/review-queue` | `review:read` | Pending high-risk reviews |
+| `GET /v1/admin/clusters` | `review:read` | Page/filter clusters by status/risk/review/query |
+| `PATCH /v1/admin/clusters/{id}/headline` | `cluster:edit` | Edit neutral bilingual headline |
+| `PATCH /v1/admin/clusters/{id}/suppression` | `cluster:edit` | Suppress or restore |
+| `POST /v1/admin/clusters/merge` | `cluster:edit` | Merge source clusters into target |
+| `POST /v1/admin/clusters/{id}/split` | `cluster:edit` | Split complete article membership |
+| `PATCH /v1/admin/claims/{id}` | `claim:edit` | Edit bilingual claim/state/evidence |
+| `POST /v1/admin/summaries/{id}/decision` | `summary:review` | Approve/reject evidence-backed summary |
+| `POST /v1/admin/reviews/{id}/decision` | `high-risk:approve` | Independent final decision |
+| `POST /v1/admin/reviews/{id}/push-approval` | same | Separate alert-readiness approval |
+| `POST /v1/admin/clusters/{id}/primary-documents` | `cluster:edit` | Attach official document |
+| `GET/POST /v1/admin/corrections` | `correction:manage` | Filter/list or open correction |
+| `POST /v1/admin/corrections/{id}/apply` | same | Versioned propagation and publication |
+
+Correction application always requires `expectedVersion`. Cluster-targeted corrections also require `clusterExpectedVersion`; article metadata changes require `articleExpectedVersion`. Article corrections are propagated to each containing cluster, its public correction history and any saved/offline snapshot markers.
+| `PATCH /v1/admin/editions/{edition}` | `edition:pause` | Pause/restore reader edition |
+
+All mutation bodies carry `expectedVersion`, or a version map for multi-record merge/split. `409 version_conflict` is recoverable by reloading and reconciling.
+
+## Publisher, rights and feed endpoints
+
+| Method and path | Permission | Purpose |
+| --- | --- | --- |
+| `GET/POST /v1/admin/publishers` | `publisher:manage` | Filter/list or create draft |
+| `POST /v1/admin/publishers/{id}/transition` | same | Versioned lifecycle transition |
+| `POST /v1/admin/publishers/{id}/domains` | same | Add ownership-evidenced domain |
+| `POST /v1/admin/domains/{id}/transition` | `rights:review` | Review/verify domain |
+| `POST /v1/admin/publishers/{id}/rights` | `publisher:manage` | Add granular rights draft |
+| `POST /v1/admin/rights/{id}/transition` | `rights:review` | Review rights/effective dates |
+| `POST /v1/admin/publishers/{id}/feeds` | `publisher:manage` | Add controlled feed draft |
+| `POST /v1/admin/feeds/{id}/transition` | `rights:review` | Review feed state |
+| `POST /v1/admin/feeds/{id}/dry-run` | `feed:operate` | Validate without fetching |
+| `POST /v1/admin/feeds/{id}/run` | `feed:operate` | Queue an approved feed |
+| `PATCH /v1/admin/feeds/{id}/pause` | `feed:operate` | Pause/restore feed |
+| `POST /v1/admin/feed-runs/{id}/retry` | `feed:operate` | Create linked retry run |
+| `GET /v1/admin/feed-runs` | `feed:operate` | Page/filter history by state/feed |
+
+## Audit endpoints
+
+`GET /v1/admin/audit` supports pagination and exact filters for action, entity type, actor ID, request ID and outcome. `GET /v1/admin/audit/export?format=csv|json` applies the same filters, redacts sensitive fields and caps export at 10,000 newest rows. Permissions are `audit:read` and `audit:export` respectively.
+
+No update or delete audit endpoint exists. Direct application-database update/delete attempts are rejected by a PostgreSQL trigger.
+
+## Legacy deterministic preview
+
+`POST /v1/pipeline/preview` remains an unauthenticated, non-persistent deterministic pipeline demonstration. The merge/split preview routes under `/v1/admin` now require staff authorization and CSRF even though they do not persist changes.

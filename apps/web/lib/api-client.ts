@@ -208,6 +208,8 @@ export function mapApiCluster(item: ApiClusterCard): StoryCluster {
           ? formatTime(correction.publishedAt)
           : correction.id,
         note: correction.description,
+        resolution: correction.resolution ?? undefined,
+        sourceUrl: correction.sourceUrl ?? undefined,
       })) ?? [],
     whyShown: item.whyShown,
   };

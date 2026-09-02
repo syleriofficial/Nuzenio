@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException
 
 from nuzenio_api.schemas import ErrorDetail, ErrorResponse
-from nuzenio_api.services import ResourceNotFoundError
+from nuzenio_api.services import ApplicationError
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,9 @@ def _response(
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    @app.exception_handler(ResourceNotFoundError)
-    async def resource_not_found(_: Request, error: ResourceNotFoundError) -> JSONResponse:
-        return _response(status=404, code=error.code, message=error.message)
+    @app.exception_handler(ApplicationError)
+    async def application_error(_: Request, error: ApplicationError) -> JSONResponse:
+        return _response(status=error.status, code=error.code, message=error.message)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, error: RequestValidationError) -> JSONResponse:

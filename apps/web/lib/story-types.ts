@@ -50,6 +50,11 @@ export interface StoryCluster {
     url: string;
     publishedAt: string;
   };
-  corrections: { at: string; note: string }[];
+  corrections: {
+    at: string;
+    note: string;
+    resolution?: string;
+    sourceUrl?: string;
+  }[];
   whyShown: string;
 }

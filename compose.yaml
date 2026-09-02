@@ -7,6 +7,8 @@ services:
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_CORS_ORIGINS: '["http://localhost:3000"]'
       NUZENIO_DEMO_MODE: "true"
+      NUZENIO_COOKIE_SECURE: "false"
+      NUZENIO_FEED_KILL_SWITCH: "true"
     ports:
       - "8000:8000"
     depends_on:
@@ -21,6 +23,34 @@ services:
           "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./apps/api
+    command: ["python", "-m", "nuzenio_api.feed_operations"]
+    environment:
+      NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_REDIS_URL: redis://redis:6379/0
+      NUZENIO_DEMO_MODE: "true"
+      # Fixture data uses reserved .example URLs; keep all network polling off.
+      NUZENIO_FEED_KILL_SWITCH: "true"
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, redis; assert redis.Redis.from_url(os.environ['NUZENIO_REDIS_URL']).ping()",
         ]
       interval: 5s
       timeout: 3s

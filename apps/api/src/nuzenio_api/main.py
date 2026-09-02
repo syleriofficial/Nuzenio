@@ -1,13 +1,17 @@
+import uuid
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from nuzenio_api.admin_routes import router as admin_router
+from nuzenio_api.auth import AuthenticatedStaff, require_permission
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import get_db
 from nuzenio_api.errors import register_error_handlers
+from nuzenio_api.permissions import Permission
 from nuzenio_api.pipeline.demo import (
     DeterministicCanonicalizer,
     DeterministicClassifier,
@@ -51,7 +55,7 @@ ERROR_RESPONSES = {
 
 app = FastAPI(
     title="Nuzenio Reader API",
-    version="0.2.0",
+    version="0.3.0",
     description=(
         "Persistent reader contracts for approved-feed, evidence-backed fictional "
         "story clusters. Nuzenio does not publish original news."
@@ -60,11 +64,25 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Accept", "Content-Type"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
 )
 register_error_handlers(app)
+app.include_router(admin_router)
+
+
+@app.middleware("http")
+async def correlation_id(request: Request, call_next):
+    candidate = request.headers.get("x-request-id", "")
+    request.state.request_id = (
+        candidate[:80]
+        if candidate and all(character.isalnum() or character in "-_." for character in candidate)
+        else str(uuid.uuid4())
+    )
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request.state.request_id
+    return response
 
 
 @app.get("/health", response_model=HealthResponse, tags=["system"])
@@ -248,7 +266,13 @@ def preview_pipeline(payload: PipelinePreviewRequest) -> PipelinePreviewResponse
 
 
 @app.post("/v1/admin/clusters/merge-preview", response_model=AdminActionResponse, tags=["admin"])
-def merge_preview(payload: ClusterMergeRequest) -> AdminActionResponse:
+def merge_preview(
+    payload: ClusterMergeRequest,
+    _: Annotated[
+        AuthenticatedStaff,
+        Depends(require_permission(Permission.CLUSTER_EDIT, csrf=True)),
+    ],
+) -> AdminActionResponse:
     return AdminActionResponse(
         action="MERGE_PREVIEW",
         cluster_ids=[*payload.cluster_ids, payload.target_slug],
@@ -257,7 +281,13 @@ def merge_preview(payload: ClusterMergeRequest) -> AdminActionResponse:
 
 
 @app.post("/v1/admin/clusters/split-preview", response_model=AdminActionResponse, tags=["admin"])
-def split_preview(payload: ClusterSplitRequest) -> AdminActionResponse:
+def split_preview(
+    payload: ClusterSplitRequest,
+    _: Annotated[
+        AuthenticatedStaff,
+        Depends(require_permission(Permission.CLUSTER_EDIT, csrf=True)),
+    ],
+) -> AdminActionResponse:
     return AdminActionResponse(
         action="SPLIT_PREVIEW",
         cluster_ids=[payload.cluster_id],

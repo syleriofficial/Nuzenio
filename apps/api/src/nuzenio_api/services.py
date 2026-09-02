@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from nuzenio_api.models import (
     Article,
     Claim,
+    DecisionState,
     EventCluster,
     ReviewState,
     SummaryVersion,
@@ -28,16 +29,28 @@ from nuzenio_api.schemas import (
 )
 
 
-class ResourceNotFoundError(Exception):
-    def __init__(self, *, code: str, message: str):
+class ApplicationError(Exception):
+    def __init__(self, *, code: str, message: str, status: int = 400):
         super().__init__(message)
         self.code = code
         self.message = message
+        self.status = status
+
+
+class ResourceNotFoundError(ApplicationError):
+    def __init__(self, *, code: str, message: str):
+        super().__init__(code=code, message=message, status=404)
 
 
 def _summary(cluster: EventCluster, language: str) -> tuple[SummaryVersion, bool]:
     candidates = sorted(
-        (item for item in cluster.summaries if item.summary_text.strip() and item.evidence_map),
+        (
+            item
+            for item in cluster.summaries
+            if item.summary_text.strip()
+            and item.evidence_map
+            and item.decision == DecisionState.APPROVED
+        ),
         key=lambda item: item.version,
         reverse=True,
     )
@@ -168,6 +181,15 @@ def cluster_detail(cluster: EventCluster, *, language: str) -> ClusterDetail:
             reverse=True,
         )
     ]
+    published_corrections = {
+        correction.id: correction
+        for correction in cluster.corrections
+        if correction.status == "PUBLISHED"
+    }
+    for membership in cluster.articles:
+        for correction in membership.article.corrections:
+            if correction.status == "PUBLISHED":
+                published_corrections[correction.id] = correction
     corrections = [
         CorrectionRead(
             id=correction.id,
@@ -178,9 +200,17 @@ def cluster_detail(cluster: EventCluster, *, language: str) -> ClusterDetail:
             ),
             status=correction.status,
             published_at=correction.published_at,
+            resolution=correction.resolution,
+            source_url=correction.source_url or None,
+            evidence=correction.evidence or None,
+            turnaround_seconds=(
+                (correction.resolved_at - correction.raised_at).total_seconds()
+                if correction.resolved_at
+                else None
+            ),
         )
         for correction in sorted(
-            cluster.corrections,
+            published_corrections.values(),
             key=lambda item: (
                 item.published_at or datetime.min.replace(tzinfo=cluster.updated_at.tzinfo)
             ),
@@ -212,6 +242,12 @@ class ReaderService:
         query: str | None = None,
     ) -> ClusterPage:
         with self.session.begin():
+            if self.repository.edition_paused():
+                raise ApplicationError(
+                    code="edition_paused",
+                    message="This edition is temporarily paused by the editorial desk.",
+                    status=503,
+                )
             result = self.repository.list_clusters(
                 page=page,
                 page_size=page_size,

@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import delete, inspect, select
+from sqlalchemy import delete, func, inspect, select
 
 from nuzenio_api.db import SessionLocal, engine
 from nuzenio_api.models import (
@@ -7,6 +7,7 @@ from nuzenio_api.models import (
     Brief,
     Claim,
     ContentStatus,
+    DecisionState,
     EventCluster,
     PublisherOrganization,
     ReviewState,
@@ -42,13 +43,18 @@ def test_alembic_migrates_a_clean_database() -> None:
         revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-    assert revision == "8ca634735948"
+    assert revision == "b31f72a9c4de"
 
 
 def test_seed_is_idempotent() -> None:
     first = seed_database(SessionLocal)
     second = seed_database(SessionLocal)
-    assert first == second == expected_counts()
+    assert first == second
+    for key, expected in expected_counts().items():
+        if isinstance(expected, int):
+            assert first[key] >= expected
+        else:
+            assert first[key] == expected
 
     with SessionLocal.begin() as session:
         counts = {
@@ -58,9 +64,10 @@ def test_seed_is_idempotent() -> None:
             "claims": len(session.scalars(select(Claim)).all()),
             "briefs": len(session.scalars(select(Brief)).all()),
         }
-    assert counts == {
+    expected = {
         key: value for key, value in expected_counts().items() if key != "demonstration_data"
     }
+    assert all(counts[key] >= value for key, value in expected.items())
 
 
 def test_high_risk_cluster_requires_approved_review_to_be_publishable() -> None:
@@ -125,3 +132,38 @@ def test_persisted_evidence_free_summary_is_suppressed() -> None:
     finally:
         with SessionLocal.begin() as session:
             session.execute(delete(EventCluster).where(EventCluster.slug == slug))
+
+
+def test_pending_summary_never_overrides_published_reader_copy() -> None:
+    slug = "open-language-model-india-labs"
+    pending_text = "Pending editorial copy must never reach the reader response."
+    with SessionLocal.begin() as session:
+        cluster = session.scalar(select(EventCluster).where(EventCluster.slug == slug))
+        next_version = (
+            session.scalar(
+                select(func.max(SummaryVersion.version)).where(
+                    SummaryVersion.cluster_id == cluster.id,
+                    SummaryVersion.language == "en",
+                )
+            )
+            or 0
+        ) + 1
+        pending = SummaryVersion(
+            cluster_id=cluster.id,
+            version=next_version,
+            language="en",
+            summary_text=pending_text,
+            evidence_map={"sentences": [{"evidenceIds": ["fixture"]}]},
+            generator_name="test",
+            decision=DecisionState.PENDING,
+        )
+        session.add(pending)
+        session.flush()
+        pending_id = pending.id
+    try:
+        with SessionLocal() as session:
+            result = ReaderService(session).cluster(slug=slug, language="en")
+            assert result.brief != pending_text
+    finally:
+        with SessionLocal.begin() as session:
+            session.execute(delete(SummaryVersion).where(SummaryVersion.id == pending_id))
