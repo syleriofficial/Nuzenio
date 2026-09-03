@@ -708,8 +708,23 @@ def decide_summary(
     summary.published_at = _now() if payload.decision == "APPROVED" else None
     summary.row_version += 1
     if cluster:
+        # A review decision does not make its reviewer the author of the text.
+        # Preserve the current draft's identity so its actual drafter cannot
+        # regain final-approval eligibility by asking someone else to review a summary.
+        draft_author = session.scalar(
+            select(EditorialReview.drafted_by_id)
+            .where(
+                EditorialReview.cluster_id == cluster.id,
+                EditorialReview.material_revision == cluster.material_revision,
+                EditorialReview.superseded_at.is_(None),
+            )
+            .order_by(EditorialReview.created_at.desc(), EditorialReview.id)
+            .limit(1)
+        )
         cluster.version += 1
-        _queue_high_risk_review(session, cluster, context.user.id, reason="Summary decision")
+        _queue_high_risk_review(
+            session, cluster, draft_author or context.user.id, reason="Summary decision"
+        )
     append_audit(
         session,
         actor=context.user,

@@ -6,6 +6,8 @@ Any material edit supersedes prior reviews. Only the current pending material re
 approved/rejected. Drafter and final reviewer must differ, even when both are administrators.
 Alert readiness requires a third independent identity on that same current published revision.
 An old review ID cannot approve new content, and repeated decisions conflict.
+Summary approval/rejection preserves the current draft author: reviewing text does not transfer its
+authorship or make the original drafter eligible for final approval.
 
 Merge moves articles, claims/evidence, documents, correction history and timeline entries into the
 target; old source summaries remain preserved but pending. Split partitions article membership

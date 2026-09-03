@@ -178,6 +178,48 @@ def test_f03_audit_failure_rolls_back_domain_mutation(monkeypatch):
         assert cluster.version == 1
 
 
+def test_f02_summary_decision_cannot_transfer_draft_authorship():
+    from nuzenio_api.editorial import _queue_high_risk_review
+    from nuzenio_api.models import EditorialReview, RiskLevel
+
+    drafter, reviewer = make_staff(StaffRole.ADMINISTRATOR), make_staff(StaffRole.ADMINISTRATOR)
+    with SessionLocal.begin() as session:
+        cid, _ = fixture_cluster(session)
+        cluster = session.get(EventCluster, cid)
+        cluster.risk_level = RiskLevel.HIGH
+        _queue_high_risk_review(session, cluster, drafter.id, reason="Original content draft")
+        session.flush()
+        summary = session.scalar(select(SummaryVersion).where(SummaryVersion.cluster_id == cid))
+        sid = summary.id
+    client, csrf = login(reviewer)
+    result = client.post(
+        f"/v1/admin/summaries/{sid}/decision",
+        headers={"X-CSRF-Token": csrf},
+        json={"expectedVersion": 1, "decision": "APPROVED", "notes": "Evidence checked"},
+    )
+    assert result.status_code == 200, result.text
+    with SessionLocal() as session:
+        current = session.scalar(
+            select(EditorialReview).where(
+                EditorialReview.cluster_id == cid,
+                EditorialReview.superseded_at.is_(None),
+            )
+        )
+        rid, version = current.id, current.version
+    author_client, author_csrf = login(drafter)
+    response = author_client.post(
+        f"/v1/admin/reviews/{rid}/decision",
+        headers={"X-CSRF-Token": author_csrf},
+        json={
+            "expectedVersion": version,
+            "decision": "APPROVED",
+            "notes": "Original drafter attempts final review",
+        },
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["error"]["code"] == "dual_control_required"
+
+
 def test_f07_merge_split_hold_derived_content_and_preserve_stable_brief_ids():
     editor = make_staff(StaffRole.EDITOR)
     client, csrf = login(editor)
