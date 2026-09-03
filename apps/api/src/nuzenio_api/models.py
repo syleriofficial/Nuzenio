@@ -19,6 +19,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -597,6 +598,25 @@ class FeedRun(UUIDTimestampMixin, Base):
     request_id: Mapped[str] = mapped_column(String(80), index=True)
     manual_actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
     next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        Index(
+            "uq_feed_run_active",
+            "feed_id",
+            unique=True,
+            postgresql_where=text("state IN ('QUEUED','RUNNING','RETRYING')"),
+        ),
+    )
+
+
+class FeedControl(Base):
+    __tablename__ = "feed_controls"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (CheckConstraint("id = 1", name="ck_feed_control_singleton"),)
 
 
 class DeadLetterJob(UUIDTimestampMixin, Base):

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -18,6 +20,7 @@ from nuzenio_api.admin_schemas import (
 from nuzenio_api.audit import append_audit
 from nuzenio_api.auth import AuthenticatedStaff
 from nuzenio_api.config import get_settings
+from nuzenio_api.feed_locks import serialized_controls
 from nuzenio_api.feed_operations import enforce_expired_rights, rights_issues
 from nuzenio_api.feed_security import FeedSecurityError, validate_feed_url
 from nuzenio_api.models import (
@@ -28,6 +31,7 @@ from nuzenio_api.models import (
     RightsPolicy,
     SourceFeed,
 )
+from nuzenio_api.serialization import json_safe
 from nuzenio_api.services import ApplicationError
 
 TRANSITIONS: dict[OnboardingState, set[OnboardingState]] = {
@@ -39,6 +43,52 @@ TRANSITIONS: dict[OnboardingState, set[OnboardingState]] = {
     OnboardingState.BLOCKED: {OnboardingState.UNDER_REVIEW},
     OnboardingState.REJECTED: {OnboardingState.DRAFT},
 }
+
+
+def approval_snapshot(record):
+    common = {
+        "id": str(record.id),
+        "version": record.version,
+        "state": record.onboarding_state.value,
+        "reviewedById": record.reviewed_by_id,
+        "reviewedAt": record.reviewed_at,
+    }
+    if isinstance(record, PublisherDomain):
+        common.update(domain=record.domain, ownershipEvidence=record.ownership_evidence)
+    else:
+        common.update(
+            evidenceUrl=record.evidence_url,
+            policyName=record.policy_name,
+            effectiveAt=record.effective_at,
+            expiresAt=record.expires_at,
+            revokedAt=record.revoked_at,
+            permissions={
+                "headline": record.may_use_headline,
+                "snippet": record.may_store_excerpt,
+                "thumbnail": record.may_use_thumbnail,
+                "generatedSummary": record.may_summarize,
+                "translation": record.may_translate,
+                "audio": record.may_generate_audio,
+                "fullTextStorage": record.may_store_full_text,
+                "fullTextDisplay": record.may_display_full_text,
+            },
+        )
+    snapshot = json_safe(common)
+    snapshot["snapshotHash"] = hashlib.sha256(
+        json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return snapshot
+
+
+def require_snapshot(record, payload):
+    snapshot = approval_snapshot(record)
+    if payload.expected_snapshot_hash != snapshot["snapshotHash"]:
+        raise ApplicationError(
+            code="approval_snapshot_conflict",
+            message="Reload and review the complete current evidence snapshot before approval.",
+            status=409,
+        )
+    return snapshot
 
 
 def _metadata(context: AuthenticatedStaff) -> dict[str, Any]:
@@ -69,6 +119,7 @@ def _transition(current: OnboardingState, requested: OnboardingState) -> None:
         )
 
 
+@serialized_controls
 def create_publisher(
     session: Session, payload: PublisherCreate, context: AuthenticatedStaff
 ) -> PublisherOrganization:
@@ -106,6 +157,7 @@ def create_publisher(
     return item
 
 
+@serialized_controls
 def transition_publisher(
     session: Session,
     *,
@@ -162,6 +214,7 @@ def transition_publisher(
     return item
 
 
+@serialized_controls
 def add_domain(
     session: Session,
     *,
@@ -208,6 +261,7 @@ def add_domain(
     return domain
 
 
+@serialized_controls
 def transition_domain(
     session: Session,
     *,
@@ -229,6 +283,9 @@ def transition_domain(
             message="Ownership evidence is required before domain approval.",
             status=409,
         )
+    reviewed_snapshot = (
+        require_snapshot(domain, payload) if requested == OnboardingState.APPROVED else None
+    )
     before = {"state": domain.onboarding_state.value, "verified": domain.verified}
     domain.onboarding_state = requested
     domain.verified = requested == OnboardingState.APPROVED
@@ -243,6 +300,7 @@ def transition_domain(
         session,
         actor=context.user,
         action="DOMAIN_STATE_CHANGED",
+        details={"reviewed_snapshot": reviewed_snapshot},
         entity_type="PublisherDomain",
         entity_id=domain.id,
         before=before,
@@ -256,6 +314,7 @@ def transition_domain(
     return domain
 
 
+@serialized_controls
 def add_rights(
     session: Session,
     *,
@@ -320,6 +379,7 @@ def add_rights(
     return rights
 
 
+@serialized_controls
 def transition_rights(
     session: Session,
     *,
@@ -338,6 +398,7 @@ def transition_rights(
     requested = OnboardingState(payload.state)
     _transition(rights.onboarding_state, requested)
     if requested == OnboardingState.APPROVED:
+        reviewed_snapshot = require_snapshot(rights, payload)
         missing = []
         if not rights.evidence_url:
             missing.append("rights_evidence")
@@ -357,6 +418,7 @@ def transition_rights(
             )
         rights.reviewed_by_id = context.user.id
         rights.reviewed_at = datetime.now(UTC)
+        rights.metadata_json = {**rights.metadata_json, "approved_snapshot": reviewed_snapshot}
     if requested in {OnboardingState.PAUSED, OnboardingState.BLOCKED, OnboardingState.REJECTED}:
         if requested == OnboardingState.BLOCKED:
             rights.revoked_at = datetime.now(UTC)
@@ -375,6 +437,7 @@ def transition_rights(
         session,
         actor=context.user,
         action="RIGHTS_STATE_CHANGED",
+        details={"reviewed_snapshot": rights.metadata_json.get("approved_snapshot")},
         entity_type="RightsPolicy",
         entity_id=rights.id,
         before=before,
@@ -388,6 +451,7 @@ def transition_rights(
     return rights
 
 
+@serialized_controls
 def add_feed(
     session: Session,
     *,
@@ -456,6 +520,7 @@ def add_feed(
     return feed
 
 
+@serialized_controls
 def transition_feed(
     session: Session,
     *,
@@ -588,6 +653,7 @@ def publisher_page(
                     "verified": domain.verified,
                     "state": domain.onboarding_state.value,
                     "version": domain.version,
+                    **approval_snapshot(domain),
                 }
                 for domain in item.domains
             ],
@@ -599,6 +665,8 @@ def publisher_page(
                     "expiresAt": rights.expires_at.isoformat() if rights.expires_at else None,
                     "fullTextDisplay": rights.may_display_full_text,
                     "version": rights.version,
+                    **approval_snapshot(rights),
+                    "approvalHistory": rights.metadata_json.get("approved_snapshot"),
                 }
                 for rights in item.rights_policies
             ],

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import html
 import ipaddress
+import multiprocessing
 import re
 import socket
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -196,8 +198,54 @@ class SafeFeedFetcher:
     def fetch(
         self, url: str, *, etag: str | None = None, last_modified: str | None = None
     ) -> FetchResult:
+        if self.transport is not None or self.resolver is not system_resolver:
+            # Injected fixture transports only; production uses a killable isolation boundary.
+            return self._fetch_network(url, etag=etag, last_modified=last_modified)
+        started = time.monotonic()
+        context = multiprocessing.get_context("spawn")
+        receiver, sender = context.Pipe(duplex=False)
+        process = context.Process(
+            target=_fetch_child,
+            args=(sender, self.settings.model_dump(), url, etag, last_modified),
+            daemon=True,
+        )
+        process.start()
+        sender.close()
+        try:
+            remaining = self.settings.feed_timeout_seconds - (time.monotonic() - started)
+            if remaining <= 0 or not receiver.poll(remaining):
+                raise FeedSecurityError("feed_deadline", "The feed exceeded its total time budget.")
+            result = receiver.recv()
+            if isinstance(result, tuple):
+                raise FeedSecurityError(*result)
+            return result
+        finally:
+            receiver.close()
+            if process.is_alive():
+                process.terminate()
+            process.join(timeout=1)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=1)
+
+    def _fetch_network(self, url, *, etag=None, last_modified=None):
+        deadline = time.monotonic() + self.settings.feed_timeout_seconds
+
+        def remaining():
+            budget = deadline - time.monotonic()
+            if budget <= 0:
+                raise FeedSecurityError("feed_deadline", "The feed exceeded its total time budget.")
+            return budget
+
+        def resolve(host, port):
+            remaining()
+            result = self.resolver(host, port)
+            remaining()
+            return result
+
         headers = {
             "Accept": ", ".join(sorted(ALLOWED_CONTENT_TYPES)),
+            "Accept-Encoding": "identity",
             "User-Agent": self.settings.feed_user_agent,
         }
         if etag:
@@ -207,6 +255,7 @@ class SafeFeedFetcher:
         current = url
         with httpx.Client(
             follow_redirects=False,
+            trust_env=False,
             timeout=self.settings.feed_timeout_seconds,
             transport=self.transport,
             headers=headers,
@@ -214,7 +263,7 @@ class SafeFeedFetcher:
             for redirect_count in range(self.settings.feed_redirect_limit + 1):
                 target = validate_feed_url(
                     current,
-                    resolver=self.resolver,
+                    resolver=resolve,
                     https_required=self.settings.feed_https_required,
                 )
                 # Connect to an address that was already classified as public.
@@ -232,8 +281,24 @@ class SafeFeedFetcher:
                         "GET",
                         connect_url,
                         headers={"Host": host_header},
+                        timeout=httpx.Timeout(remaining()),
                         extensions={"sni_hostname": target.hostname},
                     ) as response:
+                        remaining()
+                        if (
+                            response.headers.get("content-encoding", "identity").lower()
+                            != "identity"
+                        ):
+                            raise FeedSecurityError(
+                                "encoding_denied", "Compressed feeds are not supported."
+                            )
+                        length = response.headers.get("content-length")
+                        if length and (
+                            not length.isdecimal() or int(length) > self.settings.feed_max_bytes
+                        ):
+                            raise FeedSecurityError(
+                                "feed_too_large", "The feed exceeds its byte budget."
+                            )
                         if response.status_code in {301, 302, 303, 307, 308}:
                             location = response.headers.get("location")
                             if not location or redirect_count >= self.settings.feed_redirect_limit:
@@ -255,14 +320,20 @@ class SafeFeedFetcher:
                             )
                         chunks: list[bytes] = []
                         size = 0
-                        for chunk in response.iter_bytes():
+                        chunks_iter = (
+                            response.iter_bytes()
+                            if response.is_stream_consumed
+                            else response.iter_raw()
+                        )
+                        for chunk in chunks_iter:
+                            remaining()
                             size += len(chunk)
                             if size > self.settings.feed_max_bytes:
                                 raise FeedSecurityError(
                                     "feed_too_large", "The feed response exceeds the size limit."
                                 )
                             chunks.append(chunk)
-                        rebound_addresses = self.resolver(target.hostname, target.port)
+                        rebound_addresses = resolve(target.hostname, target.port)
                         if frozenset(rebound_addresses) != target.addresses:
                             raise FeedSecurityError(
                                 "dns_rebinding_detected",
@@ -283,3 +354,20 @@ class SafeFeedFetcher:
                         str(error),
                     ) from error
         raise FeedSecurityError("redirect_denied", "The feed exceeded the redirect limit.")
+
+
+def _fetch_child(sender, settings, url, etag, last_modified):
+    """Hard deadline boundary includes DNS, TLS, response headers, redirects and body."""
+    try:
+        result = SafeFeedFetcher(settings=Settings(**settings))._fetch_network(
+            url, etag=etag, last_modified=last_modified
+        )
+        sender.send(result)
+    except FeedSecurityError as error:
+        sender.send((error.code, error.public_message, error.internal_message))
+    except Exception:
+        sender.send(
+            ("feed_fetch_failed", "The feed could not be fetched safely.", "Transport failed")
+        )
+    finally:
+        sender.close()

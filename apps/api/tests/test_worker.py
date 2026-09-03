@@ -82,7 +82,7 @@ def test_scheduler_enqueues_each_due_feed_once() -> None:
 def test_worker_ingestion_is_idempotent_and_records_metrics() -> None:
     with SessionLocal.begin() as session:
         feed = session.scalar(
-            select(SourceFeed).where(SourceFeed.url.like("https://janadesh.example/%"))
+            select(SourceFeed).where(SourceFeed.url == "https://janadesh.example/demo-feed-en.xml")
         )
         first = create_feed_run(session, feed=feed, request_id="worker-test-1")
         first_id = first.id
@@ -116,6 +116,8 @@ def test_failed_feed_run_uses_bounded_retries_then_dead_letters() -> None:
         run_id = run.id
     executor = FeedRunExecutor(fetcher=_failing_fetcher(), queue=queue)
     for _ in range(4):
+        with SessionLocal.begin() as session:
+            session.get(FeedRun, run_id).next_retry_at = datetime.now(UTC) - timedelta(seconds=1)
         with SessionLocal() as session:
             result = executor.execute(session, run_id)
     assert result.state == FeedRunState.DEAD_LETTERED

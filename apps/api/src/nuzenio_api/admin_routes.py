@@ -51,6 +51,7 @@ from nuzenio_api.auth import (
     require_permission,
 )
 from nuzenio_api.config import get_settings
+from nuzenio_api.csv_export import spreadsheet_cell
 from nuzenio_api.db import get_db
 from nuzenio_api.editorial import (
     apply_correction,
@@ -66,7 +67,8 @@ from nuzenio_api.editorial import (
     split_cluster,
     update_claim,
 )
-from nuzenio_api.feed_operations import RedisFeedQueue, create_feed_run
+from nuzenio_api.feed_locks import control_lock
+from nuzenio_api.feed_operations import RedisFeedQueue, create_feed_run, dispatch
 from nuzenio_api.models import (
     AuditLog,
     Claim,
@@ -74,7 +76,10 @@ from nuzenio_api.models import (
     DeadLetterJob,
     EditionControl,
     EventCluster,
+    FeedControl,
     FeedRun,
+    RightsPolicy,
+    PublisherDomain,
     SourceFeed,
     StaffRole,
     StaffUser,
@@ -83,6 +88,7 @@ from nuzenio_api.onboarding import (
     add_domain,
     add_feed,
     add_rights,
+    approval_snapshot,
     create_publisher,
     feed_dry_run,
     publisher_page,
@@ -795,7 +801,7 @@ def run_feed(
         user_agent=context.user_agent,
     )
     session.commit()
-    RedisFeedQueue().enqueue(str(run.id))
+    dispatch(RedisFeedQueue(), run)
     return _entity(
         "FeedRun", run, {"feedId": str(run.feed_id), "state": run.state.value}, run.attempt
     )
@@ -860,7 +866,7 @@ def retry_feed_run(
         user_agent=context.user_agent,
     )
     session.commit()
-    RedisFeedQueue().enqueue(str(run.id))
+    dispatch(RedisFeedQueue(), run)
     return _entity(
         "FeedRun", run, {"feedId": str(run.feed_id), "state": run.state.value}, run.attempt
     )
@@ -1109,5 +1115,67 @@ def audit_export(
     writer.writeheader()
     for value in values:
         value["details"] = str(value.get("details", {}))
-        writer.writerow(value)
+        writer.writerow({key: spreadsheet_cell(item) for key, item in value.items()})
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
+
+
+@router.get("/rights/{record_id}/snapshot")
+def rights_snapshot(
+    record_id: uuid.UUID,
+    session: SessionDep,
+    _: Annotated[AuthenticatedStaff, allowed(Permission.RIGHTS_REVIEW)],
+):
+    record = session.get(RightsPolicy, record_id)
+    if not record:
+        raise ApplicationError(code="rights_not_found", message="Rights not found.", status=404)
+    return approval_snapshot(record)
+
+
+@router.get("/domains/{record_id}/snapshot")
+def domain_snapshot(
+    record_id: uuid.UUID,
+    session: SessionDep,
+    _: Annotated[AuthenticatedStaff, allowed(Permission.RIGHTS_REVIEW)],
+):
+    record = session.get(PublisherDomain, record_id)
+    if not record:
+        raise ApplicationError(code="domain_not_found", message="Domain not found.", status=404)
+    return approval_snapshot(record)
+
+
+@router.get("/feed-control")
+def read_feed_control(
+    session: SessionDep, _: Annotated[AuthenticatedStaff, allowed(Permission.FEED_OPERATE)]
+):
+    item = session.get(FeedControl, 1)
+    return {"paused": item.paused, "version": item.version}
+
+
+@router.patch("/feed-control")
+def change_feed_control(
+    payload: EditionPause,
+    session: SessionDep,
+    context: Annotated[AuthenticatedStaff, allowed(Permission.EDITION_PAUSE, csrf=True)],
+):
+    control_lock(session)
+    item = session.scalar(select(FeedControl).where(FeedControl.id == 1).with_for_update())
+    if payload.expected_version != item.version:
+        raise ApplicationError(
+            code="version_conflict", message="Reload the feed control.", status=409
+        )
+    before = {"paused": item.paused, "version": item.version}
+    item.paused = payload.paused
+    item.version += 1
+    append_audit(
+        session,
+        actor=context.user,
+        action="GLOBAL_FEED_CONTROL",
+        entity_type="FeedControl",
+        entity_id=None,
+        request_id=context.request_id,
+        before=before,
+        after={"paused": item.paused, "version": item.version},
+        reason=payload.reason,
+    )
+    session.commit()
+    return {"paused": item.paused, "version": item.version}

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import threading
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -9,16 +11,18 @@ from typing import Protocol
 from urllib.parse import urlsplit
 
 import redis
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.orm import Session, sessionmaker
 
 from nuzenio_api.config import get_settings
+from nuzenio_api.feed_locks import approval_versions, control_lock, locked_feed
 from nuzenio_api.feed_security import FeedSecurityError, SafeFeedFetcher, parse_feed_xml
 from nuzenio_api.models import (
     Article,
     ArticleFingerprint,
     ContentStatus,
     DeadLetterJob,
+    FeedControl,
     FeedRun,
     FeedRunState,
     OnboardingState,
@@ -48,8 +52,15 @@ class RedisFeedQueue:
         )
 
     def enqueue(self, run_id: str) -> None:
-        if self.client.sadd(ENQUEUED_KEY, run_id):
-            self.client.lpush(QUEUE_KEY, run_id)
+        # Atomic, expiring dispatch hint. PostgreSQL is the durable outbox.
+        self.client.eval(
+            """if redis.call('SET',KEYS[1],1,'NX','EX',10) then
+            redis.call('LPUSH',KEYS[2],ARGV[1]); return 1 end; return 0""",
+            2,
+            f"{ENQUEUED_KEY}:{run_id}",
+            QUEUE_KEY,
+            run_id,
+        )
 
     def schedule(self, run_id: str, at: datetime) -> None:
         self.client.zadd(SCHEDULED_KEY, {run_id: at.timestamp()})
@@ -69,7 +80,7 @@ class RedisFeedQueue:
         if not item:
             return None
         run_id = str(item[1])
-        self.client.srem(ENQUEUED_KEY, run_id)
+        self.client.delete(f"{ENQUEUED_KEY}:{run_id}")
         return run_id
 
 
@@ -109,10 +120,14 @@ def rights_issues(session: Session, feed: SourceFeed, *, now: datetime | None = 
         issues.append("feed_kill_switch")
     if get_settings().feed_kill_switch:
         issues.append("global_feed_kill_switch")
+    control = session.get(FeedControl, 1)
+    if not control or control.paused:
+        issues.append("persistent_feed_kill_switch")
     return issues
 
 
 def enforce_expired_rights(session: Session) -> int:
+    control_lock(session)
     now = datetime.now(UTC)
     feeds = list(
         session.scalars(
@@ -143,6 +158,16 @@ def create_feed_run(
     request_id: str,
     manual_actor_id: uuid.UUID | None = None,
 ) -> FeedRun:
+    feed = locked_feed(session, feed.id)
+    if session.scalar(
+        select(FeedRun.id).where(
+            FeedRun.feed_id == feed.id,
+            FeedRun.state.in_([FeedRunState.QUEUED, FeedRunState.RUNNING, FeedRunState.RETRYING]),
+        )
+    ):
+        raise ApplicationError(
+            code="feed_run_active", message="This feed already has active work.", status=409
+        )
     issues = rights_issues(session, feed)
     if issues:
         raise ApplicationError(
@@ -189,6 +214,8 @@ def schedule_due_feeds(
     running, or retrying run prevents duplicate scheduling for the same feed.
     """
     current = now or datetime.now(UTC)
+    control_lock(session)
+    session.expire_all()
     enforce_expired_rights(session)
     feeds = list(
         session.scalars(
@@ -228,23 +255,70 @@ def schedule_due_feeds(
 
     session.commit()
     for run in created:
-        queue.enqueue(str(run.id))
+        dispatch(queue, run)
     return len(created)
 
 
 def recover_queued_runs(session: Session, queue: Queue, *, limit: int = 100) -> int:
     """Requeue durable database work after Redis or worker interruption."""
+    control_lock(session)
+    now = datetime.now(UTC)
+    session.execute(
+        update(FeedRun)
+        .where(
+            FeedRun.state == FeedRunState.RUNNING,
+            or_(FeedRun.lease_expires_at.is_(None), FeedRun.lease_expires_at <= now),
+        )
+        .values(state=FeedRunState.QUEUED, lease_token=None, lease_expires_at=None)
+    )
     run_ids = list(
         session.scalars(
             select(FeedRun.id)
-            .where(FeedRun.state == FeedRunState.QUEUED)
+            .where(
+                or_(
+                    FeedRun.state == FeedRunState.QUEUED,
+                    (FeedRun.state == FeedRunState.RETRYING) & (FeedRun.next_retry_at <= now),
+                )
+            )
             .order_by(FeedRun.created_at)
             .limit(limit)
         )
     )
+    session.commit()
     for run_id in run_ids:
-        queue.enqueue(str(run_id))
+        try:
+            queue.enqueue(str(run_id))
+        except redis.RedisError:
+            break  # Durable DB rows will be re-dispatched when Redis returns.
     return len(run_ids)
+
+
+def dispatch(queue, run):
+    try:
+        if run.state == FeedRunState.RETRYING:
+            queue.schedule(str(run.id), run.next_retry_at)
+        else:
+            queue.enqueue(str(run.id))
+    except redis.RedisError:
+        logging.getLogger(__name__).warning("Feed dispatch deferred; durable recovery will retry")
+
+
+def heartbeat(factory, run_id, token):
+    with factory.begin() as session:
+        now = datetime.now(UTC)
+        return (
+            session.execute(
+                update(FeedRun)
+                .where(
+                    FeedRun.id == run_id,
+                    FeedRun.lease_token == token,
+                    FeedRun.state == FeedRunState.RUNNING,
+                    FeedRun.lease_expires_at > now,
+                )
+                .values(heartbeat_at=now, lease_expires_at=now + timedelta(seconds=60))
+            ).rowcount
+            == 1
+        )
 
 
 def _published(value: str | None) -> datetime:
@@ -272,13 +346,24 @@ class FeedRunExecutor:
             raise ApplicationError(
                 code="feed_run_not_found", message="Feed run not found.", status=404
             )
+        feed_id = run.feed_id
+        feed = locked_feed(session, feed_id)
+        run = session.scalar(select(FeedRun).where(FeedRun.id == run_id).with_for_update())
+        now = datetime.now(UTC)
         if run.state in {
             FeedRunState.SUCCEEDED,
             FeedRunState.SKIPPED,
             FeedRunState.DEAD_LETTERED,
         }:
+            session.commit()
             return run
-        feed = session.get(SourceFeed, run.feed_id)
+        if (
+            run.state == FeedRunState.RUNNING
+            and run.lease_expires_at
+            and run.lease_expires_at > now
+        ) or (run.state == FeedRunState.RETRYING and run.next_retry_at and run.next_retry_at > now):
+            session.commit()
+            return run
         if feed is None:
             raise ApplicationError(code="feed_not_found", message="Feed not found.", status=404)
         issues = rights_issues(session, feed)
@@ -290,12 +375,54 @@ class FeedRunExecutor:
             session.commit()
             return run
         started = time.monotonic()
+        versions = approval_versions(session, feed)
+        fetch_arguments = (feed.url, feed.etag, feed.last_modified)
+        token = uuid.uuid4()
         run.state = FeedRunState.RUNNING
         run.started_at = datetime.now(UTC)
+        run.lease_token = token
+        run.lease_expires_at = now + timedelta(seconds=60)
+        run.heartbeat_at = now
         session.commit()
+        factory = sessionmaker(bind=session.get_bind(), expire_on_commit=False)
+        stop = threading.Event()
+
+        def keep_lease():
+            while not stop.wait(10):
+                try:
+                    if not heartbeat(factory, run_id, token):
+                        return
+                except Exception:
+                    return  # Fail closed at final fencing check.
+
+        lease_thread = threading.Thread(target=keep_lease, daemon=True)
         try:
-            result = self.fetcher.fetch(feed.url, etag=feed.etag, last_modified=feed.last_modified)
+            lease_thread.start()
+            try:
+                result = self.fetcher.fetch(
+                    fetch_arguments[0], etag=fetch_arguments[1], last_modified=fetch_arguments[2]
+                )
+            finally:
+                stop.set()
+                lease_thread.join(timeout=2)
             items = [] if result.status_code == 304 else parse_feed_xml(result.content)
+            feed = locked_feed(session, feed_id)
+            run = session.scalar(select(FeedRun).where(FeedRun.id == run_id).with_for_update())
+            if (
+                run.lease_token != token
+                or run.state != FeedRunState.RUNNING
+                or run.lease_expires_at <= datetime.now(UTC)
+            ):
+                session.rollback()
+                return session.get(FeedRun, run_id)
+            issues = rights_issues(session, feed)
+            if issues or versions != approval_versions(session, feed):
+                run.state = FeedRunState.SKIPPED
+                run.error_code = "approval_changed_during_fetch"
+                run.completed_at = datetime.now(UTC)
+                run.lease_token = None
+                session.commit()
+                return run
             allowed_domains = {
                 domain.domain.casefold()
                 for domain in session.scalars(
@@ -350,6 +477,8 @@ class FeedRunExecutor:
             feed.health_status = "HEALTHY"
             feed.next_poll_at = datetime.now(UTC) + timedelta(seconds=feed.poll_interval_seconds)
             run.state = FeedRunState.SUCCEEDED
+            run.lease_token = None
+            run.lease_expires_at = None
             run.http_status = result.status_code
             run.fetched_bytes = len(result.content)
             run.parsed_items = len(items)
@@ -360,9 +489,19 @@ class FeedRunExecutor:
             return run
         except Exception as error:
             session.rollback()
-            run = session.get(FeedRun, run_id)
+            locked_feed(session, feed_id)
+            run = session.scalar(select(FeedRun).where(FeedRun.id == run_id).with_for_update())
             if run is None:
                 raise
+            if (
+                run.lease_token != token
+                or run.state != FeedRunState.RUNNING
+                or run.lease_expires_at <= datetime.now(UTC)
+            ):
+                session.rollback()
+                return session.get(FeedRun, run_id)
+            run.lease_token = None
+            run.lease_expires_at = None
             run.attempt += 1
             run.completed_at = datetime.now(UTC)
             run.error_code = (
@@ -373,7 +512,6 @@ class FeedRunExecutor:
                 delay = bounded_backoff(run.attempt)
                 run.state = FeedRunState.RETRYING
                 run.next_retry_at = datetime.now(UTC) + timedelta(seconds=delay)
-                self.queue.schedule(str(run.id), run.next_retry_at)
             else:
                 run.state = FeedRunState.DEAD_LETTERED
                 session.add(
@@ -384,6 +522,8 @@ class FeedRunExecutor:
                     )
                 )
             session.commit()
+            if run.state == FeedRunState.RETRYING:
+                dispatch(self.queue, run)
             return run
 
 
@@ -393,15 +533,20 @@ def worker_main() -> None:
     queue = RedisFeedQueue()
     executor = FeedRunExecutor(queue=queue)
     while True:
-        queue.release_due()
-        with SessionLocal() as session:
-            recover_queued_runs(session, queue)
-            schedule_due_feeds(session, queue)
-        run_id = queue.dequeue()
-        if not run_id:
-            continue
-        with SessionLocal() as session:
-            executor.execute(session, uuid.UUID(run_id))
+        try:
+            queue.release_due()
+            with SessionLocal() as session:
+                recover_queued_runs(session, queue)
+                schedule_due_feeds(session, queue)
+            run_id = queue.dequeue()
+            if run_id:
+                with SessionLocal() as session:
+                    executor.execute(session, uuid.UUID(run_id))
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Worker iteration failed; durable recovery retained"
+            )
+            time.sleep(2)
 
 
 if __name__ == "__main__":

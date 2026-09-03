@@ -162,6 +162,7 @@ class PublisherCreate(APIModel):
 class StateTransition(VersionedMutation):
     state: OnboardingStateName
     notes: str = Field(default="", max_length=2000)
+    expected_snapshot_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
 
 class DomainCreate(VersionedMutation):

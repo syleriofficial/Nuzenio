@@ -47,6 +47,10 @@ interface PublisherRow {
     id: string;
     domain: string;
     verified: boolean;
+    ownershipEvidence: string;
+    snapshotHash: string;
+    reviewedById?: string;
+    reviewedAt?: string;
     state: string;
     version: number;
   }>;
@@ -56,6 +60,14 @@ interface PublisherRow {
     state: string;
     expiresAt?: string;
     fullTextDisplay: boolean;
+    evidenceUrl: string;
+    effectiveAt?: string;
+    revokedAt?: string;
+    reviewedById?: string;
+    reviewedAt?: string;
+    permissions: Record<string, boolean>;
+    snapshotHash: string;
+    approvalHistory?: Record<string, unknown>;
     version: number;
   }>;
   feeds: Array<{
@@ -769,6 +781,7 @@ function OnboardingActions({
   path,
   state,
   version,
+  snapshotHash,
   label,
   csrfToken,
   mutate,
@@ -776,6 +789,7 @@ function OnboardingActions({
   path: string;
   state: string;
   version: number;
+  snapshotHash?: string;
   label: string;
 }) {
   return (
@@ -793,6 +807,7 @@ function OnboardingActions({
                   csrfToken,
                   body: {
                     expectedVersion: version,
+                    expectedSnapshotHash: snapshotHash,
                     state: action.state,
                     notes: `${action.label} from publisher review workspace`,
                   },
@@ -903,10 +918,13 @@ function PublisherOnboarding({
             <div className="onboarding-record" key={domain.id}>
               <strong>{domain.domain}</strong>
               <small>{humanState(domain.state)}</small>
+              <p>Ownership evidence: {domain.ownershipEvidence}</p>
+              <small>Reviewed by {domain.reviewedById ?? 'Not reviewed'} · {domain.reviewedAt ?? 'No review date'}</small>
               <OnboardingActions
                 path={`/v1/admin/domains/${domain.id}/transition`}
                 state={domain.state}
                 version={domain.version}
+                snapshotHash={domain.snapshotHash}
                 label={domain.domain}
                 csrfToken={csrfToken}
                 mutate={mutate}
@@ -940,10 +958,24 @@ function PublisherOnboarding({
                 {humanState(rights.state)} · full text display{' '}
                 {rights.fullTextDisplay ? 'enabled' : 'disabled'}
               </small>
+              <p><a href={rights.evidenceUrl} target="_blank" rel="noopener noreferrer">Open rights evidence</a></p>
+              <dl aria-label={`${rights.name} permission snapshot`}>
+                {Object.entries(rights.permissions).map(([permission, granted]) => (
+                  <div key={permission}><dt>{permission}</dt><dd>{granted ? 'Permitted' : 'Not permitted'}</dd></div>
+                ))}
+                <div><dt>Effective</dt><dd>{rights.effectiveAt ?? 'Not specified'}</dd></div>
+                <div><dt>Expires</dt><dd>{rights.expiresAt ?? 'No expiry specified'}</dd></div>
+                <div><dt>Revoked</dt><dd>{rights.revokedAt ?? 'Not revoked'}</dd></div>
+                <div><dt>Reviewer</dt><dd>{rights.reviewedById ?? 'Not reviewed'}</dd></div>
+                <div><dt>Review date</dt><dd>{rights.reviewedAt ?? 'Not reviewed'}</dd></div>
+              </dl>
+              {rights.approvalHistory && <details><summary>Previous approved snapshot</summary><pre>{JSON.stringify(rights.approvalHistory, null, 2)}</pre></details>}
+              <small>Approval applies only to displayed policy version {rights.version}.</small>
               <OnboardingActions
                 path={`/v1/admin/rights/${rights.id}/transition`}
                 state={rights.state}
                 version={rights.version}
+                snapshotHash={rights.snapshotHash}
                 label={rights.name}
                 csrfToken={csrfToken}
                 mutate={mutate}

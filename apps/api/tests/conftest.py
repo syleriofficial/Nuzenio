@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
 from collections.abc import Generator
 from pathlib import Path
 
@@ -20,6 +21,13 @@ TEST_DATABASE_URL = os.environ.get(
 # Application modules are imported during test collection, so select the disposable
 # integration database before the global SQLAlchemy engine is constructed.
 os.environ["NUZENIO_DATABASE_URL"] = TEST_DATABASE_URL
+
+
+@pytest.fixture(autouse=True)
+def isolated_login_buckets(monkeypatch):
+    from nuzenio_api.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "login_key_prefix", f"nuzenio:test:auth:{uuid.uuid4()}")
 
 
 @pytest.fixture(scope="session", autouse=True)

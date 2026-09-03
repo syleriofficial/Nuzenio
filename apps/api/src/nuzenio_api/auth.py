@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -18,9 +19,9 @@ from sqlalchemy.orm import Session, selectinload
 from nuzenio_api.audit import append_audit
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import get_db
+from nuzenio_api.login_admission import AdmissionDenied, password_admission
 from nuzenio_api.models import (
     AuthenticationEvent,
-    LoginThrottle,
     StaffRole,
     StaffSession,
     StaffUser,
@@ -129,6 +130,24 @@ class AuthenticatedStaff:
 def request_metadata(request: Request) -> tuple[str, str | None, str | None]:
     request_id = getattr(request.state, "request_id", "unknown")
     ip_address = request.client.host if request.client else None
+    networks = [ipaddress.ip_network(value) for value in get_settings().trusted_proxy_cidrs]
+
+    def trusted(value):
+        try:
+            return any(ipaddress.ip_address(value) in network for network in networks)
+        except ValueError:
+            return False
+
+    if ip_address and trusted(ip_address):
+        chain = request.headers.get("x-forwarded-for", "").split(",")
+        for value in reversed(chain):
+            try:
+                candidate = str(ipaddress.ip_address(value.strip()))
+            except ValueError:
+                break
+            ip_address = candidate
+            if not trusted(candidate):
+                break
     user_agent = request.headers.get("user-agent")
     return request_id, ip_address, user_agent
 
@@ -174,31 +193,28 @@ class AuthService:
     ) -> LoginResult:
         now = _now()
         normalized = normalize_username(username)
-        subject_hash = hash_login_subject(normalized, ip_address)
-        throttle = self.session.scalar(
-            select(LoginThrottle)
-            .where(LoginThrottle.subject_hash == subject_hash)
-            .with_for_update()
-        )
-        if throttle is None:
-            throttle = LoginThrottle(subject_hash=subject_hash, window_started_at=now)
-            self.session.add(throttle)
-            self.session.flush()
-        user = self.session.scalar(select(StaffUser).where(StaffUser.username == normalized))
-        locked = bool(throttle.locked_until and throttle.locked_until > now)
-        candidate_hash = user.password_hash if user else _DUMMY_HASH
+        user = None
         valid = False
+        reason = "INVALID_CREDENTIALS"
         try:
-            valid = PASSWORD_HASHER.verify(candidate_hash, password)
-        except (VerificationError, InvalidHashError):
-            valid = False
-        valid = bool(valid and user and user.active and not locked)
+            with password_admission(
+                _keyed_hash(f"account:{normalized}"), _keyed_hash(f"ip:{ip_address or 'unknown'}")
+            ) as count:
+                user = self.session.scalar(
+                    select(StaffUser).where(StaffUser.username == normalized)
+                )
+                candidate_hash = user.password_hash if user else _DUMMY_HASH
+                try:
+                    valid = PASSWORD_HASHER.verify(candidate_hash, password)
+                except (VerificationError, InvalidHashError):
+                    valid = False
+                valid = bool(valid and user and user.active)
+                if count >= self.settings.login_attempt_limit:
+                    reason = "LOCKED"
+        except AdmissionDenied as error:
+            reason = "LIMITER_UNAVAILABLE" if error.unavailable else "LOCKED"
 
         if not valid:
-            throttle.failed_attempts += 1
-            if throttle.failed_attempts >= self.settings.login_attempt_limit:
-                throttle.locked_until = now + timedelta(minutes=self.settings.login_lockout_minutes)
-            reason = "LOCKED" if locked or throttle.locked_until else "INVALID_CREDENTIALS"
             self._auth_event(
                 username=normalized,
                 user=user,
@@ -224,12 +240,11 @@ class AuthService:
             raise ApplicationError(
                 code="login_failed",
                 message="Unable to sign in with those credentials. Please try again later.",
-                status=429 if reason == "LOCKED" else 401,
+                status=(
+                    503 if reason == "LIMITER_UNAVAILABLE" else 429 if reason == "LOCKED" else 401
+                ),
             )
 
-        throttle.failed_attempts = 0
-        throttle.locked_until = None
-        throttle.window_started_at = now
         session_token = secrets.token_urlsafe(32)
         csrf_token = secrets.token_urlsafe(32)
         staff_session = StaffSession(

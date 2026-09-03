@@ -47,10 +47,18 @@ def transition(
     version: int,
     state: str,
 ) -> dict:
+    snapshot_hash = None
+    if state == "APPROVED" and ("/rights/" in path or "/domains/" in path):
+        snapshot_hash = client.get(path.replace("/transition", "/snapshot")).json()["snapshotHash"]
     response = client.post(
         path,
         headers={"X-CSRF-Token": csrf},
-        json={"expectedVersion": version, "state": state, "notes": "Fixture review"},
+        json={
+            "expectedVersion": version,
+            "state": state,
+            "notes": "Fixture review",
+            "expectedSnapshotHash": snapshot_hash,
+        },
     )
     assert response.status_code == 200, response.text
     return response.json()

@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     bootstrap_token: str | None = None
     login_attempt_limit: int = 5
     login_lockout_minutes: int = 15
+    login_global_limit: int = 120
+    login_ip_limit: int = 30
+    login_window_seconds: int = 60
+    login_concurrency: int = 4
+    login_key_prefix: str = "nuzenio:auth:v2"
+    trusted_proxy_cidrs: list[str] = []
     feed_user_agent: str = "NuzenioFeedFetcher/0.3 (+https://nuzenio.example/feeds)"
     feed_timeout_seconds: float = 10.0
     feed_max_bytes: int = 2_000_000
