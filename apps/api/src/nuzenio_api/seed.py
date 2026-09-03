@@ -7,8 +7,10 @@ from datetime import datetime
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from nuzenio_api.config import get_settings
 from nuzenio_api.db import SessionLocal
 from nuzenio_api.demo_data import BRIEFS, CLUSTERS, PUBLISHERS
+from nuzenio_api.evidence import fixture_evidence
 from nuzenio_api.models import (
     Article,
     ArticleFingerprint,
@@ -47,6 +49,9 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         organization = session.scalar(
             select(PublisherOrganization).where(PublisherOrganization.slug == item["slug"])
         )
+        if organization is not None:
+            organizations[item["slug"]] = organization
+            continue
         if organization is None:
             organization = PublisherOrganization(slug=item["slug"], name=item["name"])
             session.add(organization)
@@ -152,6 +157,8 @@ def _upsert_article(
     if publisher_slug != organization.slug:
         raise RuntimeError("article publisher does not match the selected organization")
     article = session.scalar(select(Article).where(Article.canonical_url == url))
+    if article is not None:
+        return article
     if article is None:
         article = Article(
             feed_id=_feed_for(session, organization.id, str(language)).id,
@@ -201,6 +208,8 @@ def _seed_cluster(
     organizations: dict[str, PublisherOrganization],
 ) -> None:
     cluster = session.scalar(select(EventCluster).where(EventCluster.slug == item["slug"]))
+    if cluster is not None:
+        return
     if cluster is None:
         cluster = EventCluster(
             slug=str(item["slug"]),
@@ -218,6 +227,9 @@ def _seed_cluster(
     cluster.status = ContentStatus.PUBLISHED
     cluster.risk_level = RiskLevel(str(item["risk"]))
     cluster.review_state = ReviewState(str(item["review"]))
+    if cluster.risk_level == RiskLevel.HIGH:
+        cluster.status = ContentStatus.HELD
+        cluster.review_state = ReviewState.PENDING
     cluster.display_order = display_order
     cluster.updated_at = updated_at
     cluster.timeline_json = [
@@ -319,6 +331,10 @@ def _seed_cluster(
                 )
             )
 
+    session.flush()
+    evidence_ids = list(
+        session.scalars(select(ClaimEvidence.id).join(Claim).where(Claim.cluster_id == cluster.id))
+    )
     for language, text in (("en", item["summary"]), ("hi", item["summary_hi"])):
         summary = session.scalar(
             select(SummaryVersion).where(
@@ -338,9 +354,7 @@ def _seed_cluster(
             )
             session.add(summary)
         summary.summary_text = str(text)
-        summary.evidence_map = {
-            "sentences": [str(article.id) for article in articles if article.id is not None]
-        }
+        summary.evidence_map = fixture_evidence(str(text), evidence_ids)
         summary.generator_name = (
             "deterministic-machine-translation-v1"
             if language == "hi"
@@ -374,6 +388,9 @@ def _seed_cluster(
 
 
 def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, int | bool]:
+    settings = get_settings()
+    if settings.environment not in {"development", "test"} or not settings.demo_mode:
+        raise RuntimeError("Fixture seeding is allowed only in explicit development/test demo mode")
     with session_factory.begin() as session:
         organizations = _publisher_records(session)
         for display_order, item in enumerate(CLUSTERS, start=1):
@@ -392,6 +409,8 @@ def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, i
                         Brief.language == language,
                     )
                 )
+                if brief is not None:
+                    continue
                 if brief is None:
                     brief = Brief(
                         edition="india",

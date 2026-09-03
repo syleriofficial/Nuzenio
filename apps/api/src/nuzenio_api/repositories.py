@@ -63,7 +63,24 @@ class ReaderRepository:
             EventCluster.review_state.in_([ReviewState.NOT_REQUIRED, ReviewState.APPROVED]),
             or_(
                 EventCluster.risk_level != RiskLevel.HIGH,
-                EventCluster.review_state == ReviewState.APPROVED,
+                and_(
+                    EventCluster.review_state == ReviewState.APPROVED,
+                    func.nuzenio_current_review(EventCluster.id),
+                ),
+            ),
+            or_(
+                ~func.lower(EventCluster.category).in_(
+                    [
+                        "elections",
+                        "communal violence",
+                        "war",
+                        "terrorism",
+                        "health emergencies",
+                        "public safety",
+                        "market-moving",
+                    ]
+                ),
+                func.nuzenio_current_review(EventCluster.id),
             ),
         )
 
@@ -73,7 +90,7 @@ class ReaderRepository:
             EventCluster.summaries.any(
                 and_(
                     func.length(func.trim(SummaryVersion.summary_text)) > 0,
-                    SummaryVersion.evidence_map != {},
+                    func.nuzenio_summary_valid(SummaryVersion.id),
                     SummaryVersion.decision == DecisionState.APPROVED,
                 )
             )

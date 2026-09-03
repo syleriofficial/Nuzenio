@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from nuzenio_api.models import AuditLog, StaffUser
+from nuzenio_api.serialization import json_safe
 
 SENSITIVE_FRAGMENTS = ("password", "token", "secret", "cookie", "authorization", "csrf")
 
@@ -48,9 +49,9 @@ def append_audit(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        before_summary=redact_sensitive(before),
-        after_summary=redact_sensitive(after),
-        details=redact_sensitive(details or {}),
+        before_summary=redact_sensitive(json_safe(before)),
+        after_summary=redact_sensitive(json_safe(after)),
+        details=redact_sensitive(json_safe(details or {})),
         request_id=request_id,
         ip_address=ip_address,
         user_agent=(user_agent or "")[:500] or None,

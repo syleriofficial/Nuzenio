@@ -268,6 +268,7 @@ class EventCluster(UUIDTimestampMixin, Base):
     )
     event_embedding: Mapped[list[float] | None] = mapped_column(Vector(768))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    material_revision: Mapped[int] = mapped_column(Integer, default=1)
     suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     suppression_reason: Mapped[str | None] = mapped_column(Text)
     corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -492,6 +493,8 @@ class EditorialReview(UUIDTimestampMixin, Base):
     push_approved_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
     push_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    material_revision: Mapped[int] = mapped_column(Integer, default=1)
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class AuditLog(UUIDTimestampMixin, Base):

@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import Field, HttpUrl, model_validator
 
+from nuzenio_api.links import ExternalURL
 from nuzenio_api.schemas import APIModel, Pagination
 
 RoleName = Literal["ADMINISTRATOR", "EDITOR", "REVIEWER", "PUBLISHER_MANAGER", "ANALYST"]
@@ -103,7 +104,7 @@ class PrimaryDocumentCreate(VersionedMutation):
     title: str = Field(min_length=3, max_length=600)
     title_hi: str | None = Field(default=None, max_length=600)
     issuer: str = Field(min_length=2, max_length=300)
-    url: HttpUrl
+    url: ExternalURL
     published_at: datetime | None = None
 
 
@@ -112,7 +113,7 @@ class CorrectionCreate(APIModel):
     article_id: UUID | None = None
     description: str = Field(min_length=5, max_length=5000)
     description_hi: str | None = Field(default=None, max_length=5000)
-    source_url: HttpUrl
+    source_url: ExternalURL
     evidence: str = Field(min_length=3, max_length=5000)
 
     @model_validator(mode="after")

@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from nuzenio_api.admin_schemas import (
@@ -20,6 +20,7 @@ from nuzenio_api.admin_schemas import (
 )
 from nuzenio_api.audit import append_audit
 from nuzenio_api.auth import AuthenticatedStaff
+from nuzenio_api.evidence import valid_evidence
 from nuzenio_api.models import (
     Article,
     Brief,
@@ -39,6 +40,7 @@ from nuzenio_api.models import (
     SavedCluster,
     SummaryVersion,
 )
+from nuzenio_api.serialization import json_safe
 from nuzenio_api.services import ApplicationError
 
 HIGH_RISK_CATEGORIES = {
@@ -108,7 +110,7 @@ def _revision(
                 entity_type=entity_type,
                 entity_id=entity.id,
                 entity_version=version,
-                snapshot=snapshot,
+                snapshot=json_safe(snapshot),
                 correction_id=correction_id,
                 actor_id=actor_id,
             )
@@ -118,6 +120,12 @@ def _revision(
 def _queue_high_risk_review(
     session: Session, cluster: EventCluster, actor_id: uuid.UUID, *, reason: str
 ) -> EditorialReview | None:
+    cluster.material_revision += 1
+    session.execute(
+        update(EditorialReview)
+        .where(EditorialReview.cluster_id == cluster.id, EditorialReview.superseded_at.is_(None))
+        .values(superseded_at=_now(), version=EditorialReview.version + 1)
+    )
     if (
         cluster.risk_level != RiskLevel.HIGH
         and cluster.category.casefold() not in HIGH_RISK_CATEGORIES
@@ -135,6 +143,7 @@ def _queue_high_risk_review(
         state=ReviewState.PENDING,
         decision=DecisionState.PENDING,
         drafted_by_id=actor_id,
+        material_revision=cluster.material_revision,
     )
     session.add(review)
     return review
@@ -214,7 +223,9 @@ def set_suppression(
         cluster.suppressed_at = _now()
         cluster.suppression_reason = reason
     else:
-        if cluster.risk_level == RiskLevel.HIGH and cluster.review_state != ReviewState.APPROVED:
+        if cluster.risk_level == RiskLevel.HIGH and not session.scalar(
+            select(func.nuzenio_current_review(cluster.id))
+        ):
             raise ApplicationError(
                 code="high_risk_review_required",
                 message="High-risk content cannot be restored before independent approval.",
@@ -460,13 +471,19 @@ def decide_summary(
     payload: SummaryDecision,
     context: AuthenticatedStaff,
 ) -> SummaryVersion:
+    cluster_id = session.scalar(
+        select(SummaryVersion.cluster_id).where(SummaryVersion.id == summary_id)
+    )
+    cluster = session.scalar(
+        select(EventCluster).where(EventCluster.id == cluster_id).with_for_update()
+    )
     summary = session.scalar(
         select(SummaryVersion).where(SummaryVersion.id == summary_id).with_for_update()
     )
     if not summary:
         raise ApplicationError(code="summary_not_found", message="Summary not found.", status=404)
     _conflict(payload.expected_version, summary.row_version)
-    if payload.decision == "APPROVED" and not summary.evidence_map:
+    if payload.decision == "APPROVED" and not valid_evidence(session, summary):
         raise ApplicationError(
             code="evidence_required",
             message="An evidence-free summary cannot be approved.",
@@ -479,6 +496,9 @@ def decide_summary(
     summary.rejection_reason = payload.notes if payload.decision == "REJECTED" else None
     summary.published_at = _now() if payload.decision == "APPROVED" else None
     summary.row_version += 1
+    if cluster:
+        cluster.version += 1
+        _queue_high_risk_review(session, cluster, context.user.id, reason="Summary decision")
     append_audit(
         session,
         actor=context.user,
@@ -503,12 +523,31 @@ def decide_high_risk_review(
     payload: ReviewDecision,
     context: AuthenticatedStaff,
 ) -> EditorialReview:
+    cluster_id = session.scalar(
+        select(EditorialReview.cluster_id).where(EditorialReview.id == review_id)
+    )
+    cluster = session.scalar(
+        select(EventCluster).where(EventCluster.id == cluster_id).with_for_update()
+    )
     review = session.scalar(
         select(EditorialReview).where(EditorialReview.id == review_id).with_for_update()
     )
     if not review:
         raise ApplicationError(code="review_not_found", message="Review not found.", status=404)
     _conflict(payload.expected_version, review.version)
+    if (
+        not cluster
+        or review.superseded_at is not None
+        or review.material_revision != cluster.material_revision
+        or review.decision != DecisionState.PENDING
+        or review.state != ReviewState.PENDING
+        or review.drafted_by_id is None
+    ):
+        raise ApplicationError(
+            code="stale_review",
+            message="Only the current pending material revision can be reviewed.",
+            status=409,
+        )
     if review.drafted_by_id == context.user.id:
         raise ApplicationError(
             code="dual_control_required",
@@ -556,12 +595,32 @@ def approve_push(
     expected_version: int,
     context: AuthenticatedStaff,
 ) -> EditorialReview:
+    cluster_id = session.scalar(
+        select(EditorialReview.cluster_id).where(EditorialReview.id == review_id)
+    )
+    cluster = session.scalar(
+        select(EventCluster).where(EventCluster.id == cluster_id).with_for_update()
+    )
     review = session.scalar(
         select(EditorialReview).where(EditorialReview.id == review_id).with_for_update()
     )
     if not review:
         raise ApplicationError(code="review_not_found", message="Review not found.", status=404)
     _conflict(expected_version, review.version)
+    if (
+        not cluster
+        or review.superseded_at is not None
+        or review.material_revision != cluster.material_revision
+        or cluster.status != ContentStatus.PUBLISHED
+        or cluster.review_state != ReviewState.APPROVED
+        or review.push_approved_at is not None
+        or not session.scalar(select(func.nuzenio_current_review(cluster.id)))
+    ):
+        raise ApplicationError(
+            code="stale_review",
+            message="Alert approval requires the current published reviewed revision.",
+            status=409,
+        )
     if review.decision != DecisionState.APPROVED:
         raise ApplicationError(
             code="review_not_approved",
@@ -574,7 +633,6 @@ def approve_push(
             message="Alert readiness requires an additional independent approver.",
             status=409,
         )
-    cluster = session.get(EventCluster, review.cluster_id)
     review.push_approved_by_id = context.user.id
     review.push_approved_at = _now()
     review.version += 1

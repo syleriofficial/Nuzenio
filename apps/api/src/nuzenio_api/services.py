@@ -2,8 +2,9 @@ import math
 from datetime import datetime
 from urllib.parse import urlparse
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
+from nuzenio_api.evidence import valid_evidence
 from nuzenio_api.models import (
     Article,
     Claim,
@@ -48,7 +49,7 @@ def _summary(cluster: EventCluster, language: str) -> tuple[SummaryVersion, bool
             item
             for item in cluster.summaries
             if item.summary_text.strip()
-            and item.evidence_map
+            and valid_evidence(object_session(cluster), item)
             and item.decision == DecisionState.APPROVED
         ),
         key=lambda item: item.version,

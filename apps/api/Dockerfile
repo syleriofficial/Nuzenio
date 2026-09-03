@@ -19,4 +19,4 @@ USER nuzenio
 
 EXPOSE 8000
 
-CMD ["/bin/sh", "-c", "alembic -c alembic.ini upgrade head && python -m nuzenio_api.seed && uvicorn nuzenio_api.main:app --host 0.0.0.0 --port 8000"]
+CMD ["uvicorn", "nuzenio_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]
