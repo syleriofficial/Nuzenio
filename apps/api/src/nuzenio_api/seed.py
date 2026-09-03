@@ -19,6 +19,7 @@ from nuzenio_api.models import (
     ClaimEvidence,
     ClaimState,
     ClusterArticle,
+    ContentRevision,
     ContentStatus,
     Correction,
     DecisionState,
@@ -69,6 +70,8 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
             domain = session.scalar(
                 select(PublisherDomain).where(PublisherDomain.domain == domain_name)
             )
+            if domain is not None:
+                raise RuntimeError("Fixture domain already exists; no changes made")
             if domain is None:
                 domain = PublisherDomain(
                     organization_id=organization.id,
@@ -210,6 +213,15 @@ def _seed_cluster(
     cluster = session.scalar(select(EventCluster).where(EventCluster.slug == item["slug"]))
     if cluster is not None:
         return
+    if session.scalar(
+        select(ContentRevision.id)
+        .where(
+            ContentRevision.entity_type == "EventCluster",
+            ContentRevision.snapshot["slug"].astext == str(item["slug"]),
+        )
+        .limit(1)
+    ):
+        return  # Renamed/split fixture: do not recreate its old identity.
     if cluster is None:
         cluster = EventCluster(
             slug=str(item["slug"]),
@@ -250,6 +262,8 @@ def _seed_cluster(
         document = session.scalar(
             select(PrimaryDocument).where(PrimaryDocument.url == document_data[3])
         )
+        if document is not None:
+            raise RuntimeError("Fixture document URL already exists; no changes made")
         if document is None:
             document = PrimaryDocument(
                 cluster_id=cluster.id,
@@ -420,7 +434,10 @@ def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, i
                     )
                     session.add(brief)
                 brief.title = brief_data[language]
-                brief.cluster_ids = brief_data["clusters"]
+                brief.cluster_ids = [
+                    str(session.scalar(select(EventCluster.id).where(EventCluster.slug == slug)))
+                    for slug in brief_data["clusters"]
+                ]
                 brief.published_at = _timestamp("2026-09-02T18:30:00+05:30")
         edition = session.scalar(select(EditionControl).where(EditionControl.edition == "india"))
         if edition is None:

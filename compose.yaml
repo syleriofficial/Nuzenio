@@ -1,17 +1,43 @@
 services:
+  migrate:
+    build:
+      context: ./apps/api
+    command: ["/bin/sh", "-c", "alembic -c alembic.ini upgrade head && python -m nuzenio_api.db_roles"]
+    environment:
+      NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_RUNTIME_PASSWORD: ${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    profiles: ["demo"]
+    build:
+      context: ./apps/api
+    command: ["python", "-m", "nuzenio_api.seed"]
+    environment:
+      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_ENVIRONMENT: development
+      NUZENIO_DEMO_MODE: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build:
       context: ./apps/api
     environment:
-      NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_CORS_ORIGINS: '["http://localhost:3000"]'
       NUZENIO_DEMO_MODE: "true"
       NUZENIO_COOKIE_SECURE: "false"
       NUZENIO_FEED_KILL_SWITCH: "true"
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -34,7 +60,7 @@ services:
       context: ./apps/api
     command: ["python", "-m", "nuzenio_api.feed_operations"]
     environment:
-      NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_DEMO_MODE: "true"
       # Fixture data uses reserved .example URLs; keep all network polling off.
@@ -64,7 +90,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-nuzenio}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuzenio}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -78,7 +104,7 @@ services:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:

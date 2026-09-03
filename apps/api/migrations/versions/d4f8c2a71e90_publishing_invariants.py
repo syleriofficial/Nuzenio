@@ -46,7 +46,8 @@ def upgrade():
         OR NOT (s.evidence_map ? 'sentences') OR jsonb_typeof(s.evidence_map->'sentences')<>'array'
         OR (SELECT count(*) FROM jsonb_object_keys(s.evidence_map))<>1 THEN RETURN false; END IF;
       parts := regexp_split_to_array(btrim(s.summary_text), '(?<=[.!?।])\s+');
-      IF jsonb_array_length(s.evidence_map->'sentences')<>array_length(parts,1) THEN RETURN false; END IF;
+      IF jsonb_array_length(s.evidence_map->'sentences')<>array_length(parts,1)
+        THEN RETURN false; END IF;
       FOR entry IN SELECT value FROM jsonb_array_elements(s.evidence_map->'sentences') LOOP
         idx := idx+1;
         IF jsonb_typeof(entry)<>'object' OR (SELECT count(*) FROM jsonb_object_keys(entry))<>2
@@ -56,8 +57,10 @@ def upgrade():
         FOR ref IN SELECT value FROM jsonb_array_elements_text(entry->'evidence_ids') LOOP
           IF NOT EXISTS(SELECT 1 FROM claim_evidence e JOIN claims c ON c.id=e.claim_id
             WHERE e.id=ref::uuid AND c.cluster_id=s.cluster_id AND (
-              EXISTS(SELECT 1 FROM cluster_articles a WHERE a.cluster_id=s.cluster_id AND a.article_id=e.article_id)
-              OR EXISTS(SELECT 1 FROM primary_documents d WHERE d.cluster_id=s.cluster_id AND d.id=e.primary_document_id)
+              EXISTS(SELECT 1 FROM cluster_articles a
+                WHERE a.cluster_id=s.cluster_id AND a.article_id=e.article_id)
+              OR EXISTS(SELECT 1 FROM primary_documents d
+                WHERE d.cluster_id=s.cluster_id AND d.id=e.primary_document_id)
             )) THEN RETURN false; END IF;
         END LOOP;
       END LOOP;

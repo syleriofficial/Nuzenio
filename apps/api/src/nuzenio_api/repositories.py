@@ -199,18 +199,18 @@ class ReaderRepository:
             )
         )
 
-    def clusters_by_slugs(self, slugs: list[str]) -> list[EventCluster]:
-        if not slugs:
+    def clusters_by_ids(self, ids: list[str]) -> list[EventCluster]:
+        if not ids:
             return []
         items = list(
             self.session.scalars(
                 self.reader_ready_clusters()
-                .where(EventCluster.slug.in_(slugs))
+                .where(EventCluster.id.in_(ids))
                 .options(*_cluster_options())
             ).unique()
         )
-        by_slug = {cluster.slug: cluster for cluster in items}
-        return [by_slug[slug] for slug in slugs if slug in by_slug]
+        by_id = {str(cluster.id): cluster for cluster in items}
+        return [by_id[key] for key in ids if key in by_id]
 
     def recent_clusters_for_source(
         self, *, organization_id: object, limit: int = 5

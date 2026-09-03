@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from nuzenio_api.admin_schemas import PrimaryDocumentCreate
 from nuzenio_api.audit import append_audit
@@ -37,6 +37,7 @@ def test_f01_seed_preserves_existing_editorial_state():
         cluster.status = ContentStatus.HELD
         cluster.neutral_headline = "Editorial wording must survive seed"
         feed = session.scalar(select(SourceFeed).limit(1))
+        old_kill_switch = feed.kill_switch
         feed.kill_switch = True
         cluster_id, feed_id = cluster.id, feed.id
     seed_database(SessionLocal)
@@ -45,6 +46,8 @@ def test_f01_seed_preserves_existing_editorial_state():
         assert cluster.status == ContentStatus.HELD
         assert cluster.neutral_headline == "Editorial wording must survive seed"
         assert session.get(SourceFeed, feed_id).kill_switch
+    with SessionLocal.begin() as session:
+        session.get(SourceFeed, feed_id).kill_switch = old_kill_switch
 
 
 def test_f01_runtime_image_does_not_seed_or_migrate():
@@ -161,6 +164,30 @@ def test_f06_sentence_coverage_and_relational_evidence():
             assert not valid_evidence(session, summary)
         summary.evidence_map = fixture_evidence(summary.summary_text, ids)
         assert valid_evidence(session, summary)
+
+
+def test_f06_sql_validator_rejects_null_sentence_and_foreign_document_evidence():
+    from nuzenio_api.evidence import fixture_evidence, valid_evidence
+    from nuzenio_api.models import Claim, ClaimEvidence, PrimaryDocument, SummaryVersion
+
+    with SessionLocal() as session:
+        summary = session.scalar(select(SummaryVersion))
+        evidence = session.scalar(
+            select(ClaimEvidence).join(Claim).where(Claim.cluster_id == summary.cluster_id)
+        )
+        summary.summary_text = "Fictional sentence."
+        summary.evidence_map = {"sentences": [{"text": None, "evidence_ids": [str(evidence.id)]}]}
+        session.flush()
+        assert not session.scalar(select(func.nuzenio_summary_valid(summary.id)))
+        summary.evidence_map = fixture_evidence(summary.summary_text, [evidence.id])
+        other = session.scalar(
+            select(PrimaryDocument).where(PrimaryDocument.cluster_id != summary.cluster_id)
+        )
+        evidence.primary_document_id = other.id
+        evidence.article_id = None
+        session.flush()
+        assert not valid_evidence(session, summary)
+        assert not session.scalar(select(func.nuzenio_summary_valid(summary.id)))
 
 
 def test_f02_stale_repeated_and_concurrent_approval():

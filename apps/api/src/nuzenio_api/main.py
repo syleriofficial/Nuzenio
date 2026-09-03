@@ -1,4 +1,5 @@
 import uuid
+from contextlib import asynccontextmanager
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Query, Request
@@ -53,7 +54,19 @@ ERROR_RESPONSES = {
     503: {"model": ErrorResponse},
 }
 
+
+@asynccontextmanager
+async def lifespan(app):
+    if settings.environment == "production":
+        from nuzenio_api.db import engine
+        from nuzenio_api.db_roles import assert_runtime_identity
+
+        assert_runtime_identity(engine)
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Nuzenio Reader API",
     version="0.3.0",
     description=(

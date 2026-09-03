@@ -17,13 +17,14 @@ from nuzenio_api.admin_schemas import (
     RightsCreate,
     StateTransition,
 )
-from nuzenio_api.audit import append_audit
+from nuzenio_api.audit import append_audit, redact_sensitive
 from nuzenio_api.auth import AuthenticatedStaff
 from nuzenio_api.config import get_settings
 from nuzenio_api.feed_locks import serialized_controls
 from nuzenio_api.feed_operations import enforce_expired_rights, rights_issues
 from nuzenio_api.feed_security import FeedSecurityError, validate_feed_url
 from nuzenio_api.models import (
+    AuditLog,
     FeedType,
     OnboardingState,
     PublisherDomain,
@@ -52,6 +53,12 @@ def approval_snapshot(record):
         "state": record.onboarding_state.value,
         "reviewedById": record.reviewed_by_id,
         "reviewedAt": record.reviewed_at,
+        "publisher": {
+            "id": record.organization_id,
+            "name": record.organization.name,
+            "ownership": record.organization.ownership,
+            "version": record.organization.version,
+        },
     }
     if isinstance(record, PublisherDomain):
         common.update(domain=record.domain, ownershipEvidence=record.ownership_evidence)
@@ -78,6 +85,32 @@ def approval_snapshot(record):
         json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     return snapshot
+
+
+def approval_history(session, record):
+    """Authenticated rights-specific history, not unrestricted audit access."""
+    records = session.scalars(
+        select(AuditLog)
+        .where(
+            AuditLog.entity_type == type(record).__name__,
+            AuditLog.entity_id == record.id,
+            AuditLog.action.in_(["DOMAIN_STATE_CHANGED", "RIGHTS_STATE_CHANGED"]),
+        )
+        .order_by(AuditLog.created_at.desc(), AuditLog.id)
+        .limit(100)
+    )
+    return [
+        json_safe(
+            {
+                "actorId": row.actor_id,
+                "timestamp": row.created_at,
+                "decision": row.after_summary,
+                "notes": row.reason,
+                "reviewedSnapshot": redact_sensitive(row.details).get("reviewed_snapshot"),
+            }
+        )
+        for row in records
+    ]
 
 
 def require_snapshot(record, payload):
@@ -654,6 +687,7 @@ def publisher_page(
                     "state": domain.onboarding_state.value,
                     "version": domain.version,
                     **approval_snapshot(domain),
+                    "reviewHistory": approval_history(session, domain),
                 }
                 for domain in item.domains
             ],
@@ -667,6 +701,7 @@ def publisher_page(
                     "version": rights.version,
                     **approval_snapshot(rights),
                     "approvalHistory": rights.metadata_json.get("approved_snapshot"),
+                    "reviewHistory": approval_history(session, rights),
                 }
                 for rights in item.rights_policies
             ],

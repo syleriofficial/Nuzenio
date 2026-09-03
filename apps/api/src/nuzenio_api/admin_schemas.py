@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import Field, HttpUrl, model_validator
 
+from nuzenio_api.evidence import EvidenceMap
 from nuzenio_api.links import ExternalURL
 from nuzenio_api.schemas import APIModel, Pagination
 
@@ -93,6 +94,11 @@ class ClaimUpdate(VersionedMutation):
 class SummaryDecision(VersionedMutation):
     decision: Literal["APPROVED", "REJECTED"]
     notes: str = Field(default="", max_length=2000)
+
+
+class SummaryRevisionCreate(VersionedMutation):
+    summary_text: str = Field(min_length=10, max_length=5000)
+    evidence_map: EvidenceMap
 
 
 class ReviewDecision(VersionedMutation):

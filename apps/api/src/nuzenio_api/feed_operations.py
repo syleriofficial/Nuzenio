@@ -94,6 +94,10 @@ def rights_issues(session: Session, feed: SourceFeed, *, now: datetime | None = 
     rights = feed.rights_policy
     domain = session.get(PublisherDomain, feed.domain_id) if feed.domain_id else None
     issues: list[str] = []
+    if rights.organization_id != feed.organization_id or (
+        domain and domain.organization_id != feed.organization_id
+    ):
+        issues.append("approval_organization_mismatch")
     if organization.onboarding_state != OnboardingState.APPROVED or not organization.active:
         issues.append("publisher_not_approved")
     if not domain or not domain.verified or domain.onboarding_state != OnboardingState.APPROVED:
@@ -529,6 +533,12 @@ class FeedRunExecutor:
 
 def worker_main() -> None:
     from nuzenio_api.db import SessionLocal
+
+    if get_settings().environment == "production":
+        from nuzenio_api.db import engine
+        from nuzenio_api.db_roles import assert_runtime_identity
+
+        assert_runtime_identity(engine)
 
     queue = RedisFeedQueue()
     executor = FeedRunExecutor(queue=queue)

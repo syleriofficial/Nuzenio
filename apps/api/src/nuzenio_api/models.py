@@ -455,6 +455,7 @@ class Brief(UUIDTimestampMixin, Base):
     language: Mapped[str] = mapped_column(String(12))
     title: Mapped[str] = mapped_column(String(400))
     cluster_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    legacy_cluster_slugs: Mapped[list[str] | None] = mapped_column(JSONB)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, default=1)
     corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

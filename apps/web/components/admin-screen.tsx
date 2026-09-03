@@ -48,6 +48,7 @@ interface PublisherRow {
     domain: string;
     verified: boolean;
     ownershipEvidence: string;
+    reviewHistory: Array<Record<string, unknown>>;
     snapshotHash: string;
     reviewedById?: string;
     reviewedAt?: string;
@@ -68,6 +69,7 @@ interface PublisherRow {
     permissions: Record<string, boolean>;
     snapshotHash: string;
     approvalHistory?: Record<string, unknown>;
+    reviewHistory: Array<Record<string, unknown>>;
     version: number;
   }>;
   feeds: Array<{
@@ -919,7 +921,14 @@ function PublisherOnboarding({
               <strong>{domain.domain}</strong>
               <small>{humanState(domain.state)}</small>
               <p>Ownership evidence: {domain.ownershipEvidence}</p>
-              <small>Reviewed by {domain.reviewedById ?? 'Not reviewed'} · {domain.reviewedAt ?? 'No review date'}</small>
+              <small>
+                Reviewed by {domain.reviewedById ?? 'Not reviewed'} ·{' '}
+                {domain.reviewedAt ?? 'No review date'}
+              </small>
+              <details>
+                <summary>Domain review history (latest 100)</summary>
+                <pre>{JSON.stringify(domain.reviewHistory, null, 2)}</pre>
+              </details>
               <OnboardingActions
                 path={`/v1/admin/domains/${domain.id}/transition`}
                 state={domain.state}
@@ -958,19 +967,59 @@ function PublisherOnboarding({
                 {humanState(rights.state)} · full text display{' '}
                 {rights.fullTextDisplay ? 'enabled' : 'disabled'}
               </small>
-              <p><a href={rights.evidenceUrl} target="_blank" rel="noopener noreferrer">Open rights evidence</a></p>
+              <p>
+                <a
+                  href={rights.evidenceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open rights evidence
+                </a>
+              </p>
               <dl aria-label={`${rights.name} permission snapshot`}>
-                {Object.entries(rights.permissions).map(([permission, granted]) => (
-                  <div key={permission}><dt>{permission}</dt><dd>{granted ? 'Permitted' : 'Not permitted'}</dd></div>
-                ))}
-                <div><dt>Effective</dt><dd>{rights.effectiveAt ?? 'Not specified'}</dd></div>
-                <div><dt>Expires</dt><dd>{rights.expiresAt ?? 'No expiry specified'}</dd></div>
-                <div><dt>Revoked</dt><dd>{rights.revokedAt ?? 'Not revoked'}</dd></div>
-                <div><dt>Reviewer</dt><dd>{rights.reviewedById ?? 'Not reviewed'}</dd></div>
-                <div><dt>Review date</dt><dd>{rights.reviewedAt ?? 'Not reviewed'}</dd></div>
+                {Object.entries(rights.permissions).map(
+                  ([permission, granted]) => (
+                    <div key={permission}>
+                      <dt>{permission}</dt>
+                      <dd>{granted ? 'Permitted' : 'Not permitted'}</dd>
+                    </div>
+                  ),
+                )}
+                <div>
+                  <dt>Effective</dt>
+                  <dd>{rights.effectiveAt ?? 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt>Expires</dt>
+                  <dd>{rights.expiresAt ?? 'No expiry specified'}</dd>
+                </div>
+                <div>
+                  <dt>Revoked</dt>
+                  <dd>{rights.revokedAt ?? 'Not revoked'}</dd>
+                </div>
+                <div>
+                  <dt>Reviewer</dt>
+                  <dd>{rights.reviewedById ?? 'Not reviewed'}</dd>
+                </div>
+                <div>
+                  <dt>Review date</dt>
+                  <dd>{rights.reviewedAt ?? 'Not reviewed'}</dd>
+                </div>
               </dl>
-              {rights.approvalHistory && <details><summary>Previous approved snapshot</summary><pre>{JSON.stringify(rights.approvalHistory, null, 2)}</pre></details>}
-              <small>Approval applies only to displayed policy version {rights.version}.</small>
+              {rights.approvalHistory && (
+                <details>
+                  <summary>Previous approved snapshot</summary>
+                  <pre>{JSON.stringify(rights.approvalHistory, null, 2)}</pre>
+                </details>
+              )}
+              <details>
+                <summary>Rights review history (latest 100)</summary>
+                <pre>{JSON.stringify(rights.reviewHistory, null, 2)}</pre>
+              </details>
+              <small>
+                Approval applies only to displayed policy version{' '}
+                {rights.version}.
+              </small>
               <OnboardingActions
                 path={`/v1/admin/rights/${rights.id}/transition`}
                 state={rights.state}

@@ -21,6 +21,7 @@ from nuzenio_api.feed_operations import (
     create_feed_run,
     heartbeat,
     recover_queued_runs,
+    schedule_due_feeds,
 )
 from nuzenio_api.feed_security import FeedSecurityError, FetchResult, SafeFeedFetcher
 from nuzenio_api.main import app
@@ -65,7 +66,9 @@ def fixture_result(slug):
     )
 
 
-@pytest.mark.parametrize("change", ["pause", "expiry", "revocation", "global", "environment"])
+@pytest.mark.parametrize(
+    "change", ["pause", "expiry", "revocation", "global", "environment", "version"]
+)
 def test_f05_fetch_outside_transaction_and_final_rights_fence(change, monkeypatch):
     feed_id, run_id = new_run()
     slug = str(uuid.uuid4())
@@ -87,6 +90,8 @@ def test_f05_fetch_outside_transaction_and_final_rights_fence(change, monkeypatc
                     feed.rights_policy.revoked_at = datetime.now(UTC)
                 elif change == "global":
                     other.get(FeedControl, 1).paused = True
+                elif change == "version":
+                    feed.rights_policy.version += 1
                 else:
                     monkeypatch.setattr(get_settings(), "feed_kill_switch", True)
             return fixture_result(slug)
@@ -197,6 +202,27 @@ def test_f04_limits_before_hash_and_ip_rotation(monkeypatch):
     assert len(calls) == 2
 
 
+def test_f04_global_limit_and_denied_requests_do_not_extend_cooldown(monkeypatch):
+    from nuzenio_api.login_admission import AdmissionDenied, password_admission
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "login_global_limit", 2)
+    for index in range(2):
+        with password_admission(f"account-{index}", f"ip-{index}"):
+            pass
+    client = redis.Redis.from_url(settings.redis_url)
+    key = settings.login_key_prefix + ":global"
+    before = client.pttl(key)
+    time.sleep(0.02)
+    for index in range(4):
+        with (
+            pytest.raises(AdmissionDenied),
+            password_admission(f"random-{index}", f"rotated-{index}"),
+        ):
+            pytest.fail("Throttled work must not enter verification")
+    assert 0 < client.pttl(key) < before
+
+
 def test_f04_concurrency_and_redis_failure(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "login_concurrency", 2)
@@ -293,3 +319,48 @@ def test_f11_total_budget_catches_slow_drip():
     with pytest.raises(FeedSecurityError, match="time budget"):
         fetcher.fetch("https://fixture.example/rss")
     assert time.monotonic() - start < 0.2
+
+
+def _blocked_child(*args):
+    time.sleep(60)
+
+
+def test_f11_production_boundary_kills_stalled_transport(monkeypatch):
+    from nuzenio_api import feed_security
+
+    monkeypatch.setattr(feed_security, "_fetch_child", _blocked_child)
+    start = time.monotonic()
+    with pytest.raises(FeedSecurityError, match="total time budget"):
+        SafeFeedFetcher(settings=Settings(feed_timeout_seconds=0.2)).fetch(
+            "https://fixture.example/rss"
+        )
+    assert time.monotonic() - start < 2.5
+
+
+def test_f08_competing_schedulers_create_one_active_run_per_feed():
+    feed_id, run_id = new_run()
+    now = datetime.now(UTC)
+    with SessionLocal.begin() as session:
+        session.get(FeedRun, run_id).state = FeedRunState.SUCCEEDED
+        session.get(SourceFeed, feed_id).next_poll_at = now - timedelta(seconds=1)
+
+    def schedule(_):
+        with SessionLocal() as session:
+            schedule_due_feeds(session, FakeQueue(), now=now)
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        list(pool.map(schedule, range(3)))
+    with SessionLocal() as session:
+        active = list(
+            session.scalars(
+                select(FeedRun).where(
+                    FeedRun.feed_id == feed_id,
+                    FeedRun.state == FeedRunState.QUEUED,
+                )
+            )
+        )
+        assert len(active) == 1
+    # Do not leave other fixture feeds' scheduling state changed for later tests.
+    with SessionLocal.begin() as session:
+        for run in session.scalars(select(FeedRun).where(FeedRun.state == FeedRunState.QUEUED)):
+            run.state = FeedRunState.SKIPPED

@@ -4,7 +4,7 @@ import re
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from nuzenio_api.models import Claim, ClaimEvidence, ClusterArticle, PrimaryDocument, SummaryVersion
@@ -49,19 +49,25 @@ def valid_evidence(session: Session, summary: SummaryVersion) -> bool:
             .where(
                 Claim.cluster_id == summary.cluster_id,
                 ClaimEvidence.id.in_(ids),
-                (
+                or_(
+                    ClaimEvidence.article_id.is_not(None),
+                    ClaimEvidence.primary_document_id.is_not(None),
+                ),
+                or_(
+                    ClaimEvidence.article_id.is_(None),
                     ClaimEvidence.article_id.in_(
                         select(ClusterArticle.article_id).where(
                             ClusterArticle.cluster_id == summary.cluster_id
                         )
-                    )
-                )
-                | (
+                    ),
+                ),
+                or_(
+                    ClaimEvidence.primary_document_id.is_(None),
                     ClaimEvidence.primary_document_id.in_(
                         select(PrimaryDocument.id).where(
                             PrimaryDocument.cluster_id == summary.cluster_id
                         )
-                    )
+                    ),
                 ),
             )
         )

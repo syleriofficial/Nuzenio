@@ -39,6 +39,7 @@ from nuzenio_api.admin_schemas import (
     StaffUserUpdate,
     StateTransition,
     SummaryDecision,
+    SummaryRevisionCreate,
     VersionedMutation,
 )
 from nuzenio_api.audit import append_audit, redact_sensitive
@@ -60,6 +61,7 @@ from nuzenio_api.editorial import (
     create_correction,
     decide_high_risk_review,
     decide_summary,
+    draft_summary_revision,
     edit_headline,
     merge_clusters,
     review_queue,
@@ -78,8 +80,9 @@ from nuzenio_api.models import (
     EventCluster,
     FeedControl,
     FeedRun,
-    RightsPolicy,
+    FeedRunState,
     PublisherDomain,
+    RightsPolicy,
     SourceFeed,
     StaffRole,
     StaffUser,
@@ -88,6 +91,7 @@ from nuzenio_api.onboarding import (
     add_domain,
     add_feed,
     add_rights,
+    approval_history,
     approval_snapshot,
     create_publisher,
     feed_dry_run,
@@ -840,20 +844,27 @@ def retry_feed_run(
     session: SessionDep,
     context: Annotated[AuthenticatedStaff, allowed(Permission.FEED_OPERATE, csrf=True)],
 ) -> AdminEntityRead:
-    old = session.get(FeedRun, run_id)
+    control_lock(session)
+    session.expire_all()
+    old = session.scalar(select(FeedRun).where(FeedRun.id == run_id).with_for_update())
     if not old:
         raise ApplicationError(code="feed_run_not_found", message="Feed run not found.", status=404)
     feed = session.get(SourceFeed, old.feed_id)
     if not feed:
         raise ApplicationError(code="feed_not_found", message="Feed not found.", status=404)
-    run = create_feed_run(
-        session, feed=feed, request_id=context.request_id, manual_actor_id=context.user.id
-    )
     dead_letter = session.scalar(
         select(DeadLetterJob).where(DeadLetterJob.feed_run_id == old.id).with_for_update()
     )
-    if dead_letter and dead_letter.retried_at is None:
-        dead_letter.retried_at = datetime.now(UTC)
+    if old.state != FeedRunState.DEAD_LETTERED or not dead_letter or dead_letter.retried_at:
+        raise ApplicationError(
+            code="retry_conflict",
+            message="Only an unreplayed dead-letter run can be retried.",
+            status=409,
+        )
+    run = create_feed_run(
+        session, feed=feed, request_id=context.request_id, manual_actor_id=context.user.id
+    )
+    dead_letter.retried_at = datetime.now(UTC)
     append_audit(
         session,
         actor=context.user,
@@ -1119,6 +1130,17 @@ def audit_export(
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
 
 
+@router.post("/summaries/{summary_id}/revisions", response_model=AdminEntityRead)
+def create_summary_revision(
+    summary_id: uuid.UUID,
+    payload: SummaryRevisionCreate,
+    session: SessionDep,
+    context: Annotated[AuthenticatedStaff, allowed(Permission.SUMMARY_REVIEW, csrf=True)],
+):
+    item = draft_summary_revision(session, summary_id, payload, context)
+    return _entity("SummaryVersion", item, {"decision": item.decision.value}, item.row_version)
+
+
 @router.get("/rights/{record_id}/snapshot")
 def rights_snapshot(
     record_id: uuid.UUID,
@@ -1128,7 +1150,7 @@ def rights_snapshot(
     record = session.get(RightsPolicy, record_id)
     if not record:
         raise ApplicationError(code="rights_not_found", message="Rights not found.", status=404)
-    return approval_snapshot(record)
+    return {**approval_snapshot(record), "reviewHistory": approval_history(session, record)}
 
 
 @router.get("/domains/{record_id}/snapshot")
@@ -1140,7 +1162,7 @@ def domain_snapshot(
     record = session.get(PublisherDomain, record_id)
     if not record:
         raise ApplicationError(code="domain_not_found", message="Domain not found.", status=404)
-    return approval_snapshot(record)
+    return {**approval_snapshot(record), "reviewHistory": approval_history(session, record)}
 
 
 @router.get("/feed-control")

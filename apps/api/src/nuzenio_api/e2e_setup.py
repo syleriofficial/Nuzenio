@@ -16,7 +16,10 @@ E2E_PASSWORD = "Local-E2E-Staff-Password-42!"
 def main() -> None:
     if os.environ.get("NUZENIO_ENVIRONMENT") != "test":
         raise SystemExit("Refusing to create E2E fixtures unless NUZENIO_ENVIRONMENT=test.")
-    database_url = os.environ.get("NUZENIO_DATABASE_URL", DEFAULT_E2E_DATABASE_URL)
+    database_url = os.environ.get(
+        "NUZENIO_E2E_DATABASE_URL", os.environ.get("NUZENIO_DATABASE_URL", DEFAULT_E2E_DATABASE_URL)
+    )
+    os.environ["NUZENIO_DATABASE_URL"] = database_url
     target = make_url(database_url)
     database_name = target.database or ""
     if not re.fullmatch(r"[A-Za-z0-9_]+", database_name) or "e2e" not in database_name:

@@ -188,6 +188,12 @@ def test_expired_rights_automatically_pause_processing() -> None:
     with SessionLocal.begin() as session:
         feed = session.scalar(select(SourceFeed).where(SourceFeed.approved.is_(True)).limit(1))
         rights = session.get(RightsPolicy, feed.rights_policy_id)
+        previous = [
+            (item.id, item.approved, item.onboarding_state, item.paused_reason)
+            for item in session.scalars(
+                select(SourceFeed).where(SourceFeed.rights_policy_id == rights.id)
+            )
+        ]
         rights.expires_at = datetime.now(UTC) - timedelta(seconds=1)
         feed_id = feed.id
         rights_id = rights.id
@@ -201,11 +207,10 @@ def test_expired_rights_automatically_pause_processing() -> None:
         assert "Rights expired" in feed.paused_reason
     with SessionLocal.begin() as session:
         rights = session.get(RightsPolicy, rights_id)
-        feed = session.get(SourceFeed, feed_id)
         rights.expires_at = None
-        feed.approved = True
-        feed.onboarding_state = OnboardingState.APPROVED
-        feed.paused_reason = None
+        for key, approved, state, reason in previous:
+            feed = session.get(SourceFeed, key)
+            feed.approved, feed.onboarding_state, feed.paused_reason = approved, state, reason
 
 
 def test_correction_preserves_history_and_marks_reader_cluster() -> None:

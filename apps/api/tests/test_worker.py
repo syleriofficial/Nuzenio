@@ -73,7 +73,12 @@ def test_scheduler_enqueues_each_due_feed_once() -> None:
     with SessionLocal() as session:
         assert schedule_due_feeds(session, queue, now=current) == 1
         assert schedule_due_feeds(session, queue, now=current) == 0
-        run = session.scalar(select(FeedRun).where(FeedRun.feed_id == target_id))
+        run = session.scalar(
+            select(FeedRun).where(
+                FeedRun.feed_id == target_id,
+                FeedRun.state == FeedRunState.QUEUED,
+            )
+        )
         assert run is not None
         assert run.state == FeedRunState.QUEUED
         assert queue.enqueued == [str(run.id)]

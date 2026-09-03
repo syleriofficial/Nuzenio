@@ -45,8 +45,8 @@ def test_top_feed_matches_schema_and_paginates() -> None:
     assert len(page.items) == 3
     assert page.pagination.page == 2
     assert page.pagination.page_size == 3
-    assert page.pagination.total == 7
-    assert page.pagination.total_pages == 3
+    assert page.pagination.total == 6  # Unreviewed HIGH fixture is held.
+    assert page.pagination.total_pages == 2
 
 
 def test_feed_filters_by_category_and_derived_status() -> None:
@@ -61,9 +61,8 @@ def test_feed_filters_by_category_and_derived_status() -> None:
 def test_local_feed_is_scoped_to_delhi_ncr() -> None:
     response = client.get("/v1/feed/local", params={"area": "Delhi NCR"})
     page = ClusterPage.model_validate(response.json())
-    assert page.pagination.total == 2
+    assert page.pagination.total == 1  # Delhi public-safety fixture awaits dual review.
     assert {item.slug for item in page.items} == {
-        "delhi-air-quality-response",
         "gurugram-bus-lanes-pilot",
     }
 

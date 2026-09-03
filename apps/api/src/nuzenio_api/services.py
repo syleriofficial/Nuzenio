@@ -323,7 +323,7 @@ class ReaderService:
                     code="brief_not_found",
                     message=f"The {period} brief is not available for this edition.",
                 )
-            clusters = self.repository.clusters_by_slugs(brief.cluster_ids)
+            clusters = self.repository.clusters_by_ids(brief.cluster_ids)
             if brief.published_at is None:
                 raise ResourceNotFoundError(
                     code="brief_not_published",
