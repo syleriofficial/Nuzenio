@@ -12,6 +12,10 @@ for (const route of [
     await page.goto(route);
     await expect(page).toHaveTitle(/Nuzenio/);
     await expect(page.locator('h1').first()).toBeVisible();
+    if (route === '/admin') {
+      await expect(page.getByLabel('Username')).toBeVisible();
+      await expect(page).toHaveTitle('Admin · Nuzenio');
+    }
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });

@@ -6,7 +6,7 @@ The complete independent review in the task is the acceptance checklist. No find
 | Finding | Reproduction/evidence | Fix | Regression coverage | Remaining risk |
 | --- | --- | --- | --- | --- |
 | F01 | Startup CMD and seed assignments confirmed; baseline preservation regression failed | Explicit dev/test-only create-only seed; production refusal; hold unproven legacy approvals; all reader queries require current review | `test_remediation.py` F01; upgrade fixtures; isolated Compose restart/reseed | Existing HIGH content deliberately disappears until reassessed; owner SQL is privileged |
-| F02 | Review accepted based on old row identity rather than current content; review PoC confirmed | Material revision binding, supersession, current-pending-only decisions, cluster-first locking, independent final/alert reviewers including administrators | F02 stale/repeated/concurrent API requests; high-risk E2E | Authorized editorial evidence assessment is still required |
+| F02 | Review accepted based on old row identity rather than current content; review PoC confirmed; summary decision could transfer draft authorship | Material revision binding, supersession, current-pending-only decisions, cluster-first locking, independent final/alert reviewers including administrators; preserve draft author during summary decisions | F02 stale/repeated/concurrent API requests and authorship-transfer regression; high-risk E2E | Authorized editorial evidence assessment is still required |
 | F03 | Baseline JSONB datetime audit regression failed | Recursive JSON-safe audit/revision encoder; one transaction; failures propagate | Nested datetime/UUID/enum test; real suppression/restoration and summary decisions; injected audit failure rolls domain change back | Unsupported future types deliberately fail closed |
 | F04 | Old combined account/IP bucket and post-hash throttle confirmed in code/review PoC | Atomic Redis global/IP/account admission before hash; verifier leases; fixed cooldown; trusted-proxy allow-list; Redis failure denies admission | Rotated IPs/random usernames/global cap/concurrency/cooldown/Redis outage/spoofed forwarding tests | Rate limits can temporarily deny legitimate staff under attack; operational monitoring/edge limits needed |
 | F05 | Review's blocked-fetch pause PoC and stale ORM authorization path confirmed | No network transaction; final refreshed ordered locks, approval versions/dates and kill-switch check; queued work cancelled on revocation | Six in-flight changes: pause, expiry, revocation, DB/global switch, environment switch, rights version | Coarse pilot-wide lock limits throughput; direct owner writes are outside the API protocol |
@@ -24,6 +24,10 @@ The complete independent review in the task is the acceptance checklist. No find
 Baseline evidence includes the independent local fixture/database proofs recorded in the review and direct inspection of the reviewed code. The initial regression run recorded six expected failures before behavior changes. Not every new interface test could run against the old schema: new lease/snapshot/revision fields did not exist. Those are integration regressions, not claims of independent pre-fix exploit execution. No finding was dismissed. Tests use explicitly disposable databases only, never existing application volumes.
 
 Additional adversarial checks during remediation found null sentence text accepted by the initial SQL validator, repeated dead-letter replay, and missing split draft recovery. Each had a failing regression before repair. An attempted evidence row with BOTH article and document was already rejected by the existing one-source CHECK constraint; this was not an exploitable bypass. The final test uses a foreign-cluster document and both validators reject it.
+
+A final F02 sequence also reproduced HTTP 200 for an original drafter's final approval after a
+different user approved the summary. Summary decisions now preserve the current draft author while
+superseding/rebinding the review; the original drafter receives `409 dual_control_required`.
 
 ## Forward migration and operational decisions
 
@@ -52,14 +56,21 @@ merge, or paid service is involved.
 | Check | Result |
 | --- | --- |
 | macOS clean `npm ci`, web format/lint, unit tests, production build | Pass; 13 web tests |
-| API Ruff lint/format and full PostgreSQL/Redis tests | 113 passed; includes clean migration, 2A/2B upgrades, drift, concurrency, privilege and security suites |
-| Linux Python 3.12 API suite | 113 passed; same PostgreSQL/Redis regression coverage |
+| API Ruff lint/format and full PostgreSQL/Redis tests | 114 passed; includes clean migration, 2A/2B upgrades, drift, concurrency, privilege and security suites |
+| Linux Python 3.12 API suite | 114 passed; same PostgreSQL/Redis regression coverage |
 | Linux Chromium Playwright E2E + axe desktop/mobile | 13 passed, including six reader/admin accessibility scans |
+| Repeated production-server axe scans, retries disabled | 30 passed: five repetitions of all six desktop/mobile route scans |
 | macOS Chromium E2E | Environment-blocked by sandbox Mach-port restrictions; no tests disabled; Linux run is the browser validation |
 | Clean Linux AMD64 Node 22.13.0 / npm 10.9.2 `npm ci`, format/lint/tests/build | Pass; 13 tests; both native toolchains load |
 | Isolated Compose build/config/health | Pass: migration/provisioning exits successfully; API, worker, PostgreSQL, Redis healthy |
 | Seed/restart smoke | Seven fixtures retained; edited headline, HELD status and persistent kill switch survive restart and repeat seed; production seed refusal tested |
 | Dependency audits | npm: zero known vulnerabilities; Python frozen installed third-party set: zero known vulnerabilities |
+
+The first remediation CI run (`33809517465`) completed green but reported one retried `/admin`
+axe `document-title` failure: the earlier title assertion had passed, then axe saw an empty title.
+This is disclosed rather than counted as a clean first-attempt pass. Browser verification now starts
+the production Next.js build (not the hot-reloading development server) and waits for the admin login
+form and route-specific title before axe. No accessibility rule is disabled or violation filtered.
 
 The Python gate is `python -m pip freeze --all --exclude-editable | pip-audit --strict --no-deps --disable-pip -r /dev/stdin`.
 It audits the complete resolved third-party environment including pip; only this first-party editable
