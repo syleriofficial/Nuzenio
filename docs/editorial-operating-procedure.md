@@ -1,5 +1,24 @@
 # Editorial operating procedure
 
+## Revision-bound review and allocation
+
+Any material edit supersedes prior reviews. Only the current pending material revision can be
+approved/rejected. Drafter and final reviewer must differ, even when both are administrators.
+Alert readiness requires a third independent identity on that same current published revision.
+An old review ID cannot approve new content, and repeated decisions conflict.
+
+Merge moves articles, claims/evidence, documents, correction history and timeline entries into the
+target; old source summaries remain preserved but pending. Split partitions article membership
+exactly once, clones claim wording where evidence spans groups and partitions evidence by its
+article destination. Primary documents and document evidence stay on the first result; the old
+timeline stays there as history. Corrections are carried forward to every result. Claims without
+remaining evidence are not exposed by readers. All resulting clusters are held and old summaries
+become pending with revision snapshots. Staff must regenerate/re-map/review before restoration.
+
+Brief membership is updated transactionally using UUIDs; it is independent of headline/slug edits.
+The summary revision API accepts explicit sentence evidence maps. Approval validates structural
+coverage, not truth: editorial source checking remains mandatory.
+
 ## Standard cluster workflow
 
 1. An editor opens the queue, compares organization-level sources and checks claim evidence.

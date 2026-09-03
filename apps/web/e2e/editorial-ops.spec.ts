@@ -55,7 +55,9 @@ test.describe.serial('Milestone 2B editorial operations', () => {
     await api.dispose();
   });
 
-  test('publisher onboarding advances only through reviewed states', async () => {
+  test('publisher onboarding advances only through reviewed states', async ({
+    page,
+  }) => {
     const { api, csrf } = await authenticatedApi('e2e-publisher-manager');
     const slug = `playwright-publisher-${Date.now()}`;
     const created = await api.post('/v1/admin/publishers', {
@@ -102,12 +104,16 @@ test.describe.serial('Milestone 2B editorial operations', () => {
     version += 1;
     let domainVersion = domainRecord.version;
     for (const state of ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED']) {
+      const snapshot = await (
+        await api.get(`/v1/admin/domains/${domainRecord.id}/snapshot`)
+      ).json();
       const transition = await api.post(
         `/v1/admin/domains/${domainRecord.id}/transition`,
         {
           headers: csrfHeaders(csrf),
           data: {
             expectedVersion: domainVersion,
+            expectedSnapshotHash: snapshot.snapshotHash,
             state,
             notes: 'Playwright domain review',
           },
@@ -143,12 +149,18 @@ test.describe.serial('Milestone 2B editorial operations', () => {
     version += 1;
     let rightsVersion = rightsRecord.version;
     for (const state of ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED']) {
+      const snapshot = await (
+        await api.get(`/v1/admin/rights/${rightsRecord.id}/snapshot`)
+      ).json();
+      expect(Object.keys(snapshot.permissions)).toHaveLength(8);
+      expect(snapshot.evidenceUrl).toBe(`https://${slug}.example/rights`);
       const transition = await api.post(
         `/v1/admin/rights/${rightsRecord.id}/transition`,
         {
           headers: csrfHeaders(csrf),
           data: {
             expectedVersion: rightsVersion,
+            expectedSnapshotHash: snapshot.snapshotHash,
             state,
             notes: 'Playwright rights review',
           },
@@ -169,6 +181,31 @@ test.describe.serial('Milestone 2B editorial operations', () => {
         language: 'en',
       },
     });
+    await page.goto('/admin');
+    await page.getByLabel('Username').fill('e2e-publisher-manager');
+    await page.getByLabel('Password').fill(e2ePassword);
+    await page.getByRole('button', { name: 'Sign in securely' }).click();
+    await page
+      .getByText('Review Playwright Fictional Publisher · approved', {
+        exact: true,
+      })
+      .click();
+    await expect(
+      page.getByText('Fictional DNS and contract evidence.', { exact: false }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText('Ownership evidence: Playwright ownership fixture.', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.locator(`a[href="https://${slug}.example/rights"]`),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel(
+        'Playwright fictional excerpt rights permission snapshot',
+      ),
+    ).toBeVisible();
     expect(feed.ok(), await feed.text()).toBeTruthy();
     const feedRecord = (await feed.json()) as { id: string; version: number };
     let feedVersion = feedRecord.version;
@@ -195,9 +232,9 @@ test.describe.serial('Milestone 2B editorial operations', () => {
       expect(transition.ok(), await transition.text()).toBeTruthy();
       feedVersion = ((await transition.json()) as { version: number }).version;
     }
-    const page = await api.get('/v1/admin/publishers?page_size=50');
+    const registryResponse = await api.get('/v1/admin/publishers?page_size=50');
     const rows = (
-      (await page.json()) as {
+      (await registryResponse.json()) as {
         items: Array<{
           slug: string;
           state: string;

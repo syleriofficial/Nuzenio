@@ -75,14 +75,12 @@ Nuzenio/
 
 ```bash
 cp .env.example .env
-npm install
+npm ci
 python3 -m venv apps/api/.venv
 apps/api/.venv/bin/pip install -e 'apps/api[dev]'
-docker compose up -d postgres redis
-cd apps/api
-.venv/bin/alembic -c alembic.ini upgrade head
-.venv/bin/python -m nuzenio_api.seed
-cd ../..
+docker compose up -d --build api worker
+# Explicit development-only fixtures; never part of runtime startup.
+docker compose --profile demo run --rm seed
 ```
 
 Create the first local staff account. The password is prompted and never accepted as a command-line argument:
@@ -98,7 +96,9 @@ cd ../..
 
 Production bootstrap additionally prompts for a secret matching `NUZENIO_BOOTSTRAP_TOKEN`. Inject the expected value with the eventual deployment secret mechanism; neither token nor password is accepted as a command-line argument.
 
-Start three processes in separate terminals:
+The Compose setup already runs API and worker. Start the web app with `npm run dev:web`.
+For host-process development instead, stop only the Compose API/worker (keep PostgreSQL/Redis),
+then use the runtime URL in `.env` and start these processes in separate terminals:
 
 ```bash
 apps/api/.venv/bin/uvicorn nuzenio_api.main:app --app-dir apps/api/src --reload --port 8000
@@ -121,7 +121,10 @@ docker compose up --build -d api worker
 docker compose ps
 ```
 
-The API container migrates and idempotently seeds before serving. The worker waits for API health. The Compose feed kill switch is deliberately on for fictional seed data.
+The separate `migrate` service owns schema changes and provisions the unprivileged runtime role.
+Neither API nor worker migrates or seeds. `docker compose --profile demo run --rm seed` is an
+explicit create-only development operation. High-risk fixtures stay held until independent review.
+The Compose feed kill switch is deliberately on for fictional seed data.
 
 ## Database and staff operations
 
@@ -136,6 +139,12 @@ cd apps/api
 
 Alembic is the schema authority; application startup and seeds never call `create_all`. Tests refuse to drop any database whose name does not contain `test`.
 
+Run migration commands with a separately injected owner database URL, never runtime credentials.
+Existing installations should back up first, stop workers, run the forward migration service,
+provision runtime grants, and only then restart runtime services. See
+[security remediation](docs/security-remediation.md), [database recovery](docs/backup-recovery.md),
+and [environment settings](docs/environment.md). Independent re-review is required before merge.
+
 ## Validation commands
 
 With PostgreSQL and Redis running:
@@ -147,6 +156,8 @@ npm run test:web
 apps/api/.venv/bin/ruff format --check apps/api
 apps/api/.venv/bin/ruff check apps/api
 apps/api/.venv/bin/pytest apps/api/tests
+npm audit --audit-level=low
+apps/api/.venv/bin/python -m pip freeze --all --exclude-editable | apps/api/.venv/bin/pip-audit --strict --no-deps --disable-pip -r /dev/stdin
 npm run test:e2e
 npm run build:web
 docker compose config --quiet
@@ -155,6 +166,11 @@ docker compose ps
 ```
 
 Playwright rebuilds a guarded `nuzenio_e2e` database and creates test-only staff fixtures. Browser tests never use internet services. API tests independently migrate, seed and remove `nuzenio_test`.
+
+For sandboxed hosts that cannot launch Chromium, `infra/testing/Dockerfile` provides a disposable
+Linux Node 22.13/Python 3.12 browser-test image. Supply isolated test database/Redis URLs using the
+documented E2E overrides; never point tests at application databases. Detailed remediation,
+reproductions, validation results and remaining risks are in [the F01–F15 checklist](docs/security-remediation.md).
 
 ## Documentation
 

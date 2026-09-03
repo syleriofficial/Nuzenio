@@ -1,5 +1,24 @@
 # Backup and recovery considerations
 
+## Remediation migration/recovery procedure
+
+Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd`.
+Do not edit the applied 2A/2B migrations. Back up and stop runtime writers/workers before upgrading.
+The new revisions hold legacy high-risk content, mark unmapped summaries pending, fence legacy runs,
+convert/retain legacy brief slugs, remove redundant uniqueness constraints and block audit TRUNCATE.
+No historical reviewer identity or evidence is fabricated. Expect affected stories to leave public feeds
+until re-reviewed. Large tables require a maintenance window: data repair/index work acquires locks.
+
+Run migrations with owner credentials, then `python -m nuzenio_api.db_roles` with a separately supplied
+runtime password, then `alembic check` and smoke tests. Restart API/worker with runtime credentials.
+Runtime code cannot upgrade schema. Recovery after Redis loss re-dispatches durable queued/due-retry
+rows and reclaims expired leases; a prior lease token can never commit after replacement.
+
+These safety migrations deliberately refuse downgrade. Prefer a forward repair; emergency rollback
+requires restoring a tested pre-upgrade database backup and matching code while writers are stopped.
+Owners/superusers can still change triggers/grants: protect and audit their credentials separately.
+Never delete application volumes as a migration or test shortcut.
+
 This repository contains local foundations, not a production deployment or automated backup service. The following is the required production design baseline.
 
 ## PostgreSQL

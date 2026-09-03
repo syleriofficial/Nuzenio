@@ -16,5 +16,6 @@
     "lint:api": "apps/api/.venv/bin/ruff check apps/api",
     "format:api": "apps/api/.venv/bin/ruff format apps/api"
   },
-  "engines": { "node": ">=22.13.0" }
+  "engines": { "node": ">=22.13.0" },
+  "overrides": { "vite": "7.3.6" }
 }

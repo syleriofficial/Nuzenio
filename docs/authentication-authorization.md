@@ -1,5 +1,19 @@
 # Authentication and authorization
 
+## Remediation changes
+
+Admission is atomic across global, IP and normalized-account Redis buckets before Argon2. Rotating
+IPs does not reset the account bucket. Fixed windows have bounded cooldowns and denied attempts
+do not renew them. A Redis-backed verifier lease caps concurrent work across API processes; Redis
+failure denies login before hashing. The database still records successful and failed attempts.
+There is no production in-memory fallback. Reverse proxy headers are ignored unless the socket
+peer is in an explicit trusted CIDR. Roles and the permission matrix below are unchanged.
+
+Database authorization is separate: owner credentials are restricted to migrations/provisioning.
+API and worker identities cannot own tables, create schema objects, truncate audit logs or disable
+triggers. Production startup verifies the identity. Database owners/superusers remain trusted
+operators outside this guarantee; external immutable audit replication is still recommended.
+
 ## Authentication model
 
 Nuzenio has staff accounts only. There is no public registration route, default account or seeded production password. An operator with database access runs `python -m nuzenio_api.staff create`; production additionally checks an interactively entered bootstrap token against the secret-managed `NUZENIO_BOOTSTRAP_TOKEN`.
@@ -8,7 +22,7 @@ Passwords are hashed with Argon2id using a 64 MiB memory cost, three iterations,
 
 Successful login creates independent random session and CSRF tokens. Only keyed SHA-256 hashes are stored in PostgreSQL. Both cookies are `HttpOnly`, `SameSite=Strict`, scoped to `/`, time-limited and `Secure` in production. The UI keeps the CSRF value returned by the session response in memory; the API compares its `X-CSRF-Token` header with the companion cookie and server-side hash for every state-changing browser request. Tokens are never stored in `localStorage`.
 
-Sessions have an absolute expiry, can be revoked individually through logout or collectively by an administrator, and become invalid when the staff account is disabled. Authentication successes, failures and logout events are stored separately from the append-only audit trail. Failed login counters are keyed by a secret-derived username-and-IP hash; five failures cause a 15-minute lockout by default. Login responses remain generic for known and unknown accounts.
+Sessions have an absolute expiry, can be revoked individually through logout or collectively by an administrator, and become invalid when the staff account is disabled. Authentication successes, failures and logout events are stored separately from the append-only audit trail. Redis admission uses separate global, secret-derived IP and account buckets with fixed 60-second windows. Login responses remain generic for known and unknown accounts.
 
 Production configuration refuses to start with the development session pepper, insecure cookies, demo mode, non-HTTPS CORS origins or HTTP feed policy.
 

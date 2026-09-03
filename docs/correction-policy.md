@@ -1,5 +1,17 @@
 # Correction policy
 
+## Remediation safeguards
+
+Audit and revision snapshots use one recursive JSON encoder, so timestamps/UUIDs/enums cannot
+silently break transactional corrections or suppression. Audit failures roll back domain changes.
+Document/correction links require HTTPS without credentials or ambiguous authorities.
+
+Changed summary wording must receive a new explicit sentence-level evidence mapping via the summary
+revision API. Copying an old map does not prove coverage of new text: invalid mappings stay pending
+and are filtered from public readers. Brief corrections operate on stable UUID membership; saved
+snapshots remain marked stale by the existing correction propagation. Offline devices cannot be
+forcibly recalled while disconnected; a reconnect/refetch is required.
+
 Nuzenio aggregates and summarizes publisher reporting; it does not silently rewrite published history. A correction must be attributable, reviewable and visible wherever affected content is presented.
 
 ## Intake

@@ -1,5 +1,24 @@
 # Reader and editorial API
 
+## Remediation contract additions
+
+- `GET /v1/admin/rights/{id}/snapshot` and `/domains/{id}/snapshot`: authenticated complete evidence,
+  permissions, effective/expiry/revocation dates, reviewer and SHA-256 snapshot hash.
+- Domain/rights `APPROVED` transitions require both `expectedVersion` and `expectedSnapshotHash`
+  from the displayed snapshot. Missing/stale hashes return `409 approval_snapshot_conflict`.
+- `POST /v1/admin/summaries/{id}/revisions`: `summary:review` + CSRF; body has `expectedVersion`,
+  `summaryText`, and `evidenceMap: {"sentences":[{"text":"Exact sentence.","evidence_ids":["uuid"]}]}`.
+  Creates a pending version, preserves history and holds the cluster. Evidence IDs identify
+  `ClaimEvidence` rows in that cluster; sentence boundaries are punctuation `. ! ? ।` + whitespace.
+- `GET /v1/admin/feed-control`: feed operators inspect the persistent global kill switch.
+- `PATCH /v1/admin/feed-control`: administrator-only `edition:pause` + CSRF; body
+  `{expectedVersion, paused, reason}`. Environment kill switch is an additional fail-closed gate.
+- Superseded/repeated review decisions and stale push approvals return `409 stale_review` or
+  `409 version_conflict`; administrators do not bypass separation.
+- Login Redis outage returns a generic `503 login_failed` without password verification. Fixed-window
+  limits return generic `429 login_failed`; denied attempts do not extend the window.
+- CSV cells are spreadsheet-neutralized on export only. JSON and canonical audit data are unchanged.
+
 Local base URL: `http://localhost:8000`. OpenAPI is available at `/docs` and `/openapi.json`. JSON fields are camelCase; dates are ISO 8601. Errors use one envelope:
 
 ```json

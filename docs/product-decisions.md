@@ -1,5 +1,19 @@
 # Product decisions and assumptions
 
+## Independent-review remediation decisions
+
+Seven fictional clusters remain in the seed, but the unreviewed HIGH public-safety fixture is held;
+only six initially appear publicly. This is intentional fail-closed behavior, not a demo approval bypass.
+Legacy evidence maps are not silently upgraded into assertions of sentence support. Editorial re-mapping
+is required. A structurally complete map does not establish truth, neutrality or entailment.
+
+Vite's incidental major upgrade in the native-binding CI fix was unintended. The root override restores
+`7.3.6`; the lock retains exact oxfmt `0.61.0` and Lightning CSS `1.31.1` platform bindings. `npm ci`
+remains mandatory. pytest's advisory was independently verified and the dependency floor is now 9.0.3.
+CI audits all installed non-editable Python dependencies and npm dependencies. There are no audit
+exceptions. Any future exception requires advisory ID, reachability rationale, compensating control,
+owner and expiry in a reviewed PR; do not silently add ignores or continue-on-error.
+
 ## Product stance retained
 
 Nuzenio is an aggregation and comparison layer, not an original newsroom. The story cluster remains the primary reader unit. All seed content and names are fictional, outbound links use reserved `.example` domains, and no full publisher article or paid provider is used.

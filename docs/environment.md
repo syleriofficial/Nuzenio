@@ -1,5 +1,33 @@
 # Environment variables
 
+## Remediation settings
+
+`NUZENIO_DATABASE_URL` is now the unprivileged runtime identity. Migrations receive an owner URL
+only in the separate migration process/service. `NUZENIO_RUNTIME_PASSWORD` provisions the runtime
+role; its checked-in default is explicitly local-only and rejected by production provisioning.
+Production secrets must be injected, never committed or passed as CLI password arguments.
+
+Login defaults: `NUZENIO_LOGIN_GLOBAL_LIMIT=120`, `NUZENIO_LOGIN_IP_LIMIT=30`,
+`NUZENIO_LOGIN_ATTEMPT_LIMIT=5`, `NUZENIO_LOGIN_WINDOW_SECONDS=60`,
+`NUZENIO_LOGIN_CONCURRENCY=4`, `NUZENIO_LOGIN_KEY_PREFIX=nuzenio:auth:v2`.
+The former `NUZENIO_LOGIN_LOCKOUT_MINUTES` is deprecated and unused. Counters use fixed Redis TTLs;
+blocked requests never extend cooldowns. Redis unavailability fails closed before Argon2.
+
+`NUZENIO_TRUSTED_PROXY_CIDRS=[]` trusts no forwarding headers. Uvicorn is started with
+`--no-proxy-headers`; explicitly configured proxy CIDRs are processed by the application right-to-left.
+Do not use broad trusted ranges or expose an origin that assumes all clients are trusted proxies.
+
+`NUZENIO_FEED_TIMEOUT_SECONDS` is the complete DNS/TLS/redirect/body deadline, not just idle time.
+Production network work is in a killable subprocess. Compressed content is rejected and
+`Accept-Encoding: identity` sent. `NUZENIO_FEED_MAX_BYTES` caps encoded and decoded bytes equally.
+`NUZENIO_FEED_KILL_SWITCH=true` is recommended for all fixture environments, in addition to the
+persistent `/v1/admin/feed-control` switch.
+
+Alternate isolated Compose ports: `POSTGRES_PORT`, `REDIS_PORT`, `API_PORT`.
+E2E overrides: `NUZENIO_E2E_DATABASE_URL` (must contain `e2e`) and `NUZENIO_E2E_REDIS_URL`.
+Playwright uses a unique limiter namespace and higher test-only counters for fixture logins;
+the dedicated auth regression suite tests the production limits and failures.
+
 Copy `.env.example` to `.env` only for local development. Never commit a populated `.env`, tokens, database volumes or generated credentials.
 
 ## Web
@@ -36,8 +64,8 @@ Production code disables reader fixture fallback regardless of its configured va
 | `NUZENIO_COOKIE_SECURE` | `false` | Must be true in production so cookies require HTTPS. |
 | `NUZENIO_SESSION_HASH_PEPPER` | development placeholder | HMAC key for session/CSRF/login-subject hashes. Use a unique 32+ character secret in production. |
 | `NUZENIO_BOOTSTRAP_TOKEN` | empty | Secret expected by the interactive staff CLI in production. |
-| `NUZENIO_LOGIN_ATTEMPT_LIMIT` | `5` | Failed attempts before lockout. |
-| `NUZENIO_LOGIN_LOCKOUT_MINUTES` | `15` | Temporary lockout duration. |
+| `NUZENIO_LOGIN_ATTEMPT_LIMIT` | `5` | Account admissions per fixed window. |
+| `NUZENIO_LOGIN_LOCKOUT_MINUTES` | `15` | Deprecated; unused. |
 
 Changing the session pepper invalidates every existing cookie. Plan that rotation as a global logout. Neither the bootstrap token nor staff password is accepted as a CLI argument.
 
@@ -46,7 +74,7 @@ Changing the session pepper invalidates every existing cookie. Plan that rotatio
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NUZENIO_FEED_USER_AGENT` | `NuzenioFeedFetcher/0.3 ...` | Controlled outbound identity. |
-| `NUZENIO_FEED_TIMEOUT_SECONDS` | `10` | Per-request timeout. |
+| `NUZENIO_FEED_TIMEOUT_SECONDS` | `10` | Absolute complete-fetch deadline, including DNS and redirects. |
 | `NUZENIO_FEED_MAX_BYTES` | `2000000` | Maximum streamed response size. |
 | `NUZENIO_FEED_REDIRECT_LIMIT` | `3` | Maximum revalidated redirects. |
 | `NUZENIO_FEED_HTTPS_REQUIRED` | `true` | Production must remain true. |

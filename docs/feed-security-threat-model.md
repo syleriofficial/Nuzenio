@@ -1,5 +1,20 @@
 # Feed-security threat model
 
+## Remediation resource and race boundaries
+
+The default production fetch path runs in a disposable subprocess with an absolute deadline
+covering DNS, connect, TLS, redirects, headers and body; overdue work is terminated. The child also
+checks a monotonic budget between stages. Proxy environment variables are disabled (`trust_env=False`).
+The validated IP remains the actual connection target with original Host/SNI. Only identity encoding
+is accepted: compressed responses are rejected before body iteration/decompression. Content-Length
+and streamed bytes are bounded. Existing SSRF/XML checks remain in place.
+
+Fetches do not hold a database transaction. Before persistence the worker reacquires the shared
+control lock, refreshes and locks approval records, checks dates and version snapshots, and checks
+its current lease token. Revocation/kill-switch changes cancel pending work and fence in-flight
+results. Redis delivery is recoverable from PostgreSQL; expired worker leases cannot commit after
+takeover. The coarse control lock is a deliberate pilot-scale correctness tradeoff, not a scaling design.
+
 ## Assets and trust boundary
 
 Publisher-provided URLs, DNS answers, redirects, headers and XML are untrusted. The protected assets are internal services and metadata endpoints, credentials, worker availability, database integrity, editorial content and user privacy. Feed fetching is the only component allowed to make publisher-origin requests; tests and seed commands never make network requests.
@@ -17,7 +32,7 @@ Publisher-provided URLs, DNS answers, redirects, headers and XML are untrusted. 
 | Unexpected media | Accept only approved RSS/Atom/XML content types. |
 | XXE, DTD or entity expansion | Reject DOCTYPE/entity declarations and parse with `defusedxml`; external entity resolution is unavailable. |
 | Publisher controls request behavior | Send only Nuzenio-owned `User-Agent`, `Accept`, conditional ETag and Last-Modified headers. Arbitrary publisher headers are not accepted. |
-| Markup/script enters the product | Extract text, strip markup/control characters, normalize whitespace and cap field lengths. |
+| Markup/script enters the product | Extract text, strip markup, normalize whitespace and cap field lengths; React renders imported text without raw HTML. |
 | Retry storm | Enforce per-source run limits, one outstanding run, bounded exponential retry and dead-letter termination. |
 | Secret leakage | Return stable public and admin-facing error codes; retain detailed fetch/parser diagnostics in the database for protected operational diagnosis. Audit redaction removes password/token/secret/cookie/authorization/CSRF keys. |
 

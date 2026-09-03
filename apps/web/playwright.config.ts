@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const databaseUrl =
+  process.env.NUZENIO_E2E_DATABASE_URL ??
   'postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_e2e';
 
 export default defineConfig({
@@ -32,11 +33,16 @@ export default defineConfig({
       env: {
         NUZENIO_ENVIRONMENT: 'test',
         NUZENIO_DATABASE_URL: databaseUrl,
-        NUZENIO_REDIS_URL: 'redis://localhost:6379/2',
+        NUZENIO_REDIS_URL:
+          process.env.NUZENIO_E2E_REDIS_URL ?? 'redis://localhost:6379/2',
         NUZENIO_CORS_ORIGINS: '["http://127.0.0.1:3100"]',
         NUZENIO_COOKIE_SECURE: 'false',
         NUZENIO_SESSION_HASH_PEPPER: 'e2e-only-session-pepper',
         NUZENIO_DEMO_MODE: 'true',
+        NUZENIO_LOGIN_KEY_PREFIX: `nuzenio:e2e:auth:${Date.now()}`,
+        NUZENIO_LOGIN_ATTEMPT_LIMIT: '100',
+        NUZENIO_LOGIN_IP_LIMIT: '500',
+        NUZENIO_LOGIN_GLOBAL_LIMIT: '1000',
       },
     },
     {

@@ -1,5 +1,29 @@
 # Nuzenio architecture
 
+## PR #1 remediation invariants
+
+Runtime containers do not migrate or seed. A one-shot owner-credential migration/provisioning
+step is separate from an unprivileged API/worker identity. Production startup rejects schema
+owners, superusers, role memberships, DDL grants and audit mutation privileges.
+
+High-risk publication requires a non-superseded approval matching `material_revision`, two
+distinct staff identities and a completion timestamp. Every material edit supersedes old reviews.
+Reader SQL applies the same invariant to all feeds, detail, search, sources and briefs.
+
+Summary evidence is a strict sentence/text/evidence-ID structure. PostgreSQL selection and Python
+approval validate complete sentence coverage and same-cluster evidence relationships. This is
+structural provenance, not truth/entailment verification. Existing unmapped summaries become pending.
+
+Feed claims and final persistence use a short shared advisory control lock, followed by control,
+organization, domain, rights, feed and run locks. Network fetches happen outside transactions.
+PostgreSQL run rows are the durable dispatch outbox; Redis is a replaceable delivery hint. UUID
+lease tokens fence late workers, with 60-second leases and 10-second heartbeats. Competing active
+runs per feed are excluded by a partial unique index.
+
+Brief JSON membership now contains immutable cluster UUIDs (not slugs), preserving display order.
+The original slugs are archived by the forward migration; unresolved memberships hold the brief.
+Merge/split atomically rewrites memberships and holds all results pending derived-content review.
+
 ## Milestone 2B topology
 
 ```text
@@ -60,7 +84,7 @@ The migration is additive and supplies server defaults for existing Milestone 2A
 
 ## Feed execution
 
-The scheduler selects due, approved feeds with no active run, persists a `QUEUED` run, advances the next poll, commits, and adds its ID to a Redis set/list. Set membership prevents duplicate ready delivery. Delayed retries use a sorted set and bounded 5/10/20-second progression capped at 15 minutes; four execution attempts end in a dead letter. ETag and Last-Modified values are persisted and sent conditionally. Run history stores HTTP status, bytes, parse/new-item counts, duration and internal failure code.
+The scheduler selects due approved feeds under the shared control lock, persists a `QUEUED` run and advances the next poll. A partial unique index excludes concurrent active runs. After commit, Redis receives an expiring delivery hint. Duplicate delivery is harmless because database claims and lease tokens fence execution; lost Redis state is recovered from queued/due-retry/expired-lease rows. Delayed retries use bounded exponential backoff; four execution attempts end in a dead letter. ETag and Last-Modified values are persisted and sent conditionally. Run history stores HTTP status, bytes, parse/new-item counts, duration and internal failure code.
 
 Before every run, the worker reevaluates publisher, verified-domain, rights dates/flags, feed state, per-source limit and global/source kill switches. Article canonical URLs are unique and fingerprints are persisted, making repeated fixture delivery idempotent.
 

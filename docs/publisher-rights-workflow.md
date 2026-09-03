@@ -1,5 +1,17 @@
 # Publisher and rights workflow
 
+## Evidence-visible approval
+
+Reviewers see domain ownership evidence and all eight rights permissions, evidence URL,
+effective/expiry/revocation dates, reviewer/date, previous approved snapshot and latest 100 review transitions. Approval must submit
+the displayed version and snapshot hash. The API rejects absent/stale snapshots and audits the
+exact reviewed snapshot. Hash binding identifies the approved record, not whether a staff member
+actually read the external contract or that a contract grants legally valid rights.
+
+Changes to publisher/domain/rights/feed state and final ingestion persistence share ordered locks.
+Queued/retrying jobs are invalidated in the same control transaction. In-flight fetch results are
+discarded when rights expire, are revoked, or approval versions/kill switches change.
+
 ## Separate approval objects
 
 A publisher organization, each domain, each rights policy and each source feed have independent lifecycle records and version numbers. Approval of one does not imply approval of another.
