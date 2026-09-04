@@ -304,7 +304,7 @@ def test_correction_provenance_upgrade_recovers_only_verifiable_identities(monke
                         "WHERE correction_id=:id"
                     ),
                     {"id": correction_id},
-                )
+                ).all()
             )
             assert recovered == {creator: 1, resolver: 2}
             assert (
