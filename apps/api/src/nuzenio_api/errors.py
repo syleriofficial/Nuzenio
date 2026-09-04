@@ -25,6 +25,9 @@ def _response(
     return JSONResponse(
         status_code=status,
         content=body.model_dump(mode="json", by_alias=True, exclude_none=True),
+        # Unhandled exceptions are rendered outside normal response middleware.
+        # Error bodies are never suitable for shared/browser cache persistence.
+        headers={"Cache-Control": "private, no-store", "Pragma": "no-cache"},
     )
 
 

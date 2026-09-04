@@ -69,6 +69,15 @@ async function parseError(response: Response): Promise<AdminApiError> {
   );
 }
 
+let privateEpoch = 0;
+const privateRequests = new Set<AbortController>();
+
+export function resetPrivateRequests() {
+  privateEpoch += 1;
+  for (const controller of privateRequests) controller.abort();
+  privateRequests.clear();
+}
+
 export async function adminRequest<T>(
   path: string,
   options: {
@@ -80,17 +89,30 @@ export async function adminRequest<T>(
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.csrfToken) headers['X-CSRF-Token'] = options.csrfToken;
-  const response = await fetch(`${adminApiBaseUrl()}${path}`, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    credentials: 'include',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw await parseError(response);
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const epoch = privateEpoch;
+  const controller = new AbortController();
+  privateRequests.add(controller);
+  try {
+    const response = await fetch(`${adminApiBaseUrl()}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
+      credentials: 'include',
+      cache: 'no-store',
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]),
+    });
+    if (epoch !== privateEpoch)
+      throw new DOMException('Staff session changed', 'AbortError');
+    if (!response.ok) throw await parseError(response);
+    if (response.status === 204) return undefined as T;
+    const value = (await response.json()) as T;
+    if (epoch !== privateEpoch)
+      throw new DOMException('Staff session changed', 'AbortError');
+    return value;
+  } finally {
+    privateRequests.delete(controller);
+  }
 }
 
 export function hasPermission(

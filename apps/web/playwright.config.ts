@@ -35,7 +35,8 @@ export default defineConfig({
         NUZENIO_DATABASE_URL: databaseUrl,
         NUZENIO_REDIS_URL:
           process.env.NUZENIO_E2E_REDIS_URL ?? 'redis://localhost:6379/2',
-        NUZENIO_CORS_ORIGINS: '["http://127.0.0.1:3100"]',
+        NUZENIO_CORS_ORIGINS:
+          '["http://127.0.0.1:3100","http://127.0.0.1:3101"]',
         NUZENIO_COOKIE_SECURE: 'false',
         NUZENIO_SESSION_HASH_PEPPER: 'e2e-only-session-pepper',
         NUZENIO_DEMO_MODE: 'true',

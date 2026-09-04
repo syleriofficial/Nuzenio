@@ -1,6 +1,12 @@
 'use client';
 
-import { SyntheticEvent, useCallback, useEffect, useState } from 'react';
+import {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -19,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   AdminApiError,
+  resetPrivateRequests,
   AdminPage,
   StaffSession,
   adminApiBaseUrl,
@@ -120,6 +127,10 @@ interface ReviewRow {
   riskCategory: string;
   reason: string;
   draftedById?: string;
+  contributorIds: string[];
+  provenanceComplete: boolean;
+  approvalEligible: boolean;
+  pushEligible: boolean;
   reviewerId?: string;
   decision: string;
   version: number;
@@ -204,7 +215,13 @@ function formText(form: FormData, key: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function LoginPanel({ onLogin }: { onLogin: (value: StaffSession) => void }) {
+function LoginPanel({
+  onLogin,
+  notice,
+}: {
+  onLogin: (value: StaffSession) => void;
+  notice?: string;
+}) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -244,6 +261,7 @@ function LoginPanel({ onLogin }: { onLogin: (value: StaffSession) => void }) {
         </p>
       </div>
       <form onSubmit={submit} className="admin-login-form">
+        {notice && <p role="alert">{notice}</p>}
         <label htmlFor="staff-username">Username</label>
         <Input
           id="staff-username"
@@ -274,6 +292,8 @@ function LoginPanel({ onLogin }: { onLogin: (value: StaffSession) => void }) {
 }
 
 export function AdminScreen() {
+  const sessionChannelId = useRef('');
+  const [sessionNotice, setSessionNotice] = useState('');
   const [session, setSession] = useState<StaffSession | null>(null);
   const [csrfToken, setCsrfToken] = useState('');
   const [active, setActive] = useState<TabId>('clusters');
@@ -291,89 +311,143 @@ export function AdminScreen() {
   const [edition, setEdition] = useState<EditionRow | null>(null);
   const [selectedClusters, setSelectedClusters] = useState<string[]>([]);
 
-  const loadTab = useCallback(async (tab: TabId) => {
-    setLoading(true);
+  const clearPrivateState = useCallback(() => {
+    resetPrivateRequests();
+    setSession(null);
+    setCsrfToken('');
+    setPublishers([]);
+    setClusters([]);
+    setReviews([]);
+    setCorrections([]);
+    setFeedRuns([]);
+    setAudit([]);
+    setStaff([]);
+    setEdition(null);
+    setSelectedClusters([]);
+    setMessage('');
     setError('');
-    try {
-      if (tab === 'sources') {
-        setPublishers(
-          (
-            await adminRequest<AdminPage<PublisherRow>>(
-              '/v1/admin/publishers?page_size=50',
-            )
-          ).items,
-        );
-      } else if (tab === 'health') {
-        const [sourcePage, runPage] = await Promise.all([
-          adminRequest<AdminPage<PublisherRow>>(
-            '/v1/admin/publishers?page_size=50',
-          ),
-          adminRequest<AdminPage<FeedRunRow>>(
-            '/v1/admin/feed-runs?page_size=20',
-          ),
-        ]);
-        setPublishers(sourcePage.items);
-        setFeedRuns(runPage.items);
-      } else if (tab === 'clusters') {
-        setClusters(
-          (
-            await adminRequest<AdminPage<ClusterRow>>(
-              '/v1/admin/clusters?page_size=50',
-            )
-          ).items,
-        );
-      } else if (tab === 'corrections') {
-        const [correctionPage, clusterPage] = await Promise.all([
-          adminRequest<AdminPage<CorrectionRow>>(
-            '/v1/admin/corrections?page_size=50',
-          ),
-          adminRequest<AdminPage<ClusterRow>>(
-            '/v1/admin/clusters?page_size=50',
-          ),
-        ]);
-        setCorrections(correctionPage.items);
-        setClusters(clusterPage.items);
-      } else if (tab === 'risk') {
-        setReviews(
-          (
-            await adminRequest<AdminPage<ReviewRow>>(
-              '/v1/admin/review-queue?page_size=50',
-            )
-          ).items,
-        );
-      } else if (tab === 'audit') {
-        setAudit(
-          (
-            await adminRequest<AdminPage<AuditRow>>(
-              '/v1/admin/audit?page_size=50',
-            )
-          ).items,
-        );
-      } else if (tab === 'edition') {
-        setEdition(await adminRequest<EditionRow>('/v1/admin/editions/india'));
-      } else if (tab === 'staff') {
-        setStaff(
-          (
-            await adminRequest<AdminPage<StaffRow>>(
-              '/v1/admin/staff?page_size=50',
-            )
-          ).items,
-        );
-      }
-    } catch (caught) {
-      if (caught instanceof AdminApiError && caught.status === 401) {
-        setSession(null);
-      } else {
-        setError(
-          caught instanceof AdminApiError
-            ? caught.message
-            : 'The editorial service could not be reached.',
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    sessionChannelId.current = crypto.randomUUID();
+    const channel =
+      typeof BroadcastChannel === 'undefined'
+        ? null
+        : new BroadcastChannel('nuzenio-staff-session');
+    if (channel)
+      channel.onmessage = (event) => {
+        if (event.data?.sender !== sessionChannelId.current)
+          clearPrivateState();
+      };
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) clearPrivateState();
+    };
+    window.addEventListener('pageshow', restored);
+    return () => {
+      channel?.close();
+      window.removeEventListener('pageshow', restored);
+    };
+  }, [clearPrivateState]);
+
+  function notifySessionChange() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel('nuzenio-staff-session');
+      channel.postMessage({ sender: sessionChannelId.current });
+      channel.close();
+    }
+  }
+
+  const loadTab = useCallback(
+    async (tab: TabId) => {
+      setLoading(true);
+      setError('');
+      try {
+        if (tab === 'sources') {
+          setPublishers(
+            (
+              await adminRequest<AdminPage<PublisherRow>>(
+                '/v1/admin/publishers?page_size=50',
+              )
+            ).items,
+          );
+        } else if (tab === 'health') {
+          const [sourcePage, runPage] = await Promise.all([
+            adminRequest<AdminPage<PublisherRow>>(
+              '/v1/admin/publishers?page_size=50',
+            ),
+            adminRequest<AdminPage<FeedRunRow>>(
+              '/v1/admin/feed-runs?page_size=20',
+            ),
+          ]);
+          setPublishers(sourcePage.items);
+          setFeedRuns(runPage.items);
+        } else if (tab === 'clusters') {
+          setClusters(
+            (
+              await adminRequest<AdminPage<ClusterRow>>(
+                '/v1/admin/clusters?page_size=50',
+              )
+            ).items,
+          );
+        } else if (tab === 'corrections') {
+          const [correctionPage, clusterPage] = await Promise.all([
+            adminRequest<AdminPage<CorrectionRow>>(
+              '/v1/admin/corrections?page_size=50',
+            ),
+            adminRequest<AdminPage<ClusterRow>>(
+              '/v1/admin/clusters?page_size=50',
+            ),
+          ]);
+          setCorrections(correctionPage.items);
+          setClusters(clusterPage.items);
+        } else if (tab === 'risk') {
+          setReviews(
+            (
+              await adminRequest<AdminPage<ReviewRow>>(
+                '/v1/admin/review-queue?page_size=50',
+              )
+            ).items,
+          );
+        } else if (tab === 'audit') {
+          setAudit(
+            (
+              await adminRequest<AdminPage<AuditRow>>(
+                '/v1/admin/audit?page_size=50',
+              )
+            ).items,
+          );
+        } else if (tab === 'edition') {
+          setEdition(
+            await adminRequest<EditionRow>('/v1/admin/editions/india'),
+          );
+        } else if (tab === 'staff') {
+          setStaff(
+            (
+              await adminRequest<AdminPage<StaffRow>>(
+                '/v1/admin/staff?page_size=50',
+              )
+            ).items,
+          );
+        }
+      } catch (caught) {
+        if (caught instanceof DOMException && caught.name === 'AbortError')
+          return;
+        if (caught instanceof AdminApiError && caught.status === 401) {
+          clearPrivateState();
+        } else {
+          setError(
+            caught instanceof AdminApiError
+              ? caught.message
+              : 'The editorial service could not be reached.',
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [clearPrivateState],
+  );
 
   useEffect(() => {
     adminRequest<StaffSession>('/v1/admin/auth/session')
@@ -413,16 +487,23 @@ export function AdminScreen() {
   }
 
   async function logout() {
-    await mutate(
-      () =>
-        adminRequest('/v1/admin/auth/logout', {
-          method: 'POST',
-          csrfToken,
-        }),
-      'Signed out.',
+    let failed = false;
+    try {
+      await adminRequest('/v1/admin/auth/logout', {
+        method: 'POST',
+        csrfToken,
+      });
+    } catch {
+      failed = true;
+    } finally {
+      clearPrivateState();
+      notifySessionChange();
+    }
+    setSessionNotice(
+      failed
+        ? 'Local editorial data cleared. Sign-out could not reach the server; reconnect to revoke the session.'
+        : '',
     );
-    setSession(null);
-    setCsrfToken('');
   }
 
   if (loadingSession) {
@@ -435,7 +516,11 @@ export function AdminScreen() {
   if (!session) {
     return (
       <LoginPanel
+        notice={sessionNotice}
         onLogin={(value) => {
+          clearPrivateState();
+          setSessionNotice('');
+          notifySessionChange();
           setSession(value);
           setCsrfToken(value.csrfToken ?? '');
           const first = tabs.find((tab) =>
@@ -1861,86 +1946,96 @@ function RiskQueue({
               <h3>{review.headline}</h3>
               <p>{review.reason}</p>
               <small>
-                Drafter {review.draftedById?.slice(0, 8) ?? 'legacy'} · v
-                {review.version} · {humanState(review.decision)}
+                Contributors{' '}
+                {review.contributorIds.map((id) => id.slice(0, 8)).join(', ') ||
+                  'unknown'}{' '}
+                · v{review.version} · {humanState(review.decision)}
               </small>
+              {!review.provenanceComplete && (
+                <p>Held: legacy material authorship is not established.</p>
+              )}
             </div>
-            {canApprove && review.decision === 'PENDING' && (
-              <div className="panel-actions">
-                <Button
-                  onClick={() =>
-                    void mutate(
-                      () =>
-                        adminRequest(
-                          `/v1/admin/reviews/${review.id}/decision`,
-                          {
-                            method: 'POST',
-                            csrfToken,
-                            body: {
-                              expectedVersion: review.version,
-                              decision: 'APPROVED',
-                              notes:
-                                'Evidence and neutral wording independently reviewed.',
+            {canApprove &&
+              review.approvalEligible &&
+              review.decision === 'PENDING' && (
+                <div className="panel-actions">
+                  <Button
+                    onClick={() =>
+                      void mutate(
+                        () =>
+                          adminRequest(
+                            `/v1/admin/reviews/${review.id}/decision`,
+                            {
+                              method: 'POST',
+                              csrfToken,
+                              body: {
+                                expectedVersion: review.version,
+                                decision: 'APPROVED',
+                                notes:
+                                  'Evidence and neutral wording independently reviewed.',
+                              },
                             },
-                          },
-                        ),
-                      'High-risk story independently approved.',
-                    )
-                  }
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    void mutate(
-                      () =>
-                        adminRequest(
-                          `/v1/admin/reviews/${review.id}/decision`,
-                          {
-                            method: 'POST',
-                            csrfToken,
-                            body: {
-                              expectedVersion: review.version,
-                              decision: 'REJECTED',
-                              notes:
-                                'Returned for additional evidence and wording review.',
+                          ),
+                        'High-risk story independently approved.',
+                      )
+                    }
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      void mutate(
+                        () =>
+                          adminRequest(
+                            `/v1/admin/reviews/${review.id}/decision`,
+                            {
+                              method: 'POST',
+                              csrfToken,
+                              body: {
+                                expectedVersion: review.version,
+                                decision: 'REJECTED',
+                                notes:
+                                  'Returned for additional evidence and wording review.',
+                              },
                             },
-                          },
-                        ),
-                      'Story returned to the drafting editor.',
-                    )
-                  }
-                >
-                  Reject
-                </Button>
-              </div>
-            )}
-            {canApprove && review.decision === 'APPROVED' && (
-              <div className="panel-actions">
-                <Button
-                  onClick={() =>
-                    void mutate(
-                      () =>
-                        adminRequest(
-                          `/v1/admin/reviews/${review.id}/push-approval`,
-                          {
-                            method: 'POST',
-                            csrfToken,
-                            body: { expectedVersion: review.version },
-                          },
-                        ),
-                      'Alert readiness approved. No public alert was sent.',
-                    )
-                  }
-                >
-                  Mark alert ready
-                </Button>
-                <small>
-                  Final reviewer {review.reviewerId?.slice(0, 8) ?? 'recorded'}
-                </small>
-              </div>
-            )}
+                          ),
+                        'Story returned to the drafting editor.',
+                      )
+                    }
+                  >
+                    Reject
+                  </Button>
+                </div>
+              )}
+            {canApprove &&
+              review.pushEligible &&
+              review.decision === 'APPROVED' && (
+                <div className="panel-actions">
+                  <Button
+                    onClick={() =>
+                      void mutate(
+                        () =>
+                          adminRequest(
+                            `/v1/admin/reviews/${review.id}/push-approval`,
+                            {
+                              method: 'POST',
+                              csrfToken,
+                              body: { expectedVersion: review.version },
+                            },
+                          ),
+                        'Alert readiness approved. No public alert was sent.',
+                      )
+                    }
+                  >
+                    Mark alert ready
+                  </Button>
+                  <small>
+                    Final reviewer{' '}
+                    {review.reviewerId?.slice(0, 8) ?? 'recorded'}
+                  </small>
+                </div>
+              )}
           </article>
         ))}
       </div>

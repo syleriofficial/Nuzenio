@@ -95,6 +95,13 @@ async def correlation_id(request: Request, call_next):
     )
     response = await call_next(request)
     response.headers["X-Request-ID"] = request.state.request_id
+    if request.url.path.startswith("/v1/"):
+        # Reader content is live/revocable; authenticated responses are private
+        # even on errors and must never be stored by browser/proxy caches.
+        response.headers["Cache-Control"] = (
+            "private, no-store" if request.url.path.startswith("/v1/admin") else "no-store"
+        )
+        response.headers["Pragma"] = "no-cache"
     return response
 
 
