@@ -8,9 +8,12 @@ from sqlalchemy import select
 
 from nuzenio_api.auth import create_staff_user
 from nuzenio_api.db import SessionLocal
+from nuzenio_api.evidence import fixture_evidence
 from nuzenio_api.main import app
 from nuzenio_api.models import (
     Article,
+    Claim,
+    ClaimEvidence,
     ClusterArticle,
     EventCluster,
     OnboardingState,
@@ -20,6 +23,52 @@ from nuzenio_api.models import (
 )
 
 PASSWORD = "Valid-Staff-Password-42!"
+
+
+def regenerate_after_correction(client, csrf, slug):
+    """Corrected output now needs a NEW mapped/approved version, not silent reuse."""
+    with SessionLocal() as session:
+        cluster = session.scalar(select(EventCluster).where(EventCluster.slug == slug))
+        cid = cluster.id
+        old = max((s for s in cluster.summaries if s.language == "en"), key=lambda s: s.version)
+        sid, version = old.id, old.row_version
+        ids = list(
+            session.scalars(select(ClaimEvidence.id).join(Claim).where(Claim.cluster_id == cid))
+        )
+    text = "A corrected fictional report is now available."
+    headers = {"X-CSRF-Token": csrf}
+    drafted = client.post(
+        f"/v1/admin/summaries/{sid}/revisions",
+        headers=headers,
+        json={
+            "expectedVersion": version,
+            "summaryText": text,
+            "evidenceMap": fixture_evidence(text, ids),
+        },
+    )
+    assert drafted.status_code == 200, drafted.text
+    approved = client.post(
+        f"/v1/admin/summaries/{drafted.json()['id']}/decision",
+        headers=headers,
+        json={
+            "expectedVersion": 1,
+            "decision": "APPROVED",
+            "notes": "Fixture correction evidence reviewed",
+        },
+    )
+    assert approved.status_code == 200, approved.text
+    with SessionLocal() as session:
+        version = session.get(EventCluster, cid).version
+    restored = client.patch(
+        f"/v1/admin/clusters/{cid}/suppression",
+        headers=headers,
+        json={
+            "expectedVersion": version,
+            "paused": False,
+            "reason": "New corrected summary reviewed",
+        },
+    )
+    assert restored.status_code == 200, restored.text
 
 
 def authorized(role: StaffRole) -> tuple[TestClient, str]:
@@ -246,6 +295,8 @@ def test_correction_preserves_history_and_marks_reader_cluster() -> None:
     )
     assert applied.status_code == 200, applied.text
     assert applied.json()["data"]["turnaroundSeconds"] >= 0
+    assert client.get("/v1/clusters/open-language-model-india-labs").status_code == 404
+    regenerate_after_correction(client, csrf, "open-language-model-india-labs")
     reader = client.get("/v1/clusters/open-language-model-india-labs")
     assert reader.status_code == 200
     assert reader.json()["headline"].startswith("Connectivity trial schedule clarified")
@@ -302,6 +353,9 @@ def test_article_correction_is_versioned_and_propagates_to_reader_history() -> N
         },
     )
     assert applied.status_code == 200, applied.text
+    reader = client.get(f"/v1/clusters/{slug}")
+    assert reader.status_code == 404
+    regenerate_after_correction(client, csrf, slug)
     reader = client.get(f"/v1/clusters/{slug}")
     assert reader.status_code == 200
     assert any(

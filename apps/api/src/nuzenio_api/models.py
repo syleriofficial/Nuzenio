@@ -270,6 +270,9 @@ class EventCluster(UUIDTimestampMixin, Base):
     event_embedding: Mapped[list[float] | None] = mapped_column(Vector(768))
     version: Mapped[int] = mapped_column(Integer, default=1)
     material_revision: Mapped[int] = mapped_column(Integer, default=1)
+    # New application-created content has a known lineage. SQL/legacy inserts fail
+    # closed; migration must never infer missing historical authors.
+    provenance_complete: Mapped[bool] = mapped_column(Boolean, default=True, server_default="false")
     suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     suppression_reason: Mapped[str | None] = mapped_column(Text)
     corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -292,6 +295,16 @@ class EventCluster(UUIDTimestampMixin, Base):
     )
     corrections: Mapped[list[Correction]] = relationship(back_populates="cluster")
     __table_args__ = (Index("ix_event_cluster_category_location", "category", "location"),)
+
+
+class MaterialContributor(UUIDTimestampMixin, Base):
+    __tablename__ = "material_contributors"
+    cluster_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("event_clusters.id"), index=True)
+    staff_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"), index=True)
+    first_material_revision: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint("cluster_id", "staff_user_id", name="uq_material_contributor"),
+    )
 
 
 class ClusterArticle(UUIDTimestampMixin, Base):
@@ -390,6 +403,8 @@ class SummaryVersion(UUIDTimestampMixin, Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     row_version: Mapped[int] = mapped_column(Integer, default=1)
+    invalidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    invalidation_reason: Mapped[str | None] = mapped_column(Text)
     cluster: Mapped[EventCluster] = relationship(back_populates="summaries")
     __table_args__ = (
         UniqueConstraint("cluster_id", "version", "language", name="uq_summary_version_language"),

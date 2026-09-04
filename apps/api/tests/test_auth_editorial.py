@@ -17,6 +17,7 @@ from nuzenio_api.models import (
     ContentStatus,
     EditorialReview,
     EventCluster,
+    MaterialContributor,
     ReviewState,
     RiskLevel,
     StaffRole,
@@ -242,6 +243,13 @@ def test_high_risk_requires_independent_final_approval() -> None:
             state=ReviewState.PENDING,
         )
         session.add(review)
+        session.add(
+            MaterialContributor(
+                cluster_id=cluster.id,
+                staff_user_id=drafter.id,
+                first_material_revision=cluster.material_revision,
+            )
+        )
         session.flush()
         review_id = review.id
     drafter_client, drafter_csrf = login(drafter)

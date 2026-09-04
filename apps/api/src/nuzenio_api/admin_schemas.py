@@ -68,6 +68,8 @@ class ClusterMergeApply(APIModel):
 
     @model_validator(mode="after")
     def target_is_not_source(self) -> ClusterMergeApply:
+        if len(self.source_ids) != len(set(self.source_ids)):
+            raise ValueError("source cluster IDs must be unique")
         if self.target_id in self.source_ids:
             raise ValueError("target cluster cannot also be a source cluster")
         return self

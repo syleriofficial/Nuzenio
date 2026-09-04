@@ -112,6 +112,10 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             "UPDATE audit_logs SET action='altered'",
             "DELETE FROM audit_logs",
             "TRUNCATE audit_logs",
+            "UPDATE material_contributors SET first_material_revision=0",
+            "DELETE FROM material_contributors",
+            "TRUNCATE material_contributors",
+            "ALTER TABLE material_contributors DISABLE TRIGGER material_contributors_append_only",
             "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_append_only",
             "CREATE TABLE forbidden_runtime_table(id int)",
             "DROP FUNCTION prevent_audit_log_mutation() CASCADE",
@@ -136,3 +140,64 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             )
             connection.execute(text(f'DROP OWNED BY "{role}"'))
             connection.execute(text(f'DROP ROLE "{role}"'))
+
+
+def test_r1_r3_upgrade_from_reviewed_head_preserves_history_without_inventing_authors(monkeypatch):
+    name = "nuzenio_reviewed_upgrade_test_" + uuid.uuid4().hex
+    url = make_url(get_settings().database_url).set(database=name)
+    admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    target = create_engine(url)
+    monkeypatch.setattr(get_settings(), "database_url", url.render_as_string(hide_password=False))
+    try:
+        config = migration_config()
+        command.upgrade(config, "a74e9b0216cd")
+        cid, sid = uuid.uuid4(), uuid.uuid4()
+        with target.begin() as connection:
+            connection.execute(
+                text("""INSERT INTO event_clusters(id,slug,neutral_headline,
+              neutral_headline_hi,category,status,risk_level,review_state,version,material_revision,
+              display_order,timeline_json,why_shown,why_shown_hi)
+              VALUES (:id,'reviewed-legacy','Unknown contributors','अज्ञात लेखक',
+              'Public safety','PUBLISHED','HIGH','APPROVED',7,4,1,'[]','','')"""),
+                {"id": cid},
+            )
+            connection.execute(
+                text("""INSERT INTO summary_versions(id,cluster_id,version,language,
+              summary_text,evidence_map,generator_name,published_at,decision,row_version)
+              VALUES (:id,:cid,2,'hi','पुराना ऐतिहासिक दावा।','{"sentences":[]}',
+              'legacy-fixture',now(),'APPROVED',3)"""),
+                {"id": sid, "cid": cid},
+            )
+        command.upgrade(config, "head")
+        command.check(config)
+        with target.connect() as connection:
+            assert connection.execute(
+                text(
+                    "SELECT status,provenance_complete,material_revision "
+                    "FROM event_clusters WHERE id=:id"
+                ),
+                {"id": cid},
+            ).one() == ("HELD", False, 4)
+            assert connection.scalar(text("SELECT count(*) FROM material_contributors")) == 0
+            row = connection.execute(
+                text(
+                    "SELECT summary_text,invalidated_at,row_version "
+                    "FROM summary_versions WHERE id=:id"
+                ),
+                {"id": sid},
+            ).one()
+            assert row[0] == "पुराना ऐतिहासिक दावा।" and row[1] is not None and row[2] == 4
+            assert (
+                connection.scalar(text("SELECT nuzenio_public_summary(:id, 'hi')"), {"id": cid})
+                is None
+            )
+            assert (
+                connection.scalar(text("SELECT nuzenio_current_review(:id)"), {"id": cid}) is False
+            )
+    finally:
+        target.dispose()
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
+        admin.dispose()

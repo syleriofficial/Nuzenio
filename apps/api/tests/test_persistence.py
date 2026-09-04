@@ -43,7 +43,7 @@ def test_alembic_migrates_a_clean_database() -> None:
         revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert revision == "a74e9b0216cd"
+        assert revision == "b85f0e1162da"
 
 
 def test_seed_is_idempotent() -> None:

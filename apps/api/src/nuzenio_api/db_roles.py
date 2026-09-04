@@ -34,6 +34,9 @@ def provision_runtime(engine, role: str, password: str):
             f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {quoted}"
         )
         connection.exec_driver_sql(f"REVOKE UPDATE, DELETE, TRUNCATE ON audit_logs FROM {quoted}")
+        connection.exec_driver_sql(
+            f"REVOKE UPDATE, DELETE, TRUNCATE ON material_contributors FROM {quoted}"
+        )
         connection.exec_driver_sql(f"REVOKE ALL ON alembic_version FROM {quoted}")
         connection.exec_driver_sql(
             f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted}"

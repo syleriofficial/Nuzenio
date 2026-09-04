@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import unicodedata
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy import update as sql_update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, selectinload
 
 from nuzenio_api.admin_schemas import (
@@ -22,7 +25,7 @@ from nuzenio_api.admin_schemas import (
 )
 from nuzenio_api.audit import append_audit
 from nuzenio_api.auth import AuthenticatedStaff
-from nuzenio_api.evidence import valid_evidence
+from nuzenio_api.evidence import EvidenceMap, valid_evidence
 from nuzenio_api.models import (
     Article,
     Brief,
@@ -36,6 +39,7 @@ from nuzenio_api.models import (
     DecisionState,
     EditorialReview,
     EventCluster,
+    MaterialContributor,
     PrimaryDocument,
     ReviewState,
     RiskLevel,
@@ -119,10 +123,53 @@ def _revision(
         )
 
 
+def _normalized(value: str | None) -> str:
+    return " ".join(unicodedata.normalize("NFC", value or "").split())
+
+
+def _mapping(value):
+    try:
+        return EvidenceMap.model_validate(value)
+    except (ValidationError, TypeError):
+        return None
+
+
+def _contributors(session: Session, cluster_id: uuid.UUID) -> set[uuid.UUID]:
+    return set(
+        session.scalars(
+            select(MaterialContributor.staff_user_id).where(
+                MaterialContributor.cluster_id == cluster_id
+            )
+        )
+    )
+
+
+def _record_contributors(session, cluster, actor_ids):
+    # Callers hold the cluster lock; contributors are conservatively retained for
+    # the entire lineage, including merged/split content, never reassigned.
+    for actor_id in sorted(actor_ids):
+        session.execute(
+            insert(MaterialContributor)
+            .values(
+                cluster_id=cluster.id,
+                staff_user_id=actor_id,
+                first_material_revision=cluster.material_revision,
+            )
+            .on_conflict_do_nothing(constraint="uq_material_contributor")
+        )
+
+
 def _queue_high_risk_review(
-    session: Session, cluster: EventCluster, actor_id: uuid.UUID, *, reason: str
+    session: Session,
+    cluster: EventCluster,
+    actor_id: uuid.UUID,
+    *,
+    reason: str,
+    material_contribution: bool = True,
 ) -> EditorialReview | None:
     cluster.material_revision += 1
+    if material_contribution:
+        _record_contributors(session, cluster, {actor_id})
     session.execute(
         sql_update(EditorialReview)
         .where(EditorialReview.cluster_id == cluster.id, EditorialReview.superseded_at.is_(None))
@@ -164,6 +211,11 @@ def edit_headline(
     if not cluster:
         raise ApplicationError(code="cluster_not_found", message="Cluster not found.", status=404)
     _conflict(payload.expected_version, cluster.version)
+    if (_normalized(cluster.neutral_headline), _normalized(cluster.neutral_headline_hi)) == (
+        _normalized(payload.headline),
+        _normalized(payload.headline_hi),
+    ):
+        return cluster
     before = _snapshot(cluster, ("neutral_headline", "neutral_headline_hi", "status", "version"))
     _revision(
         session,
@@ -230,6 +282,7 @@ def set_suppression(
             .where(
                 SummaryVersion.cluster_id == cluster.id,
                 SummaryVersion.decision == DecisionState.APPROVED,
+                SummaryVersion.invalidated_at.is_(None),
                 func.nuzenio_summary_valid(SummaryVersion.id),
             )
             .limit(1)
@@ -267,12 +320,26 @@ def set_suppression(
     return cluster
 
 
-def _hold_derived(session, cluster, context):
-    cluster.status = ContentStatus.HELD
+def _invalidate_summaries(session, cluster, context, *, reason, evidence_ids=None, language=None):
+    """Irrevocably retire derived versions; preserve text/maps and audit snapshots.
+
+    None means the whole cluster dependency (allocation/headline/correction).
+    A set means summaries mapped to changed claims/articles/evidence, in any language.
+    """
     cluster.push_ready = False
     for summary in session.scalars(
         select(SummaryVersion).where(SummaryVersion.cluster_id == cluster.id)
     ):
+        if language is not None and summary.language != language:
+            continue
+        mapping = _mapping(summary.evidence_map)
+        refs = (
+            {ref for entry in mapping.sentences for ref in entry.evidence_ids} if mapping else None
+        )
+        if evidence_ids is not None and refs is not None and not refs.intersection(evidence_ids):
+            continue
+        if summary.invalidated_at is not None:
+            continue
         _revision(
             session,
             entity=summary,
@@ -284,8 +351,22 @@ def _hold_derived(session, cluster, context):
             actor_id=context.user.id,
         )
         summary.decision = DecisionState.PENDING
+        summary.invalidated_at = _now()
+        summary.invalidation_reason = reason
         summary.row_version += 1
-        summary.rejection_reason = "Cluster allocation changed; regenerate or explicitly review."
+        summary.rejection_reason = reason
+    # Saved server snapshots must not retain withdrawn text. An already-offline
+    # device cannot receive this invalidation until its next network synchronization.
+    for saved in session.scalars(select(SavedCluster).where(SavedCluster.cluster_id == cluster.id)):
+        saved.offline_snapshot = {"invalidated": True, "reason": reason}
+        saved.snapshot_version += 1
+
+
+def _hold_derived(session, cluster, context):
+    cluster.status = ContentStatus.HELD
+    _invalidate_summaries(
+        session, cluster, context, reason="Material content changed; create a new reviewed summary."
+    )
 
 
 def _replace_brief_ids(session, replacements, context):
@@ -313,7 +394,12 @@ def _replace_brief_ids(session, replacements, context):
 def merge_clusters(
     session: Session, payload: ClusterMergeApply, context: AuthenticatedStaff
 ) -> EventCluster:
-    ids = [payload.target_id, *payload.source_ids]
+    source_ids = sorted(set(payload.source_ids))
+    if len(source_ids) != len(payload.source_ids) or payload.target_id in source_ids:
+        raise ApplicationError(
+            code="invalid_merge", message="Merge cluster IDs must be unique.", status=422
+        )
+    ids = sorted([payload.target_id, *source_ids])
     clusters = list(
         session.scalars(
             select(EventCluster)
@@ -331,6 +417,10 @@ def merge_clusters(
     for cluster_id in ids:
         _conflict(payload.versions.get(str(cluster_id), -1), by_id[cluster_id].version)
     target = by_id[payload.target_id]
+    target.provenance_complete = all(cluster.provenance_complete for cluster in clusters)
+    _record_contributors(
+        session, target, set().union(*(_contributors(session, c.id) for c in clusters))
+    )
     existing_article_ids = {membership.article_id for membership in target.articles}
     for cluster in clusters:
         _revision(
@@ -341,7 +431,7 @@ def merge_clusters(
             snapshot=_snapshot(cluster, ("slug", "status", "version")),
             actor_id=context.user.id,
         )
-    for source_id in payload.source_ids:
+    for source_id in source_ids:
         source = by_id[source_id]
         for membership in list(source.articles):
             if membership.article_id in existing_article_ids:
@@ -430,6 +520,7 @@ def split_cluster(
         actor_id=context.user.id,
     )
     membership_by_article = {item.article_id: item for item in cluster.articles}
+    inherited_contributors = _contributors(session, cluster.id)
     created: list[EventCluster] = []
     for index, group in enumerate(payload.groups):
         if index == 0:
@@ -447,6 +538,7 @@ def split_cluster(
                 location=cluster.location,
                 status=ContentStatus.HELD,
                 risk_level=cluster.risk_level,
+                provenance_complete=cluster.provenance_complete,
                 review_state=(
                     ReviewState.PENDING
                     if cluster.risk_level == RiskLevel.HIGH
@@ -459,10 +551,10 @@ def split_cluster(
             session.add(destination)
             session.flush()
         created.append(destination)
+        _record_contributors(session, destination, inherited_contributors)
         for article_id in group.article_ids:
             membership_by_article[article_id].cluster_id = destination.id
-        if destination.risk_level == RiskLevel.HIGH:
-            _queue_high_risk_review(session, destination, context.user.id, reason="Cluster split")
+        _queue_high_risk_review(session, destination, context.user.id, reason="Cluster split")
         _hold_derived(session, destination, context)
     # Documents and the original event timeline remain on the first result. Claims
     # follow their evidence: clone wording when evidence spans groups, partition
@@ -571,6 +663,11 @@ def split_cluster(
 def update_claim(
     session: Session, *, claim_id: uuid.UUID, payload: ClaimUpdate, context: AuthenticatedStaff
 ) -> Claim:
+    # Shared cluster-first order prevents claim edits racing review/correction/merge.
+    cluster_id = session.scalar(select(Claim.cluster_id).where(Claim.id == claim_id))
+    cluster = session.scalar(
+        select(EventCluster).where(EventCluster.id == cluster_id).with_for_update()
+    )
     claim = session.scalar(
         select(Claim)
         .where(Claim.id == claim_id)
@@ -580,9 +677,6 @@ def update_claim(
     if not claim:
         raise ApplicationError(code="claim_not_found", message="Claim not found.", status=404)
     _conflict(payload.expected_version, claim.version)
-    cluster = session.scalar(
-        select(EventCluster).where(EventCluster.id == claim.cluster_id).with_for_update()
-    )
     if not cluster:
         raise ApplicationError(code="cluster_not_found", message="Cluster not found.", status=404)
     existing = {item.id for item in claim.evidence}
@@ -592,6 +686,20 @@ def update_claim(
             message="Evidence must already belong to this claim.",
             status=422,
         )
+    if claim.cluster_id != cluster.id:
+        raise ApplicationError(
+            code="version_conflict", message="Claim allocation changed; reload.", status=409
+        )
+    if (_normalized(claim.text), _normalized(claim.text_hi), claim.state.value, existing) == (
+        _normalized(payload.text),
+        _normalized(payload.text_hi),
+        payload.state,
+        set(payload.evidence_ids),
+    ):
+        return claim
+    _invalidate_summaries(
+        session, cluster, context, reason="Claim or its evidence changed.", evidence_ids=existing
+    )
     before = _snapshot(claim, ("text", "text_hi", "state", "version"))
     _revision(
         session,
@@ -608,6 +716,7 @@ def update_claim(
     claim.text_hi = payload.text_hi
     claim.state = ClaimState(payload.state)
     claim.version += 1
+    cluster.version += 1
     review = _queue_high_risk_review(
         session,
         cluster,
@@ -637,6 +746,22 @@ def draft_summary_revision(session, summary_id, payload: SummaryRevisionCreate, 
     if not old:
         raise ApplicationError(code="summary_not_found", message="Summary not found.", status=404)
     _conflict(payload.expected_version, old.row_version)
+    mapping = payload.evidence_map.model_dump(mode="json")
+
+    def normalized_map(value):
+        typed = _mapping(value)
+        return (
+            [(_normalized(entry.text), sorted(entry.evidence_ids)) for entry in typed.sentences]
+            if typed
+            else None
+        )
+
+    if (
+        old.invalidated_at is None
+        and _normalized(old.summary_text) == _normalized(payload.summary_text)
+        and normalized_map(old.evidence_map) == normalized_map(mapping)
+    ):
+        return old
     latest = session.scalar(
         select(func.max(SummaryVersion.version)).where(
             SummaryVersion.cluster_id == cid, SummaryVersion.language == old.language
@@ -647,7 +772,7 @@ def draft_summary_revision(session, summary_id, payload: SummaryRevisionCreate, 
         language=old.language,
         version=latest + 1,
         summary_text=payload.summary_text,
-        evidence_map=payload.evidence_map.model_dump(mode="json"),
+        evidence_map=mapping,
         generator_name="staff-evidence-mapped",
         decision=DecisionState.PENDING,
     )
@@ -657,7 +782,14 @@ def draft_summary_revision(session, summary_id, payload: SummaryRevisionCreate, 
             message="Every sentence needs valid same-cluster evidence.",
             status=409,
         )
-    _hold_derived(session, cluster, context)
+    cluster.status = ContentStatus.HELD
+    _invalidate_summaries(
+        session,
+        cluster,
+        context,
+        language=old.language,
+        reason="Summary superseded; a new mapped version requires review.",
+    )
     session.add(new)
     cluster.version += 1
     _queue_high_risk_review(session, cluster, context.user.id, reason="Summary revision drafted")
@@ -694,10 +826,12 @@ def decide_summary(
     if not summary:
         raise ApplicationError(code="summary_not_found", message="Summary not found.", status=404)
     _conflict(payload.expected_version, summary.row_version)
-    if payload.decision == "APPROVED" and not valid_evidence(session, summary):
+    if payload.decision == "APPROVED" and (
+        summary.invalidated_at is not None or not valid_evidence(session, summary)
+    ):
         raise ApplicationError(
             code="evidence_required",
-            message="An evidence-free summary cannot be approved.",
+            message="Invalidated or evidence-free summaries require a new mapped revision.",
             status=409,
         )
     before = _snapshot(summary, ("decision", "row_version", "published_at"))
@@ -723,7 +857,11 @@ def decide_summary(
         )
         cluster.version += 1
         _queue_high_risk_review(
-            session, cluster, draft_author or context.user.id, reason="Summary decision"
+            session,
+            cluster,
+            draft_author or context.user.id,
+            reason="Summary decision",
+            material_contribution=False,
         )
     append_audit(
         session,
@@ -774,7 +912,15 @@ def decide_high_risk_review(
             message="Only the current pending material revision can be reviewed.",
             status=409,
         )
-    if review.drafted_by_id == context.user.id:
+    if not cluster.provenance_complete or not _contributors(session, cluster.id):
+        raise ApplicationError(
+            code="provenance_required",
+            message="Legacy material authorship must be established before approval.",
+            status=409,
+        )
+    if review.drafted_by_id == context.user.id or context.user.id in _contributors(
+        session, cluster.id
+    ):
         raise ApplicationError(
             code="dual_control_required",
             message="High-risk final approval must be performed by a different staff user.",
@@ -853,7 +999,10 @@ def approve_push(
             message="Final editorial approval is required first.",
             status=409,
         )
-    if context.user.id in {review.drafted_by_id, review.reviewer_id}:
+    if context.user.id in _contributors(session, cluster.id) | {
+        review.drafted_by_id,
+        review.reviewer_id,
+    }:
         raise ApplicationError(
             code="dual_control_required",
             message="Alert readiness requires an additional independent approver.",
@@ -961,12 +1110,59 @@ def apply_correction(
     payload: CorrectionApply,
     context: AuthenticatedStaff,
 ) -> Correction:
-    correction = session.scalar(
-        select(Correction).where(Correction.id == correction_id).with_for_update()
-    )
+    correction = session.get(Correction, correction_id)
     if not correction:
         raise ApplicationError(
             code="correction_not_found", message="Correction not found.", status=404
+        )
+    original_targets = (correction.cluster_id, correction.article_id)
+    affected_ids = (
+        set(
+            session.scalars(
+                select(ClusterArticle.cluster_id).where(
+                    ClusterArticle.article_id == correction.article_id
+                )
+            )
+        )
+        if correction.article_id
+        else set()
+    )
+    if correction.cluster_id:
+        affected_ids.add(correction.cluster_id)
+    # Same ordered cluster-first locks as merge/split/claim/summary mutations.
+    affected_clusters = list(
+        session.scalars(
+            select(EventCluster)
+            .where(EventCluster.id.in_(affected_ids))
+            .order_by(EventCluster.id)
+            .with_for_update()
+        )
+    )
+    correction = session.scalar(
+        select(Correction)
+        .where(Correction.id == correction_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    current_ids = (
+        set(
+            session.scalars(
+                select(ClusterArticle.cluster_id).where(
+                    ClusterArticle.article_id == correction.article_id
+                )
+            )
+        )
+        if correction.article_id
+        else set()
+    )
+    if correction.cluster_id:
+        current_ids.add(correction.cluster_id)
+    if (
+        original_targets != (correction.cluster_id, correction.article_id)
+        or current_ids != affected_ids
+    ):
+        raise ApplicationError(
+            code="version_conflict", message="Correction allocation changed; reload.", status=409
         )
     _conflict(payload.expected_version, correction.version)
     if correction.status == "PUBLISHED":
@@ -1007,21 +1203,15 @@ def apply_correction(
             message="Headline, claim, and summary changes require a cluster correction.",
             status=422,
         )
-    affected_clusters = (
-        [cluster]
-        if cluster
-        else list(
-            session.scalars(
-                select(EventCluster)
-                .join(ClusterArticle, ClusterArticle.cluster_id == EventCluster.id)
-                .where(ClusterArticle.article_id == article.id)
-                .order_by(EventCluster.id)
-                .with_for_update()
-            )
+    # A published correction changes the cluster's factual context even without
+    # replacement text. Invalidate before adding replacement draft versions.
+    for affected in affected_clusters:
+        _invalidate_summaries(
+            session,
+            affected,
+            context,
+            reason="Published correction requires a regenerated summary.",
         )
-        if article
-        else []
-    )
     version_bumped: set[uuid.UUID] = set()
     if cluster and (payload.headline or payload.headline_hi):
         _revision(
@@ -1061,6 +1251,7 @@ def apply_correction(
             correction_id=correction.id,
         )
         article.title = payload.article_title
+        article.title_hi = None  # Do not retain a stale machine-translated title.
         article.version += 1
         session.add(
             CorrectionImpact(
@@ -1230,12 +1421,13 @@ def apply_correction(
 
 
 def review_queue(
-    session: Session, *, page: int, page_size: int
+    session: Session, *, page: int, page_size: int, viewer_id: uuid.UUID | None = None
 ) -> tuple[list[dict[str, Any]], int]:
     statement = (
         select(EditorialReview)
         .where(
             EditorialReview.decision.in_([DecisionState.PENDING, DecisionState.APPROVED]),
+            EditorialReview.superseded_at.is_(None),
             EditorialReview.push_approved_at.is_(None),
         )
         .order_by(EditorialReview.created_at)
@@ -1258,6 +1450,25 @@ def review_queue(
             "riskCategory": review.risk_category,
             "reason": review.reason,
             "draftedById": str(review.drafted_by_id) if review.drafted_by_id else None,
+            "contributorIds": [
+                str(value) for value in sorted(_contributors(session, review.cluster_id))
+            ],
+            "provenanceComplete": clusters[review.cluster_id].provenance_complete,
+            "approvalEligible": bool(
+                viewer_id
+                and clusters[review.cluster_id].provenance_complete
+                and _contributors(session, review.cluster_id)
+                and viewer_id
+                not in _contributors(session, review.cluster_id) | {review.drafted_by_id}
+            ),
+            "pushEligible": bool(
+                viewer_id
+                and clusters[review.cluster_id].provenance_complete
+                and _contributors(session, review.cluster_id)
+                and viewer_id
+                not in _contributors(session, review.cluster_id)
+                | {review.drafted_by_id, review.reviewer_id}
+            ),
             "reviewerId": str(review.reviewer_id) if review.reviewer_id else None,
             "decision": review.decision.value,
             "version": review.version,

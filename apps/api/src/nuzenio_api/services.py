@@ -2,13 +2,12 @@ import math
 from datetime import datetime
 from urllib.parse import urlparse
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, object_session
 
-from nuzenio_api.evidence import valid_evidence
 from nuzenio_api.models import (
     Article,
     Claim,
-    DecisionState,
     EventCluster,
     ReviewState,
     SummaryVersion,
@@ -44,28 +43,15 @@ class ResourceNotFoundError(ApplicationError):
 
 
 def _summary(cluster: EventCluster, language: str) -> tuple[SummaryVersion, bool]:
-    candidates = sorted(
-        (
-            item
-            for item in cluster.summaries
-            if item.summary_text.strip()
-            and valid_evidence(object_session(cluster), item)
-            and item.decision == DecisionState.APPROVED
-        ),
-        key=lambda item: item.version,
-        reverse=True,
-    )
-    selected = next((item for item in candidates if item.language == language), None)
-    machine_translated = language == "hi"
-    if selected is None:
-        selected = next((item for item in candidates if item.language == "en"), None)
-        machine_translated = False
+    # One SQL predicate is authoritative for rendering, search, counts and pages.
+    sid = object_session(cluster).scalar(select(func.nuzenio_public_summary(cluster.id, language)))
+    selected = next((item for item in cluster.summaries if item.id == sid), None)
     if selected is None:
         raise ResourceNotFoundError(
             code="summary_unavailable",
             message="No evidence-backed summary is available for this cluster.",
         )
-    return selected, machine_translated
+    return selected, selected.language == "hi"
 
 
 def _source(article: Article, *, language: str, syndicated_copy: bool) -> SourceArticle:
@@ -256,6 +242,7 @@ class ReaderService:
                 story_status=status,
                 location=location,
                 query=query,
+                language=language,
             )
             items = [cluster_card(item, language=language) for item in result.items]
         return ClusterPage(
@@ -286,7 +273,9 @@ class ReaderService:
                     code="source_not_found",
                     message=f"Source '{slug}' was not found.",
                 )
-            recent = self.repository.recent_clusters_for_source(organization_id=organization.id)
+            recent = self.repository.recent_clusters_for_source(
+                organization_id=organization.id, language=language
+            )
             rights = (
                 organization.rights_policies[0].policy_name if organization.rights_policies else ""
             )
@@ -323,7 +312,7 @@ class ReaderService:
                     code="brief_not_found",
                     message=f"The {period} brief is not available for this edition.",
                 )
-            clusters = self.repository.clusters_by_ids(brief.cluster_ids)
+            clusters = self.repository.clusters_by_ids(brief.cluster_ids, language)
             if brief.published_at is None:
                 raise ResourceNotFoundError(
                     code="brief_not_published",

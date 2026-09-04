@@ -11,7 +11,6 @@ from nuzenio_api.models import (
     ClaimState,
     ClusterArticle,
     ContentStatus,
-    DecisionState,
     EditionControl,
     EventCluster,
     PublisherOrganization,
@@ -85,15 +84,9 @@ class ReaderRepository:
         )
 
     @classmethod
-    def reader_ready_clusters(cls) -> Select[tuple[EventCluster]]:
+    def reader_ready_clusters(cls, language: str = "en") -> Select[tuple[EventCluster]]:
         return cls.publishable_clusters().where(
-            EventCluster.summaries.any(
-                and_(
-                    func.length(func.trim(SummaryVersion.summary_text)) > 0,
-                    func.nuzenio_summary_valid(SummaryVersion.id),
-                    SummaryVersion.decision == DecisionState.APPROVED,
-                )
-            )
+            func.nuzenio_public_summary(EventCluster.id, language).is_not(None)
         )
 
     def list_clusters(
@@ -106,8 +99,9 @@ class ReaderRepository:
         location: str | None = None,
         query: str | None = None,
         organization_id: object | None = None,
+        language: str = "en",
     ) -> Page:
-        statement = self.reader_ready_clusters()
+        statement = self.reader_ready_clusters(language)
         if category:
             statement = statement.where(func.lower(EventCluster.category) == category.lower())
         if location:
@@ -144,7 +138,13 @@ class ReaderRepository:
                     EventCluster.neutral_headline_hi.ilike(pattern),
                     EventCluster.category.ilike(pattern),
                     EventCluster.location.ilike(pattern),
-                    EventCluster.summaries.any(SummaryVersion.summary_text.ilike(pattern)),
+                    EventCluster.summaries.any(
+                        and_(
+                            SummaryVersion.id
+                            == func.nuzenio_public_summary(EventCluster.id, language),
+                            SummaryVersion.summary_text.ilike(pattern),
+                        )
+                    ),
                     EventCluster.articles.any(
                         ClusterArticle.article.has(
                             or_(Article.title.ilike(pattern), Article.title_hi.ilike(pattern))
@@ -199,12 +199,12 @@ class ReaderRepository:
             )
         )
 
-    def clusters_by_ids(self, ids: list[str]) -> list[EventCluster]:
+    def clusters_by_ids(self, ids: list[str], language: str = "en") -> list[EventCluster]:
         if not ids:
             return []
         items = list(
             self.session.scalars(
-                self.reader_ready_clusters()
+                self.reader_ready_clusters(language)
                 .where(EventCluster.id.in_(ids))
                 .options(*_cluster_options())
             ).unique()
@@ -213,12 +213,13 @@ class ReaderRepository:
         return [by_id[key] for key in ids if key in by_id]
 
     def recent_clusters_for_source(
-        self, *, organization_id: object, limit: int = 5
+        self, *, organization_id: object, limit: int = 5, language: str = "en"
     ) -> list[EventCluster]:
         return self.list_clusters(
             page=1,
             page_size=limit,
             organization_id=organization_id,
+            language=language,
         ).items
 
     def count_cluster_entities(self) -> dict[str, int]:

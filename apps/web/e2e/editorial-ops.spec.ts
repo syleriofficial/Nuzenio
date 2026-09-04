@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { authenticatedApi, csrfHeaders, e2ePassword } from './helpers';
+import {
+  authenticatedApi,
+  csrfHeaders,
+  e2ePassword,
+  regenerateFixtureSummary,
+} from './helpers';
 
 test.describe.serial('Milestone 2B editorial operations', () => {
   test('staff login and logout use the protected workspace', async ({
@@ -474,6 +479,8 @@ test.describe.serial('Milestone 2B editorial operations', () => {
       },
     );
     expect(applied.ok(), await applied.text()).toBeTruthy();
+    expect((await api.get(`/v1/clusters/${cluster.slug}`)).status()).toBe(404);
+    await regenerateFixtureSummary(api, csrf, cluster.id);
     await api.dispose();
     await page.goto('/story/open-language-model-india-labs?lang=en');
     await expect(

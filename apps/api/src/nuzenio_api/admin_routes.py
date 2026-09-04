@@ -341,11 +341,11 @@ def revoke_sessions(
 @router.get("/review-queue", response_model=AdminPage)
 def get_review_queue(
     session: SessionDep,
-    _: Annotated[AuthenticatedStaff, allowed(Permission.REVIEW_READ)],
+    context: Annotated[AuthenticatedStaff, allowed(Permission.REVIEW_READ)],
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> AdminPage:
-    items, total = review_queue(session, page=page, page_size=page_size)
+    items, total = review_queue(session, page=page, page_size=page_size, viewer_id=context.user.id)
     return _page(items, total, page, page_size)
 
 
@@ -413,6 +413,8 @@ def list_clusters(
                         "language": summary.language,
                         "text": summary.summary_text,
                         "decision": summary.decision.value,
+                        "invalidatedAt": summary.invalidated_at,
+                        "invalidationReason": summary.invalidation_reason,
                         "version": summary.row_version,
                         "evidenceCount": len(summary.evidence_map.get("sentences", [])),
                     }
