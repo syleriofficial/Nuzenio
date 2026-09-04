@@ -217,6 +217,32 @@ linked API/correction/recovery documentation. Contributor retention is deliberat
 a later complete rewrite does not remove an earlier contributor's approval exclusion. Database
 owners/superusers remain outside application append-only guarantees.
 
+## Closure follow-up: explicit request `no-store`
+
+The production-browser case was also reproduced before this change. Requests for
+`/icon-192.png` using `Request.cache = "no-store"`, `Cache-Control: no-store`, both controls,
+mixed-case combined directives, and a quoted-extension/comma variant all caused the old worker to
+write the response to `nuzenio-static-v2`; every pre-fix regression observed a cache entry.
+
+Root cause: the worker enforced response-side `private`/`no-store`, but its static allowlist did not
+honor request-side storage prohibitions before lookup. The fetch boundary now inspects
+`Request.cache` and parses Cache-Control directive names case-insensitively while respecting quoted
+commas and escaped quotes. Any explicit `no-store` request is left to the native network path before
+URL classification, CacheStorage lookup, write or offline fallback. Therefore a warm CacheStorage
+entry cannot satisfy the request, a successful response cannot create/replace an entry, and an
+offline request fails instead of replaying stored content. Response-side controls, static-only
+allowlisting, credential omission, private API/RSC exclusion and Nuzenio-scoped legacy-cache purge
+remain unchanged; unrelated origin caches are never removed.
+
+Changed files are `apps/web/public/service-worker.js`, its VM policy tests, production same-origin
+Playwright security suite and this record. Regressions cover cold/warm/offline behavior for request
+cache mode alone, header alone, both, combined case variants and quoted values, plus ordinary public
+static offline caching and all existing logout/account-switch/private-response/legacy-purge cases.
+The browser's native HTTP cache remains governed by browser request semantics; the asserted product
+boundary is that Nuzenio's service worker never reads or writes CacheStorage for an explicit
+`no-store` request. A device that never reconnects cannot receive updated worker code or a legacy
+cache purge until it reconnects and activates the update.
+
 ### Stream-close diagnosis remains bounded
 
 The production E2E run still logged `The destination stream closed early.`. No streaming behavior

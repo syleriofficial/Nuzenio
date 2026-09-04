@@ -11,6 +11,7 @@ function worker(response = new Response('static')) {
     }) => void
   > = {};
   const put = vi.fn();
+  const open = vi.fn().mockResolvedValue({ put });
   const fetcher = vi.fn().mockResolvedValue(response);
   runInNewContext(
     readFileSync(
@@ -30,12 +31,13 @@ function worker(response = new Response('static')) {
       URL,
       Response,
       fetch: fetcher,
-      caches: { open: async () => ({ put }) },
+      caches: { open },
     },
   );
   return {
     fetcher,
     put,
+    open,
     run: (request: Request) => {
       let result: Promise<Response> | undefined;
       handlers.fetch({
@@ -99,4 +101,29 @@ it('allows static assets and strips credentials from their fetch', async () => {
   await sw.run(new Request('https://nuzenio.test/icon-192.png'));
   expect(sw.put).toHaveBeenCalledOnce();
   expect(sw.fetcher.mock.calls[0][1].credentials).toBe('omit');
+});
+
+it.each([
+  { cache: 'no-store' as RequestCache },
+  { headers: { 'Cache-Control': 'no-store' } },
+  { headers: { 'Cache-Control': 'max-age=0, No-StOrE, no-cache' } },
+  { headers: { 'Cache-Control': 'extension="a,b", NO-STORE' } },
+  { headers: { 'Cache-Control': 'extension="a\\\",b", no-store' } },
+])('no-store bypasses all worker cache access: %o', (options) => {
+  const sw = worker();
+  expect(
+    sw.run(new Request('https://nuzenio.test/icon-192.png', options)),
+  ).toBeUndefined();
+  expect(sw.open).not.toHaveBeenCalled();
+  expect(sw.put).not.toHaveBeenCalled();
+});
+
+it('does not mistake quoted extension content for a no-store directive', async () => {
+  const sw = worker();
+  await sw.run(
+    new Request('https://nuzenio.test/icon-192.png', {
+      headers: { 'Cache-Control': 'extension="a,no-store,b", max-age=0' },
+    }),
+  );
+  expect(sw.put).toHaveBeenCalledOnce();
 });

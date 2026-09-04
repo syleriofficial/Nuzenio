@@ -228,3 +228,72 @@ test('worker upgrade purges only legacy Nuzenio caches and preserves static offl
   });
   expect(leak).not.toContain('PRIVATE-LEGACY-CANARY');
 });
+
+type SerializableRequestOptions = {
+  cache?: 'no-store';
+  headers?: Record<string, string>;
+};
+
+const noStoreRequests: Array<{
+  name: string;
+  options: SerializableRequestOptions;
+}> = [
+  { name: 'cache mode', options: { cache: 'no-store' } },
+  { name: 'header', options: { headers: { 'Cache-Control': 'no-store' } } },
+  {
+    name: 'both',
+    options: { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } },
+  },
+  {
+    name: 'combined mixed case',
+    options: { headers: { 'Cache-Control': 'max-age=0, No-StOrE, no-cache' } },
+  },
+  {
+    name: 'quoted extension',
+    options: { headers: { 'Cache-Control': 'extension="a,b", NO-STORE' } },
+  },
+];
+for (const { name, options } of noStoreRequests) {
+  test(`explicit no-store ${name} never reads or writes offline storage`, async ({
+    page,
+    context,
+  }) => {
+    await controlled(page);
+    await page.evaluate(async () => {
+      await (await caches.open('nuzenio-static-v2')).delete('/icon-192.png');
+    });
+    const fetchIcon = () =>
+      page.evaluate(async (init) => {
+        try {
+          const response = await fetch('/icon-192.png', init as RequestInit);
+          return { status: response.status, body: await response.text() };
+        } catch {
+          return { status: 0, body: '' };
+        }
+      }, options);
+    expect((await fetchIcon()).status).toBe(200);
+    expect(
+      await page.evaluate(async () =>
+        Boolean(await caches.match('/icon-192.png')),
+      ),
+    ).toBe(false);
+    await page.evaluate(async () => {
+      await (
+        await caches.open('nuzenio-static-v2')
+      ).put('/icon-192.png', new Response('WARM-PUBLIC-CANARY'));
+    });
+    expect((await fetchIcon()).body).not.toContain('WARM-PUBLIC-CANARY');
+    // No-store must not update or delete another request's existing cache entry either.
+    expect(
+      await page.evaluate(async () =>
+        (await caches.match('/icon-192.png'))?.text(),
+      ),
+    ).toBe('WARM-PUBLIC-CANARY');
+    await context.setOffline(true);
+    expect((await fetchIcon()).status).toBe(0);
+    expect(
+      await page.evaluate(async () => (await fetch('/icon-192.png')).text()),
+    ).toBe('WARM-PUBLIC-CANARY');
+    await context.setOffline(false);
+  });
+}

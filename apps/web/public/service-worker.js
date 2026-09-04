@@ -6,6 +6,28 @@ const STATIC = [
   '/icon-512.png',
 ];
 
+function requestForbidsStorage(request) {
+  if (request.cache === 'no-store') return true;
+  const header = request.headers.get('cache-control') || '';
+  let quoted = false;
+  let escaped = false;
+  let directive = '';
+  // Split only real directive commas, never commas in quoted extension values.
+  for (const char of header + ',') {
+    if (char === ',' && !quoted) {
+      if (directive.split('=', 1)[0].trim().toLowerCase() === 'no-store')
+        return true;
+      directive = '';
+      continue;
+    }
+    directive += char;
+    if (escaped) escaped = false;
+    else if (quoted && char === '\\') escaped = true;
+    else if (char === '"') quoted = !quoted;
+  }
+  return false;
+}
+
 function cacheableRequest(request) {
   const url = new URL(request.url);
   return (
@@ -62,6 +84,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
+  // Native network handling: no CacheStorage lookup/write or offline fallback.
+  if (requestForbidsStorage(request)) return;
   const url = new URL(request.url);
   if (!cacheableRequest(request)) {
     // Every API/private request and every RSC payload is network-only. Never
