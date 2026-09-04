@@ -24,6 +24,7 @@ services:
         condition: service_completed_successfully
 
   api:
+    init: true
     build:
       context: ./apps/api
     environment:

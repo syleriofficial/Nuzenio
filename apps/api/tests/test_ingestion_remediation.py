@@ -183,9 +183,7 @@ def test_f04_limits_before_hash_and_ip_rotation(monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "login_attempt_limit", 2)
     calls = []
-    monkeypatch.setattr(
-        auth, "PASSWORD_HASHER", SimpleNamespace(verify=lambda *a: calls.append(1) or False)
-    )
+    monkeypatch.setattr(auth, "verify_password", lambda *a: calls.append(1) or False)
     for ip in ["203.0.113.1", "203.0.113.2", "203.0.113.3"]:
         client = TestClient(app, client=(ip, 12345))
         client.post(
@@ -239,7 +237,7 @@ def test_f04_concurrency_and_redis_failure(monkeypatch):
             active -= 1
         return False
 
-    monkeypatch.setattr(auth, "PASSWORD_HASHER", SimpleNamespace(verify=verify))
+    monkeypatch.setattr(auth, "verify_password", verify)
 
     def attempt(index):
         return (

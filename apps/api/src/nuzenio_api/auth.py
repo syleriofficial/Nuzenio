@@ -10,7 +10,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHashError, VerificationError
 from argon2.low_level import Type
 from fastapi import Depends, Request
 from sqlalchemy import select, update
@@ -26,6 +25,7 @@ from nuzenio_api.models import (
     StaffSession,
     StaffUser,
 )
+from nuzenio_api.password_verification import verify_password
 from nuzenio_api.permissions import Permission, has_permission, permissions_for
 from nuzenio_api.services import ApplicationError
 
@@ -199,17 +199,14 @@ class AuthService:
         try:
             with password_admission(
                 _keyed_hash(f"account:{normalized}"), _keyed_hash(f"ip:{ip_address or 'unknown'}")
-            ) as count:
+            ) as admission:
                 user = self.session.scalar(
                     select(StaffUser).where(StaffUser.username == normalized)
                 )
                 candidate_hash = user.password_hash if user else _DUMMY_HASH
-                try:
-                    valid = PASSWORD_HASHER.verify(candidate_hash, password)
-                except (VerificationError, InvalidHashError):
-                    valid = False
+                valid = verify_password(candidate_hash, password, admission)
                 valid = bool(valid and user and user.active)
-                if count >= self.settings.login_attempt_limit:
+                if admission.count >= self.settings.login_attempt_limit:
                     reason = "LOCKED"
         except AdmissionDenied as error:
             reason = "LIMITER_UNAVAILABLE" if error.unavailable else "LOCKED"

@@ -1,6 +1,8 @@
+import os
+import tempfile
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,7 +26,9 @@ class Settings(BaseSettings):
     login_global_limit: int = 120
     login_ip_limit: int = 30
     login_window_seconds: int = 60
-    login_concurrency: int = 4
+    login_concurrency: int = Field(default=4, ge=1, le=16)
+    login_verifier_timeout_seconds: float = Field(default=3, ge=0.1, le=10)
+    login_lock_directory: str = f"{tempfile.gettempdir()}/nuzenio-password-{os.getuid()}"
     login_key_prefix: str = "nuzenio:auth:v2"
     trusted_proxy_cidrs: list[str] = []
     feed_user_agent: str = "NuzenioFeedFetcher/0.3 (+https://nuzenio.example/feeds)"

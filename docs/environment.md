@@ -13,6 +13,13 @@ Login defaults: `NUZENIO_LOGIN_GLOBAL_LIMIT=120`, `NUZENIO_LOGIN_IP_LIMIT=30`,
 The former `NUZENIO_LOGIN_LOCKOUT_MINUTES` is deprecated and unused. Counters use fixed Redis TTLs;
 blocked requests never extend cooldowns. Redis unavailability fails closed before Argon2.
 
+`NUZENIO_LOGIN_VERIFIER_TIMEOUT_SECONDS=3` (0.1–10) is the supervised password subprocess deadline.
+`NUZENIO_LOGIN_LOCK_DIRECTORY` defaults to the OS temp directory plus `nuzenio-password-<uid>`.
+Configure a private, operator-managed LOCAL filesystem directory in production, shared by all API
+processes intended to share capacity. Do not remove/replace its files while work may still run or
+resume. `NUZENIO_LOGIN_CONCURRENCY` now caps that local lock domain, not a Redis lease or fleet.
+See [ownership/recovery and resource limits](authentication-authorization.md#password-work-ownership-r5).
+
 `NUZENIO_TRUSTED_PROXY_CIDRS=[]` trusts no forwarding headers. Uvicorn is started with
 `--no-proxy-headers`; explicitly configured proxy CIDRs are processed by the application right-to-left.
 Do not use broad trusted ranges or expose an origin that assumes all clients are trusted proxies.

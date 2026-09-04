@@ -24,10 +24,11 @@ os.environ["NUZENIO_DATABASE_URL"] = TEST_DATABASE_URL
 
 
 @pytest.fixture(autouse=True)
-def isolated_login_buckets(monkeypatch):
+def isolated_login_buckets(monkeypatch, tmp_path):
     from nuzenio_api.config import get_settings
 
     monkeypatch.setattr(get_settings(), "login_key_prefix", f"nuzenio:test:auth:{uuid.uuid4()}")
+    monkeypatch.setattr(get_settings(), "login_lock_directory", str(tmp_path / "password-capacity"))
 
 
 @pytest.fixture(scope="session", autouse=True)
