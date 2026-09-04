@@ -35,6 +35,7 @@ def test_alembic_migrates_a_clean_database() -> None:
         "summary_versions",
         "primary_documents",
         "corrections",
+        "correction_contributors",
         "briefs",
     }
     assert expected_tables.issubset(set(inspect(engine).get_table_names()))
@@ -43,7 +44,7 @@ def test_alembic_migrates_a_clean_database() -> None:
         revision = connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar_one()
-        assert revision == "b85f0e1162da"
+        assert revision == "c96a1d2273eb"
 
 
 def test_seed_is_idempotent() -> None:

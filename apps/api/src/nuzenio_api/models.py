@@ -429,8 +429,21 @@ class Correction(UUIDTimestampMixin, Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
     resolved_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    provenance_complete: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     cluster: Mapped[EventCluster | None] = relationship(back_populates="corrections")
     article: Mapped[Article | None] = relationship(back_populates="corrections")
+
+
+class CorrectionContributor(UUIDTimestampMixin, Base):
+    __tablename__ = "correction_contributors"
+    correction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("corrections.id"), index=True)
+    staff_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"), index=True)
+    first_version: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint("correction_id", "staff_user_id", name="uq_correction_contributor"),
+    )
 
 
 class UserPreference(UUIDTimestampMixin, Base):

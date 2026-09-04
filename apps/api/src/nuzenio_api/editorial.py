@@ -8,7 +8,6 @@ from typing import Any
 from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy import update as sql_update
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, selectinload
 
 from nuzenio_api.admin_schemas import (
@@ -18,6 +17,7 @@ from nuzenio_api.admin_schemas import (
     ClusterSplitApply,
     CorrectionApply,
     CorrectionCreate,
+    CorrectionDraftUpdate,
     PrimaryDocumentCreate,
     ReviewDecision,
     SummaryDecision,
@@ -39,12 +39,16 @@ from nuzenio_api.models import (
     DecisionState,
     EditorialReview,
     EventCluster,
-    MaterialContributor,
     PrimaryDocument,
     ReviewState,
     RiskLevel,
     SavedCluster,
     SummaryVersion,
+)
+from nuzenio_api.provenance import (
+    contributor_ids,
+    inherit_published_corrections,
+    register_contributors,
 )
 from nuzenio_api.serialization import json_safe
 from nuzenio_api.services import ApplicationError
@@ -135,28 +139,12 @@ def _mapping(value):
 
 
 def _contributors(session: Session, cluster_id: uuid.UUID) -> set[uuid.UUID]:
-    return set(
-        session.scalars(
-            select(MaterialContributor.staff_user_id).where(
-                MaterialContributor.cluster_id == cluster_id
-            )
-        )
-    )
+    cluster = session.get(EventCluster, cluster_id)
+    return contributor_ids(session, cluster) if cluster else set()
 
 
 def _record_contributors(session, cluster, actor_ids):
-    # Callers hold the cluster lock; contributors are conservatively retained for
-    # the entire lineage, including merged/split content, never reassigned.
-    for actor_id in sorted(actor_ids):
-        session.execute(
-            insert(MaterialContributor)
-            .values(
-                cluster_id=cluster.id,
-                staff_user_id=actor_id,
-                first_material_revision=cluster.material_revision,
-            )
-            .on_conflict_do_nothing(constraint="uq_material_contributor")
-        )
+    register_contributors(session, cluster, actor_ids)
 
 
 def _queue_high_risk_review(
@@ -170,6 +158,10 @@ def _queue_high_risk_review(
     cluster.material_revision += 1
     if material_contribution:
         _record_contributors(session, cluster, {actor_id})
+    inherit_published_corrections(session, cluster)
+    if not cluster.provenance_complete:
+        cluster.status = ContentStatus.HELD
+        cluster.push_ready = False
     session.execute(
         sql_update(EditorialReview)
         .where(EditorialReview.cluster_id == cluster.id, EditorialReview.superseded_at.is_(None))
@@ -277,6 +269,12 @@ def set_suppression(
         cluster.suppressed_at = _now()
         cluster.suppression_reason = reason
     else:
+        if not session.scalar(select(func.nuzenio_correction_lineage_complete(cluster.id))):
+            raise ApplicationError(
+                code="provenance_required",
+                message="Correction provenance is incomplete.",
+                status=409,
+            )
         if not session.scalar(
             select(SummaryVersion.id)
             .where(
@@ -627,22 +625,25 @@ def split_cluster(
                 )
             )
         for correction in corrections:
-            session.add(
-                Correction(
-                    cluster_id=destination.id,
-                    description=correction.description,
-                    description_hi=correction.description_hi,
-                    source_url=correction.source_url,
-                    evidence=correction.evidence,
-                    status=correction.status,
-                    published_at=correction.published_at,
-                    resolution=correction.resolution,
-                    raised_at=correction.raised_at,
-                    resolved_at=correction.resolved_at,
-                    created_by_id=correction.created_by_id,
-                    resolved_by_id=correction.resolved_by_id,
-                )
+            copied = Correction(
+                cluster_id=destination.id,
+                description=correction.description,
+                description_hi=correction.description_hi,
+                source_url=correction.source_url,
+                evidence=correction.evidence,
+                status=correction.status,
+                published_at=correction.published_at,
+                resolution=correction.resolution,
+                raised_at=correction.raised_at,
+                resolved_at=correction.resolved_at,
+                created_by_id=correction.created_by_id,
+                resolved_by_id=correction.resolved_by_id,
+                provenance_complete=correction.provenance_complete,
+                version=correction.version,
             )
+            session.add(copied)
+            session.flush()
+            register_contributors(session, copied, contributor_ids(session, correction))
     _replace_brief_ids(session, {str(cluster.id): [str(item.id) for item in created]}, context)
     append_audit(
         session,
@@ -912,7 +913,11 @@ def decide_high_risk_review(
             message="Only the current pending material revision can be reviewed.",
             status=409,
         )
-    if not cluster.provenance_complete or not _contributors(session, cluster.id):
+    if (
+        not cluster.provenance_complete
+        or not _contributors(session, cluster.id)
+        or not session.scalar(select(func.nuzenio_correction_lineage_complete(cluster.id)))
+    ):
         raise ApplicationError(
             code="provenance_required",
             message="Legacy material authorship must be established before approval.",
@@ -1082,10 +1087,13 @@ def create_correction(
         source_url=str(payload.source_url),
         evidence=payload.evidence,
         created_by_id=context.user.id,
+        provenance_complete=True,
+        version=1,
         status="OPEN",
     )
     session.add(correction)
     session.flush()
+    register_contributors(session, correction, {context.user.id})
     append_audit(
         session,
         actor=context.user,
@@ -1096,6 +1104,58 @@ def create_correction(
             "cluster_id": str(correction.cluster_id) if correction.cluster_id else None,
             "status": correction.status,
         },
+        **_request_fields(context),
+    )
+    session.commit()
+    session.refresh(correction)
+    return correction
+
+
+def edit_correction_draft(session, *, correction_id, payload: CorrectionDraftUpdate, context):
+    # Draft edits never lock clusters: no draft text is public. Application holds
+    # all affected clusters first, then this row, and reloads it before publishing.
+    correction = session.scalar(
+        select(Correction).where(Correction.id == correction_id).with_for_update()
+    )
+    if not correction:
+        raise ApplicationError(
+            code="correction_not_found", message="Correction not found.", status=404
+        )
+    _conflict(payload.expected_version, correction.version)
+    if correction.status != "OPEN":
+        raise ApplicationError(
+            code="correction_closed",
+            message="Published corrections are immutable; open a new correction.",
+            status=409,
+        )
+    fields = ("description", "description_hi", "source_url", "evidence")
+    values = {field: getattr(payload, field) for field in fields}
+    values["source_url"] = str(payload.source_url)
+    if all(
+        _normalized(getattr(correction, key)) == _normalized(value) for key, value in values.items()
+    ):
+        return correction
+    before = _snapshot(correction, (*fields, "version"))
+    _revision(
+        session,
+        entity=correction,
+        entity_type="Correction",
+        version=correction.version,
+        snapshot=before,
+        actor_id=context.user.id,
+    )
+    for key, value in values.items():
+        setattr(correction, key, value)
+    correction.version += 1
+    register_contributors(session, correction, {context.user.id})
+    append_audit(
+        session,
+        actor=context.user,
+        action="CORRECTION_DRAFT_EDITED",
+        entity_type="Correction",
+        entity_id=correction.id,
+        before=before,
+        after=_snapshot(correction, (*fields, "version")),
         **_request_fields(context),
     )
     session.commit()
@@ -1362,6 +1422,18 @@ def apply_correction(
                         completed_at=_now(),
                     )
                 )
+    # Make the retained correction internally complete inside this transaction
+    # before the shared material boundary gathers ALL authors for every cluster.
+    # Reader visibility remains gated until the resulting review is approved.
+    now = _now()
+    correction.resolution = payload.resolution
+    correction.status = "PUBLISHED"
+    correction.resolved_by_id = context.user.id
+    correction.resolved_at = now
+    correction.published_at = now
+    correction.version += 1
+    register_contributors(session, correction, {context.user.id})
+    session.flush()
     for affected_cluster in affected_clusters:
         affected_cluster.corrected_at = _now()
         if affected_cluster.id not in version_bumped:
@@ -1400,12 +1472,6 @@ def apply_correction(
                     completed_at=_now(),
                 )
             )
-    correction.resolution = payload.resolution
-    correction.resolved_by_id = context.user.id
-    correction.resolved_at = _now()
-    correction.published_at = _now()
-    correction.status = "PUBLISHED"
-    correction.version += 1
     append_audit(
         session,
         actor=context.user,

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from nuzenio_api.audit import append_audit
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import engine
-from nuzenio_api.db_roles import provision_runtime
+from nuzenio_api.db_roles import assert_runtime_identity, provision_runtime
 
 
 def migration_config():
@@ -115,6 +115,11 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             "UPDATE material_contributors SET first_material_revision=0",
             "DELETE FROM material_contributors",
             "TRUNCATE material_contributors",
+            "UPDATE correction_contributors SET first_version=0",
+            "DELETE FROM correction_contributors",
+            "TRUNCATE correction_contributors",
+            "ALTER TABLE correction_contributors DISABLE TRIGGER "
+            "correction_contributors_append_only",
             "ALTER TABLE material_contributors DISABLE TRIGGER material_contributors_append_only",
             "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_append_only",
             "CREATE TABLE forbidden_runtime_table(id int)",
@@ -122,9 +127,12 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
         ]:
             with runtime.begin() as connection, pytest.raises(DBAPIError):
                 connection.execute(text(sql))
+        assert_runtime_identity(runtime)
         # Trigger adds a defense layer even for an owner who does not deliberately disable it.
         with engine.begin() as connection, pytest.raises(DBAPIError):
             connection.execute(text("TRUNCATE audit_logs"))
+        with engine.begin() as connection, pytest.raises(DBAPIError):
+            connection.execute(text("TRUNCATE correction_contributors"))
     finally:
         runtime.dispose()
         with engine.begin() as connection:
@@ -195,6 +203,124 @@ def test_r1_r3_upgrade_from_reviewed_head_preserves_history_without_inventing_au
             )
             assert (
                 connection.scalar(text("SELECT nuzenio_current_review(:id)"), {"id": cid}) is False
+            )
+    finally:
+        target.dispose()
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
+        admin.dispose()
+
+
+def test_correction_provenance_upgrade_recovers_only_verifiable_identities(monkeypatch):
+    name = "nuzenio_correction_upgrade_test_" + uuid.uuid4().hex
+    url = make_url(get_settings().database_url).set(database=name)
+    admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    target = create_engine(url)
+    monkeypatch.setattr(get_settings(), "database_url", url.render_as_string(hide_password=False))
+    try:
+        config = migration_config()
+        command.upgrade(config, "b85f0e1162da")
+        known_cluster, unknown_cluster = uuid.uuid4(), uuid.uuid4()
+        correction_id, unknown_correction = uuid.uuid4(), uuid.uuid4()
+        creator, resolver = uuid.uuid4(), uuid.uuid4()
+        with target.begin() as connection:
+            for staff_id, username in ((creator, "known-creator"), (resolver, "known-resolver")):
+                connection.execute(
+                    text(
+                        """INSERT INTO staff_users(
+                        id,username,display_name,password_hash,role,version)
+                        VALUES (:id,:username,'Known fixture','not-a-real-password-hash',
+                        'ADMINISTRATOR',1)"""
+                    ),
+                    {"id": staff_id, "username": username},
+                )
+            for cluster_id, slug in (
+                (known_cluster, "known-correction-lineage"),
+                (unknown_cluster, "unknown-correction-lineage"),
+            ):
+                connection.execute(
+                    text(
+                        """INSERT INTO event_clusters(
+                        id,slug,neutral_headline,neutral_headline_hi,category,status,
+                        risk_level,review_state,version,material_revision,provenance_complete,
+                        display_order,timeline_json,why_shown,why_shown_hi)
+                        VALUES (:id,:slug,'Legacy fictional correction','काल्पनिक सुधार',
+                        'Public safety','PUBLISHED','HIGH','APPROVED',5,3,true,1,'[]','','')"""
+                    ),
+                    {"id": cluster_id, "slug": slug},
+                )
+            connection.execute(
+                text(
+                    """INSERT INTO corrections(
+                    id,cluster_id,description,status,published_at,source_url,evidence,
+                    resolution,raised_at,resolved_at,created_by_id,resolved_by_id,version)
+                    VALUES (:id,:cluster,'Known legacy change','PUBLISHED',now(),
+                    'https://fixture.example/known','Known fixture evidence','Applied',
+                    now(),now(),:creator,:resolver,2)"""
+                ),
+                {
+                    "id": correction_id,
+                    "cluster": known_cluster,
+                    "creator": creator,
+                    "resolver": resolver,
+                },
+            )
+            connection.execute(
+                text(
+                    """INSERT INTO corrections(
+                    id,cluster_id,description,status,published_at,source_url,evidence,
+                    resolution,raised_at,resolved_at,version)
+                    VALUES (:id,:cluster,'Unknown legacy change','PUBLISHED',now(),
+                    'https://fixture.example/unknown','Unknown fixture evidence','Applied',
+                    now(),now(),2)"""
+                ),
+                {"id": unknown_correction, "cluster": unknown_cluster},
+            )
+        command.upgrade(config, "head")
+        command.check(config)
+        with target.connect() as connection:
+            known = connection.execute(
+                text(
+                    "SELECT provenance_complete,status,material_revision "
+                    "FROM event_clusters WHERE id=:id"
+                ),
+                {"id": known_cluster},
+            ).one()
+            unknown = connection.execute(
+                text(
+                    "SELECT provenance_complete,status,material_revision "
+                    "FROM event_clusters WHERE id=:id"
+                ),
+                {"id": unknown_cluster},
+            ).one()
+            assert known == (True, "HELD", 4)
+            assert unknown == (False, "HELD", 4)
+            recovered = dict(
+                connection.execute(
+                    text(
+                        "SELECT staff_user_id,first_version FROM correction_contributors "
+                        "WHERE correction_id=:id"
+                    ),
+                    {"id": correction_id},
+                )
+            )
+            assert recovered == {creator: 1, resolver: 2}
+            assert (
+                connection.scalar(
+                    text("SELECT count(*) FROM correction_contributors WHERE correction_id=:id"),
+                    {"id": unknown_correction},
+                )
+                == 0
+            )
+            assert connection.scalar(
+                text("SELECT nuzenio_correction_lineage_complete(:id)"),
+                {"id": known_cluster},
+            )
+            assert not connection.scalar(
+                text("SELECT nuzenio_correction_lineage_complete(:id)"),
+                {"id": unknown_cluster},
             )
     finally:
         target.dispose()

@@ -389,6 +389,9 @@ def _seed_cluster(
                 cluster_id=cluster.id,
                 description=correction_data[0],
                 description_hi=correction_data[1],
+                # Explicit new fictional generator content has no staff authors.
+                # This never repairs existing/legacy or production provenance.
+                provenance_complete=True,
             )
             session.add(correction)
         correction.description_hi = correction_data[1]

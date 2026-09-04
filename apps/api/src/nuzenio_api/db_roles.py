@@ -37,6 +37,9 @@ def provision_runtime(engine, role: str, password: str):
         connection.exec_driver_sql(
             f"REVOKE UPDATE, DELETE, TRUNCATE ON material_contributors FROM {quoted}"
         )
+        connection.exec_driver_sql(
+            f"REVOKE UPDATE, DELETE, TRUNCATE ON correction_contributors FROM {quoted}"
+        )
         connection.exec_driver_sql(f"REVOKE ALL ON alembic_version FROM {quoted}")
         connection.exec_driver_sql(
             f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted}"
@@ -63,6 +66,8 @@ def assert_runtime_identity(engine):
             AND relowner=(SELECT oid FROM pg_roles WHERE rolname=current_user))
           OR has_schema_privilege(current_user,'public','CREATE')
           OR has_table_privilege(current_user,'audit_logs','UPDATE,DELETE,TRUNCATE')
+          OR has_table_privilege(current_user,'material_contributors','UPDATE,DELETE,TRUNCATE')
+          OR has_table_privilege(current_user,'correction_contributors','UPDATE,DELETE,TRUNCATE')
           OR EXISTS(SELECT 1 FROM pg_auth_members
             WHERE member=(SELECT oid FROM pg_roles WHERE rolname=current_user))
           FROM pg_roles WHERE rolname=current_user""")

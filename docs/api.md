@@ -89,9 +89,14 @@ Staff filters include `role`, `active` and `q`. Authentication uses cookies; sta
 | `POST /v1/admin/reviews/{id}/push-approval` | same | Separate alert-readiness approval |
 | `POST /v1/admin/clusters/{id}/primary-documents` | `cluster:edit` | Attach official document |
 | `GET/POST /v1/admin/corrections` | `correction:manage` | Filter/list or open correction |
+| `PATCH /v1/admin/corrections/{id}` | same | Versioned edit of an open correction; material editors remain contributors |
 | `POST /v1/admin/corrections/{id}/apply` | same | Versioned propagation and publication |
 
-Correction application always requires `expectedVersion`. Cluster-targeted corrections also require `clusterExpectedVersion`; article metadata changes require `articleExpectedVersion`. Article corrections are propagated to each containing cluster, its public correction history and any saved/offline snapshot markers.
+Correction draft edits and application require `expectedVersion`. Cluster-targeted corrections also
+require `clusterExpectedVersion`; article metadata changes require `articleExpectedVersion`. Article
+corrections are propagated to each containing cluster, its public correction history and any
+saved/offline snapshot markers. Creator/editor identities come from the authenticated session, never
+from request bodies. Exact and NFC/whitespace-equivalent draft edits are no-ops.
 | `PATCH /v1/admin/editions/{edition}` | `edition:pause` | Pause/restore reader edition |
 
 All mutation bodies carry `expectedVersion`, or a version map for multi-record merge/split. `409 version_conflict` is recoverable by reloading and reconciling.

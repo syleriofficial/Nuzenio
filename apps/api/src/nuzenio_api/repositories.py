@@ -59,6 +59,7 @@ class ReaderRepository:
     def publishable_clusters() -> Select[tuple[EventCluster]]:
         return select(EventCluster).where(
             EventCluster.status == ContentStatus.PUBLISHED,
+            func.nuzenio_correction_lineage_complete(EventCluster.id),
             EventCluster.review_state.in_([ReviewState.NOT_REQUIRED, ReviewState.APPROVED]),
             or_(
                 EventCluster.risk_level != RiskLevel.HIGH,

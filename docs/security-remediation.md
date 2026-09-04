@@ -179,6 +179,44 @@ and exact oxfmt/Lightning CSS platform bindings remain covered by clean Linux `n
 build. Native macOS Playwright remains environment-blocked by the previously diagnosed sandbox;
 the browser execution is Linux Chromium against the production build, not a claim of macOS coverage.
 
+## Closure follow-up: correction contributor provenance
+
+Reviewed baseline: `de6eb9e06f19a86469934b61935eb391f68d75c3`. The independent closure
+reproduction was confirmed before this change: staff A opened a correction containing a unique
+factual assertion, B applied it and regenerated the summary, then A's final high-risk decision
+returned HTTP 200 and made A's correction text visible to an anonymous reader.
+
+Root cause: cluster material lineage recorded the applying editor but not the persisted author of
+the correction. The shared invariant is now: every authenticated creator or later material editor
+of a retained correction, plus its applying editor and replacement-summary authors, is an
+append-only contributor to every affected cluster and cannot provide final or alert-readiness
+approval. `provenance.py` is the single registration boundary for cluster and correction lineage.
+Correction creation, versioned open-draft editing, application, cluster revision invalidation,
+review creation and audit insertion remain atomic in their respective transactions. Application
+locks affected clusters in deterministic UUID order before locking/reloading the correction;
+approval takes the same cluster lock, so it cannot publish between content change and lineage
+registration. Identities always come from authenticated context or persisted contributor rows.
+
+Forward migration `b85f0e1162da → c96a1d2273eb` adds `correction_contributors`, append-only row and
+statement triggers, `corrections.provenance_complete`, reader/review SQL gating and a conservative
+legacy repair. It recovers only creator and resolver identities already stored by the old workflow,
+at their verifiable versions. Every previously published correction forces a new review. Corrected
+clusters with unknown or inconsistent correction provenance are held and cannot be restored or
+approved; no intermediate editor or historical approval is fabricated. Re-provision the runtime
+role after migration; it receives SELECT/INSERT but not UPDATE/DELETE/TRUNCATE/DDL authority over
+the new table.
+
+Regression coverage includes creator and applying-editor final/alert denial, exact and
+NFC/whitespace-equivalent no-op drafts, later correction editors, administrator actions,
+claim-targeted changes, article corrections shared by multiple clusters, independent reviewer
+success, concurrent apply/approval serialization, audit-failure rollback, anonymous reader gating,
+legacy known/unknown provenance upgrades, schema drift, and actual runtime-role mutation attempts.
+Files changed are the correction schemas/routes/service, shared provenance boundary, ORM/reader
+repository, forward migration, seed-only explicit fixture marker, runtime-role guard, tests and the
+linked API/correction/recovery documentation. Contributor retention is deliberately conservative:
+a later complete rewrite does not remove an earlier contributor's approval exclusion. Database
+owners/superusers remain outside application append-only guarantees.
+
 ### Stream-close diagnosis remains bounded
 
 The production E2E run still logged `The destination stream closed early.`. No streaming behavior

@@ -139,6 +139,13 @@ class ClaimCorrection(APIModel):
     state: Literal["CONFIRMED", "DEVELOPING", "DISPUTED"]
 
 
+class CorrectionDraftUpdate(VersionedMutation):
+    description: str = Field(min_length=5, max_length=5000)
+    description_hi: str | None = Field(default=None, max_length=5000)
+    source_url: ExternalURL
+    evidence: str = Field(min_length=3, max_length=5000)
+
+
 class CorrectionApply(VersionedMutation):
     resolution: str = Field(min_length=5, max_length=5000)
     cluster_expected_version: int | None = Field(default=None, ge=1)

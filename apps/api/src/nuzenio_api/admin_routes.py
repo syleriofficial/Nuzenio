@@ -24,6 +24,7 @@ from nuzenio_api.admin_schemas import (
     ClusterSplitApply,
     CorrectionApply,
     CorrectionCreate,
+    CorrectionDraftUpdate,
     DomainCreate,
     DryRunResult,
     EditionPause,
@@ -62,6 +63,7 @@ from nuzenio_api.editorial import (
     decide_high_risk_review,
     decide_summary,
     draft_summary_revision,
+    edit_correction_draft,
     edit_headline,
     merge_clusters,
     review_queue,
@@ -635,6 +637,21 @@ def correction_apply(
         item,
         {"status": item.status, "resolution": item.resolution, "turnaroundSeconds": turnaround},
         item.version,
+    )
+
+
+@router.patch("/corrections/{correction_id}", response_model=AdminEntityRead)
+def correction_draft_edit(
+    correction_id: uuid.UUID,
+    payload: CorrectionDraftUpdate,
+    session: SessionDep,
+    context: Annotated[AuthenticatedStaff, allowed(Permission.CORRECTION_MANAGE, csrf=True)],
+) -> AdminEntityRead:
+    item = edit_correction_draft(
+        session, correction_id=correction_id, payload=payload, context=context
+    )
+    return _entity(
+        "Correction", item, {"description": item.description, "status": item.status}, item.version
     )
 
 

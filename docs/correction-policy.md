@@ -31,6 +31,14 @@ Do not include credentials, unpublished personal data or confidential documents 
 
 The resolver identifies all affected fields before applying one version-checked transaction. Cluster changes require the current cluster version and article metadata changes require the current article version. Supported impacts include article metadata, neutral cluster headlines, claim wording/state, replacement summary versions, brief membership and saved/offline snapshot markers. An article correction is also marked on every cluster containing that article.
 
+Correction creator, later material draft editors and the applying editor are recorded from their
+authenticated sessions in an append-only correction lineage. Publication transactionally propagates
+that complete lineage to every directly affected cluster and every cluster containing a corrected
+article. Those contributors cannot perform final or alert-readiness approval, including when they
+are administrators. Exact and NFC/whitespace-equivalent draft submissions do not change versions,
+reviews or lineage. If an upgraded correction's authorship cannot be recovered from persisted actor
+fields, it and all affected content remain held; operators must not invent an author or approval.
+
 Before each destructive-looking content change, `ContentRevision` stores the prior version and snapshot. `CorrectionImpact` records each affected entity and action. Published summary text is never overwritten: corrected text creates a new pending `SummaryVersion` using the previous evidence map. Affected summaries can therefore be reviewed or kept suppressed. Material changes hold the cluster when another review is required.
 
 Every applied correction invalidates the affected cluster's derived summaries even when no

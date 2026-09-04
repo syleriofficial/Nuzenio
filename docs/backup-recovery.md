@@ -2,9 +2,11 @@
 
 ## Remediation migration/recovery procedure
 
-R1–R6 adds forward revision `b85f0e1162da` after `a74e9b0216cd`. It creates append-only material
-contributor records, retires legacy potentially stale summaries and holds high-risk content with
-unknown provenance. It never infers contributors from the last-editor column or fabricates an
+R1–R6 adds forward revision `b85f0e1162da` after `a74e9b0216cd`; the correction-authorship closure
+adds `c96a1d2273eb`. Together they create append-only cluster and correction contributor records,
+retire legacy potentially stale summaries, and hold corrected/high-risk content with unknown
+provenance. The correction migration recovers only persisted creator and applying-editor identities
+at their verifiable workflow versions; it does not infer intermediate editors or fabricate an
 approval. There is intentionally no public/API switch to assert unknown provenance is complete:
 legacy high-risk content needs an evidence-backed, independently reviewed reconstruction/forward
 repair or a newly reconstructed cluster with recorded authors. A new edit alone cannot release it.
@@ -12,7 +14,7 @@ Contributor history is conservatively retained even if a later rewrite removes a
 Re-run runtime-role provisioning after migration so the new table receives SELECT/INSERT only.
 Runtime UPDATE/DELETE/TRUNCATE/trigger alteration are denied, just as for audit history.
 
-Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd`.
+Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd -> b85f0e1162da -> c96a1d2273eb`.
 Do not edit the applied 2A/2B migrations. Back up and stop runtime writers/workers before upgrading.
 The new revisions hold legacy high-risk content, mark unmapped summaries pending, fence legacy runs,
 convert/retain legacy brief slugs, remove redundant uniqueness constraints and block audit TRUNCATE.

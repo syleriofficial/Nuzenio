@@ -4,10 +4,12 @@
 
 Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not write original news. Milestone 2B preserves the bilingual reader PWA and adds authenticated editorial operations, rights-aware source onboarding, controlled feed jobs, correction propagation and an append-only audit trail.
 
-PR #1's R1–R6 security round adds contributor-bound independent approval, irreversible stale-summary
-invalidation and private-safe static-only PWA caching. Apply forward migration `b85f0e1162da` and
-re-provision the runtime role before starting this code. Legacy high-risk content with unknown
-authorship remains held; do not infer historical authors or approvals. See the
+PR #1's security rounds add contributor-bound independent approval, irreversible stale-summary
+invalidation and private-safe static-only PWA caching. Apply through forward migration
+`c96a1d2273eb` and re-provision the runtime role before starting this code. Correction creators,
+later draft editors and applying editors are append-only material contributors on every affected
+cluster. Legacy corrected content with unknown authorship remains held; do not infer historical
+authors or approvals. See the
 [remediation record](docs/security-remediation.md) and [recovery procedure](docs/backup-recovery.md).
 Password verification uses supervised subprocesses with a local OS-lock capacity bound; it does
 not claim a partition-safe fleet-wide work limit. Independent security re-review is still required.

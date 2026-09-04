@@ -20,6 +20,7 @@ def test_required_entity_tables_are_registered() -> None:
         "summary_versions",
         "primary_documents",
         "corrections",
+        "correction_contributors",
         "user_preferences",
         "follows",
         "saved_clusters",
@@ -39,6 +40,7 @@ def test_required_entity_tables_are_registered() -> None:
         "dead_letter_jobs",
         "content_revisions",
         "correction_impacts",
+        "material_contributors",
     }.issubset(set(Base.metadata.tables))
 
 
