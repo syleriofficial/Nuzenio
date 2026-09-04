@@ -2,6 +2,17 @@
 
 ## Remediation contract additions
 
+- Review queue entries now include `contributorIds`, `provenanceComplete`, `approvalEligible` and
+  `pushEligible`. Eligibility is computed for the authenticated viewer; mutation checks remain
+  authoritative. Unknown provenance returns `409 provenance_required`; contributor approval is
+  `409 dual_control_required`. No-op material writes return the unchanged record/version.
+- Merge inputs reject duplicate UUIDs after canonical parsing and reject target-in-sources with
+  `422 validation_error` before mutation. Service code also validates and locks unique sorted IDs.
+- Admin summary entries include `invalidatedAt` and `invalidationReason`. Invalidated versions
+  cannot be approved; submit a new mapped revision. Corrections without replacement text still
+  retire affected versions. Only the selected eligible summary participates in public search.
+- Private API responses (including errors) are `private, no-store`; public API responses are
+  `no-store`. API requests are network-only in the service worker, with no app-shell fallback.
 - `GET /v1/admin/rights/{id}/snapshot` and `/domains/{id}/snapshot`: authenticated complete evidence,
   permissions, effective/expiry/revocation dates, reviewer and SHA-256 snapshot hash.
 - Domain/rights `APPROVED` transitions require both `expectedVersion` and `expectedSnapshotHash`

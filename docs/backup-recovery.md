@@ -2,6 +2,16 @@
 
 ## Remediation migration/recovery procedure
 
+R1–R6 adds forward revision `b85f0e1162da` after `a74e9b0216cd`. It creates append-only material
+contributor records, retires legacy potentially stale summaries and holds high-risk content with
+unknown provenance. It never infers contributors from the last-editor column or fabricates an
+approval. There is intentionally no public/API switch to assert unknown provenance is complete:
+legacy high-risk content needs an evidence-backed, independently reviewed reconstruction/forward
+repair or a newly reconstructed cluster with recorded authors. A new edit alone cannot release it.
+Contributor history is conservatively retained even if a later rewrite removes an author's text.
+Re-run runtime-role provisioning after migration so the new table receives SELECT/INSERT only.
+Runtime UPDATE/DELETE/TRUNCATE/trigger alteration are denied, just as for audit history.
+
 Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd`.
 Do not edit the applied 2A/2B migrations. Back up and stop runtime writers/workers before upgrading.
 The new revisions hold legacy high-risk content, mark unmapped summaries pending, fence legacy runs,

@@ -8,7 +8,7 @@ The complete independent review in the task is the acceptance checklist. No find
 | F01 | Startup CMD and seed assignments confirmed; baseline preservation regression failed | Explicit dev/test-only create-only seed; production refusal; hold unproven legacy approvals; all reader queries require current review | `test_remediation.py` F01; upgrade fixtures; isolated Compose restart/reseed | Existing HIGH content deliberately disappears until reassessed; owner SQL is privileged |
 | F02 | Review accepted based on old row identity rather than current content; review PoC confirmed; summary decision could transfer draft authorship | Material revision binding, supersession, current-pending-only decisions, cluster-first locking, independent final/alert reviewers including administrators; preserve draft author during summary decisions | F02 stale/repeated/concurrent API requests and authorship-transfer regression; high-risk E2E | Authorized editorial evidence assessment is still required |
 | F03 | Baseline JSONB datetime audit regression failed | Recursive JSON-safe audit/revision encoder; one transaction; failures propagate | Nested datetime/UUID/enum test; real suppression/restoration and summary decisions; injected audit failure rolls domain change back | Unsupported future types deliberately fail closed |
-| F04 | Old combined account/IP bucket and post-hash throttle confirmed in code/review PoC | Atomic Redis global/IP/account admission before hash; verifier leases; fixed cooldown; trusted-proxy allow-list; Redis failure denies admission | Rotated IPs/random usernames/global cap/concurrency/cooldown/Redis outage/spoofed forwarding tests | Rate limits can temporarily deny legitimate staff under attack; operational monitoring/edge limits needed |
+| F04 | Old combined account/IP bucket and post-hash throttle confirmed in code/review PoC | Atomic Redis global/IP/account admission before hash; fixed cooldown; trusted-proxy allow-list; Redis failure denies admission; R5 below replaces expiring verifier leases | Rotated IPs/random usernames/global cap/concurrency/cooldown/Redis outage/spoofed forwarding tests | Rate limits can temporarily deny legitimate staff under attack; operational monitoring/edge limits needed |
 | F05 | Review's blocked-fetch pause PoC and stale ORM authorization path confirmed | No network transaction; final refreshed ordered locks, approval versions/dates and kill-switch check; queued work cancelled on revocation | Six in-flight changes: pause, expiry, revocation, DB/global switch, environment switch, rights version | Coarse pilot-wide lock limits throughput; direct owner writes are outside the API protocol |
 | F06 | Truthy empty map accepted; additional null-text SQL regression failed before fix | Strict sentence/evidence schema, complete coverage, same-cluster relational checks at approval and reader selection; suppress legacy invalid maps; new mapped revisions preserve old text | Empty/partial/fabricated/cross-cluster/null/document maps; API revision/approval; SQL/Python boundary tests | Structural provenance is NOT truth or entailment verification; conservative punctuation sentence splitting |
 | F07 | Mutable brief slug references and allocation code confirmed; split draft recovery regression failed | UUID brief membership with archived slugs; transactional documented allocation; preserve revisions/corrections; hold all results; empty unapprovable split drafts | Merge/split membership/evidence/public reader checks; duplicate-slug partial failure rollback; E2E | JSON UUID membership is application-managed, not a normalized FK relation; remapping summaries is an authenticated API operation |
@@ -85,7 +85,7 @@ owner, expiry and independent approval; never blanket-ignore audit failures.
 Representative legacy fixtures, not production data, were used for upgrade tests. Mock transports
 and a blocked child process verify resource controls without internet; no real slow publisher was
 contacted. Audit tests use a real non-owner PostgreSQL login, not a mock permission layer.
-The authentication verifier lease assumes password verification completes within 60 seconds;
+The original authentication lease assumption was invalid and is superseded by R5 below;
 edge admission controls and operational process/memory limits remain recommended. Rights review
 history displays the latest 100 transitions; the authorized audit interface retains the full history.
 Summary remapping currently uses the authenticated API, with review/approval in the existing UI.
@@ -95,3 +95,98 @@ metadata invalidates server-managed saved snapshots on next synchronization.
 Independent security re-review is required. Passing tests are not a SAFE TO MERGE verdict.
 
 Advisory verification: https://github.com/advisories/GHSA-6w46-j5rx-g56g and https://github.com/pytest-dev/pytest/releases/tag/9.0.3 (checked 2026-09-04). Structural evidence coverage is not verification that a claim is true.
+
+## Independent re-review: R1–R6 targeted remediation
+
+Reviewed baseline: `3429765a0562315fd436a035efc9348ac079c184`, branch
+`feat/milestone-2b-editorial-ops`. The complete independent re-review was read, including its
+bounded stream-close diagnosis. Baseline branch/head, clean worktree and origin were verified;
+PR #1 and CI run `33810394557` both still pointed to that exact baseline before changes/push.
+No milestone, reader redesign, ingestion expansion, deployment or merge is part of this round.
+
+### Reproduction → invariant → fix → regression → residual risk
+
+| Finding | Independent reproduction before fix | Invariant and repair | Regression | Residual risk |
+| --- | --- | --- | --- | --- |
+| R1 material authorship | Original A→B identical headline→A final approval returned 200; normalized and secondary edits also lost A's protection | Detect NFC/whitespace-equivalent no-ops before revision changes. Append-only cluster-lineage contributor set survives headline/claim/evidence/summary changes and merge/split. Every contributor, including administrators, is excluded from final and alert approval. Ordered cluster locking preserves revision checks; unknown legacy provenance cannot be approved | `test_rereview_regressions.py`, `test_material_invariants.py`: original exploit, identical/normalized/secondary edits, all material paths, administrator restriction, independent reviewer success, concurrent edit/decision, unknown provenance. Existing stale/repeated/alert tests retained | Conservative lineage never removes an author, even after a complete rewrite. Unknown legacy high-risk content needs independently reviewed reconstruction, not a fabricated author or a new edit used as a bypass |
+| R2 duplicate merge | `[S,S]` accepted and lost memberships | Canonical UUID duplicate/target validation before mutation; defensive unique sorted IDs internally; preserve transaction and locks | Original PoC; full graph snapshot unchanged for duplicate, uppercase canonical duplicate and target input; competing merges produce one 200 and one 409; existing normal relationship and rollback tests | Brief membership remains application-managed JSON UUIDs; SQL owners can bypass application protocols |
+| R3 correction dependencies | Claim-only correction retained the old approved assertion publicly | Central dependency invalidation retires all affected language versions before mutation, including corrections with no replacement text and article corrections across clusters. Claim/evidence changes retire dependent maps. Historical text is retained but invalidated IDs cannot be re-approved. Saved snapshots lose stale payloads; high-risk review is superseded | Claim-only/article-only bilingual API regressions cover detail, Top, Local, sources, search/counts and both briefs, authenticated-only history, saved snapshot removal and unaffected clusters. Correction browser journey now requires new mapped summary, approval and restoration | Structural evidence still does not prove truth. Already-offline devices require reconnect/update; older clients cannot be remotely purged. Conservative correction invalidation may temporarily remove otherwise usable summaries |
+| R4 private search oracle | Unique pending summary canary affected anonymous result counts | SQL `nuzenio_public_summary` is the single version selector for rendering AND matching before count/pagination. Only current approved/non-invalidated/structurally valid requested-language summary (or English fallback) is searchable | Pending, rejected, superseded approved, withdrawn and stale canaries yield empty pages and zero counts while selected public text is found; R3 corrections also remove previously searchable text | No autocomplete/facets exist. Future search adapters must preserve eligibility before indexing/matching, not post-filter private hits |
+| R5 verifier ownership | Real Redis, concurrency=1, real 61-second blocking work: second attempt admitted while first was live | No expiring ownership lease. Child inherits local OS file lock; parent must kill and reap before release. Child wall/CPU/memory controls plus supervisor deadline. Request cancellation cannot release a running thread/child; Redis failure fails closed. Capacity configuration cannot drift within a live lock domain | `test_rereview_verifier.py`: real >60s work, limit-one refusal, child stop/kill/reap, actual supervisor SIGSTOP/SIGKILL, inherited orphan ownership, Redis-client failure during real active work, cancelled awaiter and successful capacity recovery. Existing pre-hash/global/IP/account regressions retained | Strict cap is local lock-domain/container/host scope, NOT fleet-wide under partitions. Requires local POSIX filesystem and stable lock files; deployment CPU/memory/PID/edge limits remain necessary. Kernel-uninterruptible work retains capacity until actual exit |
+| R6 private offline cache | Production same-origin proxy: private JSON replayed after logout; missing no-store; legacy cache persisted | Static-only credential-free allowlist; every API/admin/RSC request network-only. Reject private/no-store/RSC responses even on static paths. `nuzenio-static-v2` activation deletes legacy `nuzenio-*` caches only. API private/no-store headers include exceptional 500s. Clear/abort/invalidate private client state on logout/login, cross-tab change and BFCache restore | Production same-origin Playwright: admin/analyst switch, private read→logout→offline, staff-only endpoint restriction, cross-tab clearing, no-store, legacy private canary purge, unrelated cache preserved, offline static asset success. Unit tests cover RSC/query/header bypass and late response races; real 500-header regression | Already-offline devices cannot receive the purge until reconnect and worker update. Previously disclosed data cannot be recalled. Static offline page is preserved; live story/API offline reading is deliberately not supported |
+
+The original five server security-invariant reproductions failed before behavioral fixes; the
+production-browser baseline had three expected failures establishing R6. Six additional authorship/
+search regressions also failed against the old behavior. Newly introduced schema/process interfaces
+are tested on the repaired implementation, not falsely described as runnable pre-fix tests. The
+61-second reproduction uses actual elapsed time, not a mocked clock. Redis-failure tests inject a
+client connection failure while using real Redis admission; they do not claim a fleet partition test.
+
+One original test created a review directly with a named drafter but no new contributor record;
+its fixture now records that explicit author. It still rejects self-approval and requires independent
+approval. Older correction tests expected immediate public restoration after changing evidence;
+they now require a fresh mapped version and review, while retaining their original correction-history
+and reader assertions. No test/check/rule was disabled. The API exposes invalidated history only to
+authorized staff, not through reader response payloads.
+
+### Forward migration and operation
+
+New migration: `a74e9b0216cd → b85f0e1162da`. Applied migration history is unchanged.
+It adds contributor provenance and append-only protection, unknown-provenance holds, irrevocable
+summary invalidation fields, legacy stale-summary repair, and shared public-summary SQL selection.
+Existing IDs/text are preserved. No historical authors/reviewers are inferred. Re-run owner-only
+runtime provisioning after upgrade. Actual runtime LOGIN tests deny contributor/audit UPDATE,
+DELETE, TRUNCATE and trigger alteration plus DDL. Safety downgrade remains deliberately refused.
+
+Contributors are retained for the entire content lineage; a later contributor cannot remove an
+earlier author's approval exclusion. A no-op returns the same version without new review/audit
+mutation. Regeneration creates new summary IDs; retired IDs remain authenticated history.
+
+See [authentication ownership and limits](authentication-authorization.md#password-work-ownership-r5),
+[environment settings](environment.md), [correction policy](correction-policy.md), and
+[migration/recovery](backup-recovery.md). Only fictional `.example` feeds/local fixtures are configured;
+the fixture worker kill switch stays enabled. No third-party publishers were contacted.
+
+### R1–R6 validation record
+
+This record supersedes the earlier milestone test counts, not the disclosure of earlier failures.
+
+| Check | Result |
+| --- | --- |
+| API formatting/lint | Ruff passes |
+| macOS full PostgreSQL/Redis API suite | 147 passed, including all new regressions and existing F01–F15 suites |
+| Linux Python 3.12 full PostgreSQL/Redis suite | 147 passed; 79.39 seconds; two upstream TestClient deprecation warnings |
+| Web formatting/lint/unit/build (macOS) | Pass; 28 unit tests and production build |
+| Production Chromium E2E + accessibility | 17 passed, retries disabled; includes six desktop/mobile axe scans and four private-cache/account tests |
+| Clean migration; representative 2A, initial 2B and reviewed-head upgrades; drift | Pass in database regression suite; no drift |
+| Actual archived 2A and reviewed initial-2B seed upgrade | Pass: all IDs unchanged across 14 core entity tables, seven clusters/23 articles retained, unknown high-risk held; no drift |
+| Runtime-role mutation/DDL protections and seed idempotency | Pass in full API suite |
+| Clean Linux AMD64 Node 22.13.0/npm 10.9.2 install/build | `npm ci`, formatting, lint, 28 unit tests and production build pass; Linux optional native bindings load |
+| Compose configuration/build/health and restart/reseed | Pass in a separate project with tmpfs PostgreSQL/Redis: migrate exits 0; API/worker/DB/Redis healthy. Three seeds retain seven clusters; edited headline, HELD state and persistent kill switch survive restart |
+| Dependency audits | npm audit (all severities): zero known vulnerabilities. Frozen installed third-party Python environment including upgraded pip 26.2.1: zero known vulnerabilities. No exceptions |
+
+A Linux full-suite rerun exposed an existing test-isolation bug: the scheduler test left a QUEUED
+fixture on an arbitrary seeded feed that a later retry test reused. After asserting scheduling and
+idempotency, it now marks only that test-owned unexecuted run SKIPPED and commits cleanup. An initial
+cleanup attempt incorrectly nested the scheduler's own commits in a transaction context; that test
+change was corrected before the final 147-pass run. Production feed scheduling/lease code is unchanged.
+The first Python audit of the older disposable image found advisories in its pip 25.0.1; upgrading
+that test environment's pip to 26.2.1 (as CI already does) produced the clean audit above. No project
+dependency was exempted or advisory ignored.
+
+No dependency manifests/lockfiles or unrelated streaming code were changed. The retained Vite 7.3.6
+and exact oxfmt/Lightning CSS platform bindings remain covered by clean Linux `npm ci` and the macOS
+build. Native macOS Playwright remains environment-blocked by the previously diagnosed sandbox;
+the browser execution is Linux Chromium against the production build, not a claim of macOS coverage.
+
+### Stream-close diagnosis remains bounded
+
+The production E2E run still logged `The destination stream closed early.`. No streaming behavior
+was changed to suppress it. The independent review traced its controlled reproduction to cancelled
+background RSC prefetches during teardown; completed foreground requests/navigation remained intact.
+That cancellation path was benign. This is not proof that every occurrence of the message is benign;
+retain targeted request/response monitoring before deployment and investigate any failed foreground
+navigation separately. Passing E2E assertions alone are not the diagnosis.
+
+Independent re-review is required. This remediation record does not declare SAFE TO MERGE or
+production readiness and does not resolve any PR review finding automatically.

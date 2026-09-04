@@ -7,12 +7,25 @@ step is separate from an unprivileged API/worker identity. Production startup re
 owners, superusers, role memberships, DDL grants and audit mutation privileges.
 
 High-risk publication requires a non-superseded approval matching `material_revision`, two
-distinct staff identities and a completion timestamp. Every material edit supersedes old reviews.
+distinct staff identities and a completion timestamp. Append-only material contributor lineage
+excludes every contributor, not just the last editor, from final/alert approval. Normalized no-op
+edits leave revision/authorship unchanged. Every real material edit supersedes old reviews.
 Reader SQL applies the same invariant to all feeds, detail, search, sources and briefs.
 
 Summary evidence is a strict sentence/text/evidence-ID structure. PostgreSQL selection and Python
 approval validate complete sentence coverage and same-cluster evidence relationships. This is
 structural provenance, not truth/entailment verification. Existing unmapped summaries become pending.
+
+Claim/evidence changes and corrections retire affected summary versions in both languages without
+overwriting historical text. `nuzenio_public_summary(cluster_id, language)` selects exactly the
+currently eligible approved, non-invalidated, structurally valid version (English fallback when
+needed). Reader rendering, search matching, counts and pagination use this same SQL predicate.
+Historical pending/rejected/invalidated/superseded text cannot become a public search oracle.
+
+Password checks use supervised subprocesses and inherited OS capacity locks, not expiring leases;
+see the authentication document for local-domain scope and partition limitations. The PWA caches
+only credential-free static assets. Private/API/RSC responses and live reader content are not stored
+offline; an explicit bilingual static offline page remains available for public navigation.
 
 Feed claims and final persistence use a short shared advisory control lock, followed by control,
 organization, domain, rights, feed and run locks. Network fetches happen outside transactions.

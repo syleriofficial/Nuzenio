@@ -82,6 +82,10 @@ def test_scheduler_enqueues_each_due_feed_once() -> None:
         assert run is not None
         assert run.state == FeedRunState.QUEUED
         assert queue.enqueued == [str(run.id)]
+        # The deliberately unexecuted scheduler fixture must not leave an active
+        # run on an arbitrary seeded feed used by a later worker test.
+        run.state = FeedRunState.SKIPPED
+        session.commit()
 
 
 def test_worker_ingestion_is_idempotent_and_records_metrics() -> None:
