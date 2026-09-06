@@ -25,12 +25,10 @@ def parse_environment(value: object) -> Environment:
         raise ValueError("Environment must be one of: development, test, production") from error
 
 
-def environment_from_os(*, default: Environment | None = None) -> Environment:
+def environment_from_os() -> Environment:
     raw = os.environ.get("NUZENIO_ENVIRONMENT")
     if raw is None:
-        if default is None:
-            raise ValueError("NUZENIO_ENVIRONMENT is required")
-        return default
+        raise ValueError("NUZENIO_ENVIRONMENT is required")
     return parse_environment(raw)
 
 

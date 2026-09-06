@@ -4,6 +4,7 @@ services:
       context: ./apps/api
     command: ["/bin/sh", "-c", "alembic -c alembic.ini upgrade head && python -m nuzenio_api.db_roles"]
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_MIGRATION_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_RUNTIME_PASSWORD: ${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}
@@ -18,8 +19,8 @@ services:
       context: ./apps/api
     command: ["python", "-m", "nuzenio_api.seed"]
     environment:
-      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_ENVIRONMENT: development
+      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_DEMO_MODE: "true"
     depends_on:
       migrate:
@@ -30,6 +31,7 @@ services:
     build:
       context: ./apps/api
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_CORS_ORIGINS: '["http://localhost:3000"]'
@@ -64,6 +66,7 @@ services:
       context: ./apps/api
     command: ["python", "-m", "nuzenio_api.feed_operations"]
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_DEMO_MODE: "true"

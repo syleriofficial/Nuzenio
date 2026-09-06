@@ -6,7 +6,7 @@ import re
 from psycopg import sql
 from sqlalchemy import create_engine, text
 
-from nuzenio_api.environment import Environment, environment_from_os, is_production
+from nuzenio_api.environment import environment_from_os, is_production
 
 
 def _validate_role(role: str, password: str) -> None:
@@ -138,7 +138,7 @@ def assert_audit_reader_identity(engine):
 
 def main():
     try:
-        environment = environment_from_os(default=Environment.DEVELOPMENT)
+        environment = environment_from_os()
     except ValueError as error:
         raise SystemExit(str(error)) from None
     migration_url = os.environ.get("NUZENIO_MIGRATION_DATABASE_URL")

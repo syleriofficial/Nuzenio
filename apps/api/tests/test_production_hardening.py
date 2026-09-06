@@ -122,6 +122,11 @@ def test_malformed_environment_cannot_enable_development_protections(value) -> N
         " news.example",
         "news.example ",
         "news。example",
+        "xn--a.example",
+        "xn--.example",
+        "api.localhost",
+        "api.local",
+        "router.home.arpa",
     ],
 )
 def test_production_allowed_hosts_are_canonical_explicit_dns_names(host) -> None:
@@ -135,6 +140,12 @@ def test_environment_from_os_uses_the_same_strict_parser(monkeypatch) -> None:
     monkeypatch.setenv("NUZENIO_ENVIRONMENT", "Production")
     with pytest.raises(ValueError):
         environment_from_os()
+
+
+def test_settings_requires_an_explicit_environment(monkeypatch) -> None:
+    monkeypatch.delenv("NUZENIO_ENVIRONMENT", raising=False)
+    with pytest.raises(ValidationError, match="environment"):
+        Settings(_env_file=None)
 
 
 @pytest.mark.parametrize(
@@ -164,6 +175,42 @@ def test_every_environment_gated_entry_point_rejects_malformed_production(comman
     result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=5)
     assert result.returncode != 0
     assert "Environment must be one of" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        [sys.executable, "-c", "import nuzenio_api.main"],
+        [sys.executable, "-m", "nuzenio_api.feed_operations"],
+        [sys.executable, "-m", "nuzenio_api.seed", "--dry-run"],
+        [
+            sys.executable,
+            "-m",
+            "nuzenio_api.staff",
+            "create",
+            "--username",
+            "fixture",
+            "--display-name",
+            "Fixture",
+            "--role",
+            "EDITOR",
+        ],
+        [sys.executable, "-m", "nuzenio_api.db_roles"],
+        [sys.executable, "-m", "nuzenio_api.e2e_setup"],
+    ],
+)
+def test_every_environment_gated_entry_point_rejects_missing_environment(command, tmp_path) -> None:
+    environment = {key: value for key, value in os.environ.items() if key != "NUZENIO_ENVIRONMENT"}
+    result = subprocess.run(
+        command,
+        cwd=tmp_path,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode != 0
+    assert "environment" in result.stderr.casefold()
 
 
 def test_json_logs_include_correlation_fields_and_redact_secrets() -> None:
@@ -206,6 +253,12 @@ def test_json_logs_include_correlation_fields_and_redact_secrets() -> None:
         "csrf%3Dunique-marker",
         "POSTGRESQL%3A%2F%2Foperator%3Aunique-marker%40database.example%2Fnuzenio",
         "redis%3a%2f%2f%3aunique-marker%40redis.example%2f0",
+        "postgresql://operator%3Aunique-marker%40database.example/nuzenio",
+        "postgresql%3A//operator:unique-marker@database.example/nuzenio",
+        "postgresql://operator:unique-marker\n@database.example/nuzenio",
+        "Authorization%3A%20Bearer%20unique-marker",
+        "Authorization%3A%09Bearer%09unique-marker",
+        "postgresql://operator:unique-marker%2Fpart%40database.example/nuzenio",
     ],
 )
 def test_free_form_and_nested_log_values_redact_common_secret_forms(message) -> None:
@@ -220,6 +273,14 @@ def test_log_sanitizer_does_not_corrupt_safe_messages() -> None:
     message = "Feed run 42 completed for https://fixture.example/feed.xml"
     record = logging.LogRecord("fixture", logging.INFO, __file__, 1, message, (), None)
     assert json.loads(JsonLogFormatter("test-service").format(record))["event"] == message
+
+    connection_message = (
+        "Database postgresql://database.example:5432/nuzenio; contact ops@example.com"
+    )
+    record = logging.LogRecord("fixture", logging.INFO, __file__, 1, connection_message, (), None)
+    assert (
+        json.loads(JsonLogFormatter("test-service").format(record))["event"] == connection_message
+    )
 
 
 def test_api_liveness_readiness_metrics_and_request_id(monkeypatch) -> None:

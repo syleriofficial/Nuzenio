@@ -53,8 +53,11 @@ _STANDARD_RECORD_FIELDS = frozenset(
     }
 )
 _SENSITIVE_FRAGMENTS = ("password", "token", "secret", "cookie", "authorization", "csrf")
-_CREDENTIAL_URI = re.compile(r"(?i)\b((?:postgres(?:ql)?(?:\+[a-z0-9_-]+)?|rediss?)://)([^/@\s]+)@")
-_BEARER = re.compile(r"(?i)\b(bearer)(?:\s+|%20)+[a-z0-9._~+/=%:-]+")
+_CREDENTIAL_URI = re.compile(
+    r"(?is)((?:postgres(?:ql)?(?:\+[a-z0-9_-]+)?|rediss?)(?::|%3a)(?://|%2f%2f))"
+    r"[a-z0-9_.+%-]{0,128}(?::|%3a)(?:(?!@|%40|/).){1,512}?(@|%40)"
+)
+_BEARER = re.compile(r"(?i)(?<![a-z])(bearer)(?:\s+|%(?:09|0a|0d|20))+[a-z0-9._~+/=%:-]+")
 _COOKIE_HEADER = re.compile(r"(?i)\b((?:set-)?cookie\s*[:=]\s*)[^\r\n]+")
 _ASSIGNMENT = re.compile(
     r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
@@ -64,20 +67,16 @@ _ENCODED_ASSIGNMENT = re.compile(
     r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
     r"%3d(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
 )
-_ENCODED_CREDENTIAL_URI = re.compile(
-    r"(?i)((?:postgres(?:ql)?|rediss?)%3a%2f%2f)(?:[^%@\s]*%3a)?[^%@\s]+%40"
-)
 
 
 def sanitize_log_message(value: str) -> str:
     """Best-effort defense for free-form and third-party log strings."""
 
-    result = _CREDENTIAL_URI.sub(r"\1[REDACTED]@", value)
+    result = _CREDENTIAL_URI.sub(r"\1[REDACTED]\2", value)
     result = _BEARER.sub(r"\1 [REDACTED]", result)
     result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
     result = _ASSIGNMENT.sub(r"\1\2[REDACTED]", result)
-    result = _ENCODED_ASSIGNMENT.sub(r"\1%3D[REDACTED]", result)
-    return _ENCODED_CREDENTIAL_URI.sub(r"\1[REDACTED]%40", result)
+    return _ENCODED_ASSIGNMENT.sub(r"\1%3D[REDACTED]", result)
 
 
 def _redact(value: Any) -> Any:

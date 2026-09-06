@@ -24,6 +24,10 @@ def _validate_production_hostname(host: str) -> None:
         or any(character.isspace() for character in host)
         or any(character in host for character in "*/:@[]\\")
         or host.endswith(".")
+        or host == "localhost"
+        or host.endswith(".localhost")
+        or host.endswith(".local")
+        or host.endswith(".home.arpa")
     ):
         raise ValueError("Production allowed hosts must be canonical explicit DNS hostnames")
     try:
@@ -44,6 +48,12 @@ def _validate_production_hostname(host: str) -> None:
         raise ValueError("Production allowed hosts contain malformed IDNA") from error
     if ascii_host != host or len(host) > 253:
         raise ValueError("Production allowed hosts must use canonical ASCII IDNA")
+    try:
+        canonical_host = host.encode("ascii").decode("idna").encode("idna").decode("ascii")
+    except UnicodeError as error:
+        raise ValueError("Production allowed hosts contain malformed IDNA") from error
+    if canonical_host != host:
+        raise ValueError("Production allowed hosts must use canonical ASCII IDNA")
     labels = host.split(".")
     if len(labels) < 2 or any(not _DNS_LABEL.fullmatch(label) for label in labels):
         raise ValueError("Production allowed hosts must be fully-qualified DNS hostnames")
@@ -51,7 +61,9 @@ def _validate_production_hostname(host: str) -> None:
 
 class Settings(BaseSettings):
     app_name: str = "Nuzenio API"
-    environment: Environment = Environment.DEVELOPMENT
+    # Every executable boundary must name its environment. An omitted value must
+    # never silently select the development security profile in a deployment.
+    environment: Environment
     database_url: str = "postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: list[str] = ["http://localhost:3000"]
