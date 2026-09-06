@@ -5,9 +5,19 @@ set -eu
 : "${NUZENIO_RESTORE_DATABASE_URL:?Set NUZENIO_RESTORE_DATABASE_URL}"
 : "${NUZENIO_RESTORE_CONFIRM_DATABASE:?Set NUZENIO_RESTORE_CONFIRM_DATABASE}"
 
+script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# Reject either invalid connection boundary before the first database command
+# or filesystem mutation. The operation scripts validate again while
+# constructing their short-lived PGPASSFILEs.
+env -u NUZENIO_RESTORE_DATABASE_URL \
+  python3 "$script_directory/postgres-connection.py" \
+    --uri-env NUZENIO_BACKUP_DATABASE_URL --validate-only >/dev/null
+env -u NUZENIO_BACKUP_DATABASE_URL \
+  python3 "$script_directory/postgres-connection.py" \
+    --uri-env NUZENIO_RESTORE_DATABASE_URL --validate-only >/dev/null
+
 verification_directory=$(mktemp -d)
 backup_file="$verification_directory/nuzenio-restore-verification.dump"
-script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 pgpass_file="$verification_directory/pgpass"
 cleanup() {
   rm -rf -- "$verification_directory"

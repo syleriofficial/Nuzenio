@@ -28,7 +28,9 @@ _QUERY_KEYS = {
 
 def _decoded(value: str, label: str) -> str:
     result = unquote(value)
-    if not result or any(character.isspace() or ord(character) < 32 for character in result):
+    if not result or any(
+        character.isspace() or ord(character) < 32 for character in result
+    ):
         raise ValueError(f"Invalid {label}")
     return result
 
@@ -51,6 +53,14 @@ def _validate_hostname(hostname: str) -> None:
         raise ValueError("Invalid PostgreSQL hostname") from error
     if ascii_hostname != hostname or len(hostname) > 253 or hostname.endswith("."):
         raise ValueError("Invalid PostgreSQL hostname")
+    try:
+        canonical_hostname = (
+            hostname.encode("ascii").decode("idna").encode("idna").decode("ascii")
+        )
+    except UnicodeError as error:
+        raise ValueError("Invalid PostgreSQL hostname") from error
+    if canonical_hostname != hostname:
+        raise ValueError("Invalid PostgreSQL hostname")
     if any(not _HOST_LABEL.fullmatch(label) for label in hostname.split(".")):
         raise ValueError("Invalid PostgreSQL hostname")
 
@@ -67,7 +77,9 @@ def split_connection_uri(uri: str) -> tuple[str, str]:
     database = _decoded(parsed.path[1:], "database")
     hostname = parsed.hostname
     if not _COMPONENT.fullmatch(username) or not _COMPONENT.fullmatch(database):
-        raise ValueError("PostgreSQL username and database must use safe canonical characters")
+        raise ValueError(
+            "PostgreSQL username and database must use safe canonical characters"
+        )
     _validate_hostname(hostname)
     try:
         port = parsed.port or 5432
@@ -111,14 +123,17 @@ def write_pgpass(path: Path, line: str, *, append: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--uri-env", required=True)
-    parser.add_argument("--pgpass", required=True, type=Path)
+    output = parser.add_mutually_exclusive_group(required=True)
+    output.add_argument("--pgpass", type=Path)
+    output.add_argument("--validate-only", action="store_true")
     parser.add_argument("--append", action="store_true")
     args = parser.parse_args()
     try:
         uri = os.environ.get(args.uri_env, "")
         safe_uri, pgpass = split_connection_uri(uri)
-        write_pgpass(args.pgpass, pgpass, append=args.append)
-    except Exception:
+        if args.pgpass is not None:
+            write_pgpass(args.pgpass, pgpass, append=args.append)
+    except (OSError, UnicodeError, ValueError):
         print("Invalid PostgreSQL connection URI.", file=sys.stderr)
         raise SystemExit(2) from None
     print(safe_uri)

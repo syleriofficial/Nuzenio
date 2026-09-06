@@ -8,6 +8,9 @@ umask 077
 : "${NUZENIO_RESTORE_CONFIRM_DATABASE:?Confirm the exact disposable target database name}"
 
 script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+env -u NUZENIO_BACKUP_DATABASE_URL \
+  python3 "$script_directory/postgres-connection.py" \
+    --uri-env NUZENIO_RESTORE_DATABASE_URL --validate-only >/dev/null
 credential_directory=$(mktemp -d "${TMPDIR:-/tmp}/nuzenio-pgpass.XXXXXX")
 pgpass_file="$credential_directory/pgpass"
 cleanup() {

@@ -22,6 +22,18 @@ if [ -L "$NUZENIO_BACKUP_OUTPUT" ]; then
 fi
 
 script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! output_directory=$(python3 "$script_directory/safe-backup-directory.py"); then
+  echo "The backup output path must not traverse symbolic links." >&2
+  exit 2
+fi
+published_output="$output_directory/$(basename -- "$NUZENIO_BACKUP_OUTPUT")"
+if [ -e "$published_output" ] || [ -L "$published_output" ]; then
+  echo "Refusing to overwrite an existing backup file." >&2
+  exit 2
+fi
+env -u NUZENIO_RESTORE_DATABASE_URL \
+  python3 "$script_directory/postgres-connection.py" \
+    --uri-env NUZENIO_BACKUP_DATABASE_URL --validate-only >/dev/null
 credential_directory=$(mktemp -d "${TMPDIR:-/tmp}/nuzenio-pgpass.XXXXXX")
 pgpass_file="$credential_directory/pgpass"
 temporary_output=$(mktemp "$output_directory/.nuzenio-backup.partial.XXXXXX")
@@ -44,7 +56,7 @@ env -u NUZENIO_BACKUP_DATABASE_URL -u NUZENIO_RESTORE_DATABASE_URL \
   --no-acl \
   --file="$temporary_output"
 
-if ! ln -- "$temporary_output" "$NUZENIO_BACKUP_OUTPUT"; then
+if ! ln -- "$temporary_output" "$published_output"; then
   echo "Refusing to overwrite a backup destination created during the dump." >&2
   exit 2
 fi
@@ -53,4 +65,4 @@ rm -f -- "$pgpass_file"
 rmdir "$credential_directory"
 trap - EXIT HUP INT TERM
 
-echo "PostgreSQL backup completed: $NUZENIO_BACKUP_OUTPUT"
+echo "PostgreSQL backup completed: $published_output"

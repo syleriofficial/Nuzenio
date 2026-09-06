@@ -40,8 +40,10 @@ The following is the required production design baseline.
 `scripts/backup-postgres.sh` creates a new custom-format `pg_dump` with owner/ACL metadata removed.
 It uses an exclusively created random mode-0600 partial in the destination directory, then publishes
 with a same-filesystem hard link that cannot overwrite a destination created concurrently. Existing
-files, destination symlinks and symlink output directories are refused. Supply the connection URI
-through the environment; the script validates it, writes the password only to a temporary mode-0600
+files, destination symlinks and symlinks anywhere in the existing output-directory chain are refused.
+Supply the connection URI
+through the environment; restore verification validates both source and target before its first
+database command, and each operation writes the password only to a temporary mode-0600
 `PGPASSFILE`, removes the original variable from child environments and gives PostgreSQL tools only a
 passwordless explicit `--dbname=...` argument:
 
