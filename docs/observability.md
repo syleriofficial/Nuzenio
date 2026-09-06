@@ -5,6 +5,10 @@ timestamp, severity, service, event name and the request/correlation ID when ava
 use route templates rather than raw paths and do not include bodies, query strings, cookies,
 authorization values or client IPs by default. Fields whose names indicate passwords, tokens,
 secrets, cookies, authorization or CSRF values are recursively redacted.
+Free-form third-party messages cross the same sanitizer boundary: common PostgreSQL/Redis credential
+URIs, bearer/cookie values and password/token/secret assignments (including common percent-encoded
+forms) are redacted. Application code should still prefer stable structured event names; redaction is
+defense in depth, not permission to log request bodies or secret-bearing exception text.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the
@@ -48,6 +52,11 @@ Counters reset on process restart; feed, retry, lease, dead-letter and review ga
 PostgreSQL/Redis. Alert rules must tolerate deployment resets. Until a time-series collector is
 selected, operators should preserve container logs and periodically record the authenticated metrics
 snapshot. Metrics endpoints return `Cache-Control: no-store`.
+
+Feed execution returns a typed outcome for success, rights/kill-switch skip, retry, dead letter,
+failure, cancellation, already-active work and lease/fencing loss. Worker completion metrics consume
+that outcome directly: fenced work increments the lost-lease counter and never the success counter.
+These counters are process-local and restart; the durable feed-run state remains authoritative.
 
 ## Diagnostics boundaries
 

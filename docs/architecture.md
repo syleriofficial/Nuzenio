@@ -10,19 +10,23 @@ successful scheduler/recovery iteration. OpenMetrics gauges combine durable feed
 Redis delivery depth; process counters are explicitly restart-scoped.
 
 The migration owner, application runtime and read-only audit identities are provisioned separately.
-Only the migration job receives the owner URL. Production settings reject weak/default secrets,
-non-TLS Redis, insecure cookies, wildcard Host/CORS/proxy configuration, demo mode and a disabled
-environment feed kill switch. Existing append-only audit/contributor and transactional mutation
-invariants are unchanged.
+Only the migration job receives the owner URL. Authentication events now have the same row- and
+statement-level append-only database enforcement as audit/contributor history. Production settings
+reject weak/default secrets, non-TLS Redis, insecure cookies, wildcard Host/CORS/proxy configuration,
+demo mode and a disabled environment feed kill switch. One strict shared environment enum is used by
+the API, worker, feed runner, seed, bootstrap, E2E setup and role provisioning; malformed values do not
+fall back to development behavior.
 
 The Compose CI project name includes the GitHub run/attempt. It builds images, starts and health-checks
 PostgreSQL, Redis, API and worker, probes both application readiness surfaces, explicitly seeds only
 fictional fixtures and restores a `pg_dump` into a second tmpfs PostgreSQL service. Its unconditional
 teardown removes only resources bearing that run-scoped Compose label and verifies none remain.
 
-Backup scripts refuse overwrite and non-empty/unconfirmed restore targets. They are a portable
-foundation, not a scheduler, WAL archive or encrypted object store; the documented RPO/RTO therefore
-remain unmet until infrastructure controls and measured drills exist.
+Backup scripts refuse overwrite, symlink/race destinations and non-empty/unconfirmed restore targets.
+PostgreSQL URIs are validated before execution and credentials are isolated in ephemeral `PGPASSFILE`
+files rather than process arguments. They are a portable foundation, not a scheduler, WAL archive or
+encrypted object store; the documented RPO/RTO therefore remain unmet until infrastructure controls
+and measured drills exist.
 
 ## PR #1 remediation invariants
 

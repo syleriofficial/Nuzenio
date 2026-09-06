@@ -60,7 +60,7 @@ Production code disables reader fixture fallback regardless of its configured va
 
 | Variable | Local default | Purpose |
 | --- | --- | --- |
-| `NUZENIO_ENVIRONMENT` | `development` | Use `production` to enable fail-closed checks. |
+| `NUZENIO_ENVIRONMENT` | `development` | Exact enum: `development`, `test`, or `production`; casing, whitespace, empty and unknown values are rejected. |
 | `NUZENIO_DATABASE_URL` | local `nuzenio` PostgreSQL | SQLAlchemy/psycopg URL. |
 | `NUZENIO_TEST_DATABASE_URL` | local `nuzenio_test` | Disposable API-test database; name must contain `test`. |
 | `NUZENIO_REDIS_URL` | `redis://localhost:6379/0` | Ready/delayed feed queue. |
@@ -123,3 +123,9 @@ Host allow-list, proxy CIDR, log format, demo mode or feed transport/kill-switch
 kill switch is deliberately required while the publisher pilot remains unapproved. These checks are
 a startup boundary, not a deployment manifest. See [observability](observability.md) and
 [secret rotation](secret-rotation.md).
+
+Production allowed hosts are canonical lowercase ASCII/IDNA DNS names only. Wildcards, trailing
+dots, schemes, ports, paths, userinfo, whitespace, IP literals, legacy numeric IPv4 forms,
+localhost equivalents and single-label names are rejected before `TrustedHostMiddleware` is built.
+Every executable entry point uses the same environment enum and predicate; malformed production
+configuration cannot fall through to development behavior.

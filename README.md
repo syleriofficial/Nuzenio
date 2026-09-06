@@ -9,7 +9,8 @@ role separation and a guarded PostgreSQL backup/restore foundation.
 
 PR #1's security rounds add contributor-bound independent approval, irreversible stale-summary
 invalidation and private-safe static-only PWA caching. Apply through forward migration
-`c96a1d2273eb` and re-provision the runtime role before starting this code. Correction creators,
+`6d0a4f2b8c91` and re-provision the runtime role before starting this code. Authentication events,
+correction creators,
 later draft editors and applying editors are append-only material contributors on every affected
 cluster. Legacy corrected content with unknown authorship remains held; do not infer historical
 authors or approvals. See the

@@ -3,7 +3,8 @@
 ## Remediation migration/recovery procedure
 
 R1–R6 adds forward revision `b85f0e1162da` after `a74e9b0216cd`; the correction-authorship closure
-adds `c96a1d2273eb`. Together they create append-only cluster and correction contributor records,
+adds `c96a1d2273eb`; production hardening adds `6d0a4f2b8c91`. Together they create append-only cluster,
+correction-contributor and authentication-event records,
 retire legacy potentially stale summaries, and hold corrected/high-risk content with unknown
 provenance. The correction migration recovers only persisted creator and applying-editor identities
 at their verifiable workflow versions; it does not infer intermediate editors or fabricate an
@@ -14,7 +15,7 @@ Contributor history is conservatively retained even if a later rewrite removes a
 Re-run runtime-role provisioning after migration so the new table receives SELECT/INSERT only.
 Runtime UPDATE/DELETE/TRUNCATE/trigger alteration are denied, just as for audit history.
 
-Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd -> b85f0e1162da -> c96a1d2273eb`.
+Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd -> b85f0e1162da -> c96a1d2273eb -> 6d0a4f2b8c91`.
 Do not edit the applied 2A/2B migrations. Back up and stop runtime writers/workers before upgrading.
 The new revisions hold legacy high-risk content, mark unmapped summaries pending, fence legacy runs,
 convert/retain legacy brief slugs, remove redundant uniqueness constraints and block audit TRUNCATE.
@@ -36,10 +37,13 @@ The following is the required production design baseline.
 
 ## Guarded backup and restore commands
 
-`scripts/backup-postgres.sh` creates a new custom-format `pg_dump` with owner/ACL metadata removed,
-mode-restricted output and atomic final placement. It refuses to overwrite an existing file. Supply
-the connection URL through the environment so it does not appear in process arguments written by an
-operator shell history:
+`scripts/backup-postgres.sh` creates a new custom-format `pg_dump` with owner/ACL metadata removed.
+It uses an exclusively created random mode-0600 partial in the destination directory, then publishes
+with a same-filesystem hard link that cannot overwrite a destination created concurrently. Existing
+files, destination symlinks and symlink output directories are refused. Supply the connection URI
+through the environment; the script validates it, writes the password only to a temporary mode-0600
+`PGPASSFILE`, removes the original variable from child environments and gives PostgreSQL tools only a
+passwordless explicit `--dbname=...` argument:
 
 ```bash
 NUZENIO_BACKUP_DATABASE_URL="$DATABASE_URL_FROM_SECRET_MANAGER" \
@@ -63,6 +67,12 @@ counts. The CI Compose job executes it against a second tmpfs PostgreSQL instanc
 volume. A production drill must additionally perform foreign-key, trigger/role, rights/expiry,
 session-revocation and reader acceptance checks listed below. Encrypt and checksum backup artifacts
 with infrastructure controls outside this repository.
+
+Only canonical `postgres://` or `postgresql://` URIs with a user, host and database are accepted;
+option-shaped inputs, control characters, malformed authorities, unsafe components and unapproved
+connection parameters fail before any PostgreSQL command runs. These scripts require Python 3 and
+PostgreSQL client tools. The CI `postgres-ops-test` runs real dump/restore tooling and exercises URI
+injection, argv/environment credential absence, symlinks, races, concurrent writers and interruption.
 
 ## PostgreSQL
 

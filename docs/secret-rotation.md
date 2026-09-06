@@ -4,6 +4,12 @@ No production secret belongs in Git, Compose defaults, command-line arguments, s
 logs. Inject secrets through the chosen platform secret mechanism and restrict the migration identity
 to reviewed migration/provisioning jobs.
 
+Backup and restore accept a connection URI only through a named environment variable, validate it,
+write credentials to an ephemeral mode-0600 `PGPASSFILE`, remove the password-bearing variable from
+PostgreSQL child processes and pass a passwordless explicit `--dbname` value. The scripts trap normal,
+failure and interruption paths to remove that file. Treat access to the parent process environment as
+secret access and run operational tooling in a dedicated restricted job/container.
+
 ## Roles and ownership
 
 - **Migration owner:** owns schema objects and runs Alembic plus role provisioning. The API and worker
