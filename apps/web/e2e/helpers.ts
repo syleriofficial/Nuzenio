@@ -3,7 +3,7 @@ import {
   request as playwrightRequest,
 } from '@playwright/test';
 
-export const apiBaseUrl = 'http://127.0.0.1:8001';
+export const apiBaseUrl = `http://127.0.0.1:${process.env.NUZENIO_E2E_API_PORT ?? '8001'}`;
 export const e2ePassword = 'Local-E2E-Staff-Password-42!';
 
 export async function authenticatedApi(

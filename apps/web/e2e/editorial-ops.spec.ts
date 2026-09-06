@@ -515,5 +515,5 @@ test.describe.serial('Milestone 2B editorial operations', () => {
 });
 
 function apiBaseUrl(): string {
-  return 'http://127.0.0.1:8001';
+  return `http://127.0.0.1:${process.env.NUZENIO_E2E_API_PORT ?? '8001'}`;
 }
