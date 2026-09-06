@@ -8,6 +8,7 @@ from nuzenio_api.audit import append_audit
 from nuzenio_api.auth import create_staff_user
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import SessionLocal
+from nuzenio_api.environment import is_production
 from nuzenio_api.models import StaffRole
 
 
@@ -20,7 +21,7 @@ def main() -> None:
     create.add_argument("--role", required=True, choices=[role.value for role in StaffRole])
     args = parser.parse_args()
     settings = get_settings()
-    if settings.environment == "production":
+    if is_production(settings.environment):
         supplied_token = getpass.getpass("Bootstrap token: ")
         if not settings.bootstrap_token or not secrets.compare_digest(
             supplied_token, settings.bootstrap_token

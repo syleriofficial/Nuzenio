@@ -6,6 +6,8 @@ import re
 from psycopg import sql
 from sqlalchemy import create_engine, text
 
+from nuzenio_api.environment import Environment, environment_from_os, is_production
+
 
 def _validate_role(role: str, password: str) -> None:
     if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", role) or len(password) < 16:
@@ -37,6 +39,9 @@ def provision_runtime(engine, role: str, password: str):
             f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {quoted}"
         )
         connection.exec_driver_sql(f"REVOKE UPDATE, DELETE, TRUNCATE ON audit_logs FROM {quoted}")
+        connection.exec_driver_sql(
+            f"REVOKE UPDATE, DELETE, TRUNCATE ON authentication_events FROM {quoted}"
+        )
         connection.exec_driver_sql(
             f"REVOKE UPDATE, DELETE, TRUNCATE ON material_contributors FROM {quoted}"
         )
@@ -95,6 +100,8 @@ def assert_runtime_identity(engine):
             AND relowner=(SELECT oid FROM pg_roles WHERE rolname=current_user))
           OR has_schema_privilege(current_user,'public','CREATE')
           OR has_table_privilege(current_user,'audit_logs','UPDATE,DELETE,TRUNCATE')
+          OR has_table_privilege(
+            current_user,'authentication_events','UPDATE,DELETE,TRUNCATE')
           OR has_table_privilege(current_user,'material_contributors','UPDATE,DELETE,TRUNCATE')
           OR has_table_privilege(current_user,'correction_contributors','UPDATE,DELETE,TRUNCATE')
           OR EXISTS(SELECT 1 FROM pg_auth_members
@@ -130,7 +137,10 @@ def assert_audit_reader_identity(engine):
 
 
 def main():
-    environment = os.environ.get("NUZENIO_ENVIRONMENT", "development")
+    try:
+        environment = environment_from_os(default=Environment.DEVELOPMENT)
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
     migration_url = os.environ.get("NUZENIO_MIGRATION_DATABASE_URL")
     runtime_password = os.environ.get("NUZENIO_RUNTIME_PASSWORD", "")
     audit_password = os.environ.get("NUZENIO_AUDIT_PASSWORD", "")
@@ -138,7 +148,7 @@ def main():
     audit_role = os.environ.get("NUZENIO_AUDIT_ROLE", "nuzenio_audit_reader")
     if runtime_role == audit_role:
         raise SystemExit("Runtime and audit-reader roles must be different")
-    if environment == "production":
+    if is_production(environment):
         if not migration_url:
             raise SystemExit("NUZENIO_MIGRATION_DATABASE_URL is required for provisioning")
         if runtime_password == "local-runtime-only-password" or len(runtime_password) < 16:

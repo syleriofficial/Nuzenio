@@ -1,18 +1,57 @@
 import os
+import re
+import socket
 import tempfile
 from functools import lru_cache
-from ipaddress import ip_network
+from ipaddress import ip_address, ip_network
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
+
+from nuzenio_api.environment import Environment, is_production, parse_environment
+
+_DNS_LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
+
+
+def _validate_production_hostname(host: str) -> None:
+    if (
+        not host
+        or host != host.strip()
+        or host != host.casefold()
+        or any(character.isspace() for character in host)
+        or any(character in host for character in "*/:@[]\\")
+        or host.endswith(".")
+    ):
+        raise ValueError("Production allowed hosts must be canonical explicit DNS hostnames")
+    try:
+        ip_address(host)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("Production allowed hosts must not be IP literals")
+    try:
+        socket.inet_aton(host)
+    except OSError:
+        pass
+    else:
+        raise ValueError("Production allowed hosts must not use legacy IPv4 notation")
+    try:
+        ascii_host = host.encode("idna").decode("ascii")
+    except UnicodeError as error:
+        raise ValueError("Production allowed hosts contain malformed IDNA") from error
+    if ascii_host != host or len(host) > 253:
+        raise ValueError("Production allowed hosts must use canonical ASCII IDNA")
+    labels = host.split(".")
+    if len(labels) < 2 or any(not _DNS_LABEL.fullmatch(label) for label in labels):
+        raise ValueError("Production allowed hosts must be fully-qualified DNS hostnames")
 
 
 class Settings(BaseSettings):
     app_name: str = "Nuzenio API"
-    environment: str = "development"
+    environment: Environment = Environment.DEVELOPMENT
     database_url: str = "postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: list[str] = ["http://localhost:3000"]
@@ -53,9 +92,14 @@ class Settings(BaseSettings):
     worker_poll_seconds: int = Field(default=2, ge=1, le=30)
     worker_stale_after_seconds: int = Field(default=30, ge=10, le=300)
 
+    @field_validator("environment", mode="before")
+    @classmethod
+    def validate_environment(cls, value: object) -> Environment:
+        return parse_environment(value)
+
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
-        if self.environment != "production":
+        if not is_production(self.environment):
             return self
         if (
             len(self.session_hash_pepper) < 32
@@ -94,12 +138,10 @@ class Settings(BaseSettings):
                 or "*" in origin
             ):
                 raise ValueError("Every production CORS origin must be an exact HTTPS origin")
-        if not self.allowed_hosts or any(
-            host == "*" or host.startswith(".") or "/" in host for host in self.allowed_hosts
-        ):
+        if not self.allowed_hosts:
             raise ValueError("NUZENIO_ALLOWED_HOSTS must contain explicit hostnames")
-        if any(host in {"localhost", "127.0.0.1", "testserver"} for host in self.allowed_hosts):
-            raise ValueError("Production allowed hosts must not contain local development hosts")
+        for host in self.allowed_hosts:
+            _validate_production_hostname(host)
         for cidr in self.trusted_proxy_cidrs:
             try:
                 network = ip_network(cidr, strict=False)

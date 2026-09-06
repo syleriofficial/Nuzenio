@@ -17,6 +17,7 @@ from nuzenio_api.admin_routes import router as admin_router
 from nuzenio_api.auth import AuthenticatedStaff, require_permission
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import get_db
+from nuzenio_api.environment import is_production
 from nuzenio_api.errors import register_error_handlers
 from nuzenio_api.observability import (
     configure_logging,
@@ -72,7 +73,7 @@ ERROR_RESPONSES = {
 @asynccontextmanager
 async def lifespan(app):
     configure_logging("nuzenio-api", settings)
-    if settings.environment == "production":
+    if is_production(settings.environment):
         from nuzenio_api.db import engine
         from nuzenio_api.db_roles import assert_runtime_identity
 

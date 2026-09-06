@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextvars
 import json
 import logging
+import re
 import sys
 import threading
 from collections import Counter
@@ -52,6 +53,31 @@ _STANDARD_RECORD_FIELDS = frozenset(
     }
 )
 _SENSITIVE_FRAGMENTS = ("password", "token", "secret", "cookie", "authorization", "csrf")
+_CREDENTIAL_URI = re.compile(r"(?i)\b((?:postgres(?:ql)?(?:\+[a-z0-9_-]+)?|rediss?)://)([^/@\s]+)@")
+_BEARER = re.compile(r"(?i)\b(bearer)(?:\s+|%20)+[a-z0-9._~+/=%:-]+")
+_COOKIE_HEADER = re.compile(r"(?i)\b((?:set-)?cookie\s*[:=]\s*)[^\r\n]+")
+_ASSIGNMENT = re.compile(
+    r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
+    r"(\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)"
+)
+_ENCODED_ASSIGNMENT = re.compile(
+    r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
+    r"%3d(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
+)
+_ENCODED_CREDENTIAL_URI = re.compile(
+    r"(?i)((?:postgres(?:ql)?|rediss?)%3a%2f%2f)(?:[^%@\s]*%3a)?[^%@\s]+%40"
+)
+
+
+def sanitize_log_message(value: str) -> str:
+    """Best-effort defense for free-form and third-party log strings."""
+
+    result = _CREDENTIAL_URI.sub(r"\1[REDACTED]@", value)
+    result = _BEARER.sub(r"\1 [REDACTED]", result)
+    result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
+    result = _ASSIGNMENT.sub(r"\1\2[REDACTED]", result)
+    result = _ENCODED_ASSIGNMENT.sub(r"\1%3D[REDACTED]", result)
+    return _ENCODED_CREDENTIAL_URI.sub(r"\1[REDACTED]%40", result)
 
 
 def _redact(value: Any) -> Any:
@@ -66,6 +92,8 @@ def _redact(value: Any) -> Any:
         }
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_redact(item) for item in value]
+    if isinstance(value, str):
+        return sanitize_log_message(value)
     try:
         return json_safe(value)
     except TypeError:
@@ -83,7 +111,7 @@ class JsonLogFormatter(logging.Formatter):
             "level": record.levelname,
             "service": self.service,
             "logger": record.name,
-            "event": getattr(record, "event", record.getMessage()),
+            "event": sanitize_log_message(str(getattr(record, "event", record.getMessage()))),
         }
         correlation_id = getattr(record, "correlation_id", None) or correlation_id_context.get()
         if correlation_id:

@@ -3,7 +3,10 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import secrets
+import subprocess
+import sys
 import threading
 import urllib.error
 import urllib.request
@@ -19,9 +22,10 @@ from sqlalchemy.exc import DBAPIError
 from nuzenio_api.config import Settings, get_settings
 from nuzenio_api.db import engine
 from nuzenio_api.db_roles import assert_audit_reader_identity, provision_audit_reader
+from nuzenio_api.environment import Environment, environment_from_os, is_production
 from nuzenio_api.main import app
 from nuzenio_api.observability import JsonLogFormatter
-from nuzenio_api.worker_health import WorkerStatus, start_worker_health_server
+from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 
 
 def production_settings(**overrides) -> Settings:
@@ -64,6 +68,104 @@ def test_production_configuration_rejects_unsafe_boundaries(override) -> None:
         production_settings(**override)
 
 
+@pytest.mark.parametrize(
+    "value",
+    ["Production", "PRODUCTION", " production", "production ", "", "staging-typo"],
+)
+def test_environment_classifier_rejects_every_noncanonical_value(value) -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment=value, _env_file=None)
+
+
+def test_canonical_production_environment_uses_shared_predicate() -> None:
+    settings = production_settings()
+    assert settings.environment is Environment.PRODUCTION
+    assert is_production(settings.environment)
+    assert settings.allowed_hosts == ["news.example"]
+
+
+@pytest.mark.parametrize("value", ["Production", " production", "production ", "staging-typo"])
+def test_malformed_environment_cannot_enable_development_protections(value) -> None:
+    with pytest.raises(ValidationError):
+        production_settings(
+            environment=value,
+            demo_mode=True,
+            cookie_secure=False,
+            session_hash_pepper="development-only-change-me",
+            cors_origins=["http://localhost:3000"],
+            allowed_hosts=["localhost"],
+            feed_kill_switch=False,
+            database_url="sqlite:///demo.db",
+            redis_url="redis://localhost:6379/0",
+        )
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "*",
+        "*.example.com",
+        ".example.com",
+        "LOCALHOST",
+        "localhost.",
+        "[::1]",
+        "::1",
+        "127.0.0.1",
+        "127.1",
+        "0.0.0.0",
+        "10.0.0.1",
+        "169.254.169.254",
+        "news.example:443",
+        "https://news.example",
+        "user@news.example",
+        "news.example/path",
+        " news.example",
+        "news.example ",
+        "news。example",
+    ],
+)
+def test_production_allowed_hosts_are_canonical_explicit_dns_names(host) -> None:
+    with pytest.raises(ValidationError):
+        production_settings(allowed_hosts=[host])
+
+
+def test_environment_from_os_uses_the_same_strict_parser(monkeypatch) -> None:
+    monkeypatch.setenv("NUZENIO_ENVIRONMENT", "test")
+    assert environment_from_os() is Environment.TEST
+    monkeypatch.setenv("NUZENIO_ENVIRONMENT", "Production")
+    with pytest.raises(ValueError):
+        environment_from_os()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        [sys.executable, "-c", "import nuzenio_api.main"],
+        [sys.executable, "-m", "nuzenio_api.feed_operations"],
+        [sys.executable, "-m", "nuzenio_api.seed", "--dry-run"],
+        [
+            sys.executable,
+            "-m",
+            "nuzenio_api.staff",
+            "create",
+            "--username",
+            "fixture",
+            "--display-name",
+            "Fixture",
+            "--role",
+            "EDITOR",
+        ],
+        [sys.executable, "-m", "nuzenio_api.db_roles"],
+        [sys.executable, "-m", "nuzenio_api.e2e_setup"],
+    ],
+)
+def test_every_environment_gated_entry_point_rejects_malformed_production(command) -> None:
+    environment = {**os.environ, "NUZENIO_ENVIRONMENT": "Production"}
+    result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=5)
+    assert result.returncode != 0
+    assert "Environment must be one of" in result.stderr
+
+
 def test_json_logs_include_correlation_fields_and_redact_secrets() -> None:
     stream = io.StringIO()
     handler = logging.StreamHandler(stream)
@@ -88,6 +190,36 @@ def test_json_logs_include_correlation_fields_and_redact_secrets() -> None:
     assert payload["route"] == "/health"
     assert payload["session_token"] == "[REDACTED]"
     assert "must-not-appear" not in stream.getvalue()
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "postgresql://operator:unique-marker@database.example/nuzenio",
+        "redis://:unique-marker@redis.example/0",
+        "Authorization: Bearer unique-marker",
+        "bearer%20unique-marker",
+        "Cookie: session=unique-marker; theme=dark",
+        "Set-Cookie=csrf=unique-marker",
+        "PASSWORD=unique-marker",
+        "ToKeN: unique-marker",
+        "csrf%3Dunique-marker",
+        "POSTGRESQL%3A%2F%2Foperator%3Aunique-marker%40database.example%2Fnuzenio",
+        "redis%3a%2f%2f%3aunique-marker%40redis.example%2f0",
+    ],
+)
+def test_free_form_and_nested_log_values_redact_common_secret_forms(message) -> None:
+    formatter = JsonLogFormatter("test-service")
+    record = logging.LogRecord("third-party", logging.ERROR, __file__, 1, message, (), None)
+    record.fields = {"diagnostic": message}
+    output = formatter.format(record)
+    assert "unique-marker" not in output
+
+
+def test_log_sanitizer_does_not_corrupt_safe_messages() -> None:
+    message = "Feed run 42 completed for https://fixture.example/feed.xml"
+    record = logging.LogRecord("fixture", logging.INFO, __file__, 1, message, (), None)
+    assert json.loads(JsonLogFormatter("test-service").format(record))["event"] == message
 
 
 def test_api_liveness_readiness_metrics_and_request_id(monkeypatch) -> None:
@@ -153,7 +285,10 @@ def test_worker_health_lifecycle_and_metrics() -> None:
         assert "nuzenio_worker_recovered_runs_total 2" in metrics
         assert "nuzenio_worker_scheduled_runs_total 3" in metrics
 
-        status.finished_run(lost_lease=True)
+        status.finished_run(WorkerRunOutcome.LOST_LEASE)
+        snapshot = status.snapshot()
+        assert snapshot.lost_lease_total == 1
+        assert snapshot.completed_runs_total == 0
         status.stopping()
         with pytest.raises(urllib.error.HTTPError) as stopped:
             urllib.request.urlopen(f"{base}/health/ready", timeout=2)
@@ -240,10 +375,16 @@ def test_separate_audit_reader_role_is_read_only() -> None:
     try:
         with audit_engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM audit_logs")) is not None
+            assert connection.scalar(text("SELECT count(*) FROM authentication_events")) is not None
         with audit_engine.begin() as connection, pytest.raises(DBAPIError):
             connection.execute(text("DELETE FROM audit_logs"))
+        with audit_engine.begin() as connection, pytest.raises(DBAPIError):
+            connection.execute(text("UPDATE authentication_events SET reason='forbidden'"))
         with audit_engine.begin() as connection, pytest.raises(DBAPIError):
             connection.execute(text("SELECT count(*) FROM staff_users"))
         assert_audit_reader_identity(audit_engine)
     finally:
         audit_engine.dispose()
+        with engine.begin() as connection:
+            connection.execute(text(f'DROP OWNED BY "{role}"'))
+            connection.execute(text(f'DROP ROLE "{role}"'))

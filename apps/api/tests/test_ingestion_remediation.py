@@ -1,6 +1,7 @@
 import gzip
 import threading
 import time
+import urllib.request
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
@@ -26,6 +27,7 @@ from nuzenio_api.feed_operations import (
 from nuzenio_api.feed_security import FeedSecurityError, FetchResult, SafeFeedFetcher
 from nuzenio_api.main import app
 from nuzenio_api.models import Article, FeedControl, FeedRun, FeedRunState, SourceFeed
+from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 from test_worker import FakeQueue
 
 
@@ -120,9 +122,7 @@ def test_f08_stale_worker_cannot_commit_after_takeover():
 
     def execute(fetcher):
         with SessionLocal() as session:
-            return (
-                FeedRunExecutor(fetcher=fetcher, queue=FakeQueue()).execute(session, run_id).state
-            )
+            return FeedRunExecutor(fetcher=fetcher, queue=FakeQueue()).execute(session, run_id)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         old = pool.submit(execute, SimpleNamespace(fetch=old_fetch))
@@ -134,12 +134,31 @@ def test_f08_stale_worker_cannot_commit_after_takeover():
         assert not heartbeat(SessionLocal, run_id, token)
         with SessionLocal() as session:
             recover_queued_runs(session, FakeQueue())
-        assert (
-            execute(SimpleNamespace(fetch=lambda *a, **k: fixture_result(new_slug)))
-            == FeedRunState.SUCCEEDED
-        )
+        replacement = execute(SimpleNamespace(fetch=lambda *a, **k: fixture_result(new_slug)))
+        assert replacement.kind is WorkerRunOutcome.SUCCEEDED
         release.set()
-        old.result(timeout=3)
+        fenced = old.result(timeout=3)
+    assert fenced.kind is WorkerRunOutcome.LOST_LEASE
+    assert redis.Redis.from_url(get_settings().redis_url).ping()
+    status = WorkerStatus(stale_after_seconds=30)
+    status.iteration(dependencies_ready=True)
+    status.started_run(str(run_id))
+    status.finished_run(fenced.kind)
+    server, thread = start_worker_health_server(
+        status, Settings(worker_health_host="127.0.0.1", _env_file=None), port=0
+    )
+    try:
+        metrics = (
+            urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/metrics", timeout=2)
+            .read()
+            .decode()
+        )
+        assert "nuzenio_worker_lost_lease_total 1" in metrics
+        assert "nuzenio_worker_completed_runs_total 0" in metrics
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
     with SessionLocal() as session:
         assert not session.scalar(select(Article).where(Article.canonical_url.endswith(old_slug)))
         assert session.scalar(select(Article).where(Article.canonical_url.endswith(new_slug)))
@@ -176,7 +195,7 @@ def test_f08_duplicate_delivery_and_redis_outage():
             fetcher=SimpleNamespace(fetch=fail), queue=SimpleNamespace(schedule=redis_down)
         ).execute(session, failed_id)
         assert result.state == FeedRunState.RETRYING
-        assert result.lease_token is None
+        assert result.run.lease_token is None
 
 
 def test_f04_limits_before_hash_and_ip_rotation(monkeypatch):

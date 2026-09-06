@@ -6,6 +6,7 @@ import signal
 import threading
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Protocol
@@ -16,6 +17,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from nuzenio_api.config import get_settings
+from nuzenio_api.environment import is_production
 from nuzenio_api.feed_locks import approval_versions, control_lock, locked_feed
 from nuzenio_api.feed_security import FeedSecurityError, SafeFeedFetcher, parse_feed_xml
 from nuzenio_api.models import (
@@ -34,13 +36,23 @@ from nuzenio_api.models import (
 from nuzenio_api.observability import configure_logging, log_event
 from nuzenio_api.pipeline.demo import DeterministicCanonicalizer
 from nuzenio_api.services import ApplicationError
-from nuzenio_api.worker_health import WorkerStatus, start_worker_health_server
+from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 
 QUEUE_KEY = "nuzenio:feed-runs:ready"
 SCHEDULED_KEY = "nuzenio:feed-runs:scheduled"
 ENQUEUED_KEY = "nuzenio:feed-runs:enqueued"
 MAX_ATTEMPTS = 4
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class FeedExecutionOutcome:
+    run: FeedRun
+    kind: WorkerRunOutcome
+
+    @property
+    def state(self) -> FeedRunState:
+        return self.run.state
 
 
 class Queue(Protocol):
@@ -360,7 +372,7 @@ class FeedRunExecutor:
         self.queue = queue or RedisFeedQueue()
         self.canonicalizer = DeterministicCanonicalizer()
 
-    def execute(self, session: Session, run_id: uuid.UUID) -> FeedRun:
+    def execute(self, session: Session, run_id: uuid.UUID) -> FeedExecutionOutcome:
         run = session.get(FeedRun, run_id)
         if run is None:
             raise ApplicationError(
@@ -376,14 +388,14 @@ class FeedRunExecutor:
             FeedRunState.DEAD_LETTERED,
         }:
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.ALREADY_TERMINAL)
         if (
             run.state == FeedRunState.RUNNING
             and run.lease_expires_at
             and run.lease_expires_at > now
         ) or (run.state == FeedRunState.RETRYING and run.next_retry_at and run.next_retry_at > now):
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.ACTIVE_ELSEWHERE)
         if feed is None:
             raise ApplicationError(code="feed_not_found", message="Feed not found.", status=404)
         issues = rights_issues(session, feed)
@@ -393,7 +405,7 @@ class FeedRunExecutor:
             run.internal_error = ",".join(issues)
             run.completed_at = datetime.now(UTC)
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.SKIPPED)
         started = time.monotonic()
         versions = approval_versions(session, feed)
         fetch_arguments = (feed.url, feed.etag, feed.last_modified)
@@ -441,7 +453,9 @@ class FeedRunExecutor:
                     stage="persist",
                 )
                 session.rollback()
-                return session.get(FeedRun, run_id)
+                return FeedExecutionOutcome(
+                    session.get(FeedRun, run_id), WorkerRunOutcome.LOST_LEASE
+                )
             issues = rights_issues(session, feed)
             if issues or versions != approval_versions(session, feed):
                 run.state = FeedRunState.SKIPPED
@@ -449,7 +463,7 @@ class FeedRunExecutor:
                 run.completed_at = datetime.now(UTC)
                 run.lease_token = None
                 session.commit()
-                return run
+                return FeedExecutionOutcome(run, WorkerRunOutcome.SKIPPED)
             allowed_domains = {
                 domain.domain.casefold()
                 for domain in session.scalars(
@@ -524,7 +538,7 @@ class FeedRunExecutor:
                 new_articles=run.new_articles,
                 duration_ms=run.duration_ms,
             )
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.SUCCEEDED)
         except Exception as error:
             session.rollback()
             locked_feed(session, feed_id)
@@ -537,7 +551,9 @@ class FeedRunExecutor:
                 or run.lease_expires_at <= datetime.now(UTC)
             ):
                 session.rollback()
-                return session.get(FeedRun, run_id)
+                return FeedExecutionOutcome(
+                    session.get(FeedRun, run_id), WorkerRunOutcome.LOST_LEASE
+                )
             run.lease_token = None
             run.lease_expires_at = None
             run.attempt += 1
@@ -572,7 +588,12 @@ class FeedRunExecutor:
                 attempt=run.attempt,
                 error_code=run.error_code,
             )
-            return run
+            kind = (
+                WorkerRunOutcome.RETRYING
+                if run.state == FeedRunState.RETRYING
+                else WorkerRunOutcome.DEAD_LETTERED
+            )
+            return FeedExecutionOutcome(run, kind)
 
 
 def worker_main(stop_event: threading.Event | None = None) -> None:
@@ -580,7 +601,7 @@ def worker_main(stop_event: threading.Event | None = None) -> None:
 
     settings = get_settings()
     configure_logging("nuzenio-worker", settings)
-    if settings.environment == "production":
+    if is_production(settings.environment):
         from nuzenio_api.db import engine
         from nuzenio_api.db_roles import assert_runtime_identity
 
@@ -635,9 +656,12 @@ def worker_main(stop_event: threading.Event | None = None) -> None:
                     status.started_run(run_id)
                     try:
                         with SessionLocal() as session:
-                            executor.execute(session, uuid.UUID(run_id))
-                    finally:
-                        status.finished_run()
+                            outcome = executor.execute(session, uuid.UUID(run_id))
+                    except Exception:
+                        status.finished_run(WorkerRunOutcome.FAILED)
+                        raise
+                    else:
+                        status.finished_run(outcome.kind)
             except Exception as error:
                 status.iteration_failed()
                 log_event(

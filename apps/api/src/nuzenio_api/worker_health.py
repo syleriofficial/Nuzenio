@@ -3,12 +3,25 @@ from __future__ import annotations
 import json
 import threading
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from time import monotonic
 from typing import Any
 
 from nuzenio_api.config import Settings, get_settings
+
+
+class WorkerRunOutcome(StrEnum):
+    SUCCEEDED = "succeeded"
+    SKIPPED = "skipped"
+    RETRYING = "retrying"
+    DEAD_LETTERED = "dead_lettered"
+    LOST_LEASE = "lost_lease"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    ACTIVE_ELSEWHERE = "active_elsewhere"
+    ALREADY_TERMINAL = "already_terminal"
 
 
 @dataclass(frozen=True)
@@ -22,6 +35,11 @@ class WorkerSnapshot:
     recovered_runs_total: int
     scheduled_runs_total: int
     completed_runs_total: int
+    skipped_runs_total: int
+    retry_runs_total: int
+    dead_letter_runs_total: int
+    failed_runs_total: int
+    cancelled_runs_total: int
     lost_lease_total: int
 
 
@@ -38,6 +56,11 @@ class WorkerStatus:
         self._recovered = 0
         self._scheduled = 0
         self._completed = 0
+        self._skipped = 0
+        self._retries = 0
+        self._dead_letters = 0
+        self._run_failures = 0
+        self._cancelled = 0
         self._lost_leases = 0
 
     def iteration(
@@ -66,11 +89,16 @@ class WorkerStatus:
         with self._lock:
             self._current_run_id = run_id
 
-    def finished_run(self, *, lost_lease: bool = False) -> None:
+    def finished_run(self, outcome: WorkerRunOutcome) -> None:
         with self._lock:
             self._current_run_id = None
-            self._completed += 1
-            self._lost_leases += int(lost_lease)
+            self._completed += int(outcome is WorkerRunOutcome.SUCCEEDED)
+            self._skipped += int(outcome is WorkerRunOutcome.SKIPPED)
+            self._retries += int(outcome is WorkerRunOutcome.RETRYING)
+            self._dead_letters += int(outcome is WorkerRunOutcome.DEAD_LETTERED)
+            self._run_failures += int(outcome is WorkerRunOutcome.FAILED)
+            self._cancelled += int(outcome is WorkerRunOutcome.CANCELLED)
+            self._lost_leases += int(outcome is WorkerRunOutcome.LOST_LEASE)
 
     def stopping(self) -> None:
         with self._lock:
@@ -96,6 +124,11 @@ class WorkerStatus:
                 recovered_runs_total=self._recovered,
                 scheduled_runs_total=self._scheduled,
                 completed_runs_total=self._completed,
+                skipped_runs_total=self._skipped,
+                retry_runs_total=self._retries,
+                dead_letter_runs_total=self._dead_letters,
+                failed_runs_total=self._run_failures,
+                cancelled_runs_total=self._cancelled,
                 lost_lease_total=self._lost_leases,
             )
 
@@ -108,6 +141,11 @@ def _metrics(snapshot: WorkerSnapshot) -> str:
         "nuzenio_worker_recovered_runs_total": snapshot.recovered_runs_total,
         "nuzenio_worker_scheduled_runs_total": snapshot.scheduled_runs_total,
         "nuzenio_worker_completed_runs_total": snapshot.completed_runs_total,
+        "nuzenio_worker_skipped_runs_total": snapshot.skipped_runs_total,
+        "nuzenio_worker_retry_runs_total": snapshot.retry_runs_total,
+        "nuzenio_worker_dead_letter_runs_total": snapshot.dead_letter_runs_total,
+        "nuzenio_worker_failed_runs_total": snapshot.failed_runs_total,
+        "nuzenio_worker_cancelled_runs_total": snapshot.cancelled_runs_total,
         "nuzenio_worker_lost_lease_total": snapshot.lost_lease_total,
     }
     return "\n".join([*(f"{key} {value}" for key, value in values.items()), ""])
