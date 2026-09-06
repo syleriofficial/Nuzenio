@@ -1,5 +1,9 @@
 # Publisher and rights workflow
 
+The operational [publisher pilot checklist](publisher-pilot-checklist.md) is mandatory before any
+live source is proposed. Milestone 2C keeps the environment kill switch enabled and does not authorize
+fetching a real publisher.
+
 ## Evidence-visible approval
 
 Reviewers see domain ownership evidence and all eight rights permissions, evidence URL,

@@ -2,7 +2,10 @@
 
 > One story. Multiple sources. Clear in 60 seconds.
 
-Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not write original news. Milestone 2B preserves the bilingual reader PWA and adds authenticated editorial operations, rights-aware source onboarding, controlled feed jobs, correction propagation and an append-only audit trail.
+Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not
+write original news. Milestone 2C preserves the bilingual reader/editorial product and adds isolated
+full-stack CI, production configuration validation, structured observability, worker diagnostics,
+role separation and a guarded PostgreSQL backup/restore foundation.
 
 PR #1's security rounds add contributor-bound independent approval, irreversible stale-summary
 invalidation and private-safe static-only PWA caching. Apply through forward migration
@@ -42,6 +45,18 @@ All checked-in stories, publishers, documents and links are fictional demonstrat
 - Fetching enforces public HTTPS targets in production, DNS/IP checks, redirect revalidation, rebinding protection, response limits, content types, safe XML parsing and text sanitation.
 - Tests use local RSS/XML fixtures with injected transports. Compose enables the global feed kill switch so seeded `.example` URLs are never contacted.
 
+### Operations foundation
+
+- API and worker liveness/readiness distinguish a running process from usable PostgreSQL/Redis
+  dependencies. Structured JSON events carry bounded correlation IDs and redact secret-shaped fields.
+- OpenMetrics diagnostics cover requests, feed states, retries, leases, queue depth, dead letters and
+  editorial reviews without requiring a paid collector.
+- Production startup rejects weak/default secrets, insecure cookie/CORS/Host/proxy settings, non-TLS
+  Redis, demo mode and a disabled pilot kill switch.
+- Migration-owner, application-runtime and audit-reader database identities are provisioned separately.
+- Guarded backup/restore scripts refuse overwrite, non-empty targets and unconfirmed database names;
+  CI performs a real restore into a second disposable PostgreSQL instance.
+
 ## Repository structure
 
 ```text
@@ -58,6 +73,8 @@ Nuzenio/
 │   │   │   ├── onboarding.py      # publisher/domain/rights/feed states
 │   │   │   ├── feed_security.py   # SSRF/XML safety boundary
 │   │   │   ├── feed_operations.py # Redis queue, scheduler and executor
+│   │   │   ├── observability.py    # JSON logs and operational metrics
+│   │   │   ├── worker_health.py    # internal worker health/readiness
 │   │   │   ├── audit.py           # redacted append-only events
 │   │   │   ├── models.py          # SQLAlchemy domain model
 │   │   │   ├── seed.py            # idempotent fictional reader seed
@@ -71,6 +88,7 @@ Nuzenio/
 │       └── public/                 # PWA assets
 ├── docs/                           # architecture and operating policies
 ├── infra/postgres/init/
+├── scripts/                        # guarded PostgreSQL backup/restore tools
 ├── .env.example
 └── compose.yaml
 ```
@@ -129,6 +147,7 @@ For the containerized API and worker:
 ```bash
 docker compose up --build -d api worker
 docker compose ps
+curl --fail http://localhost:8000/health/ready
 ```
 
 The separate `migrate` service owns schema changes and provisions the unprivileged runtime role.
@@ -171,7 +190,7 @@ apps/api/.venv/bin/python -m pip freeze --all --exclude-editable | apps/api/.ven
 npm run test:e2e
 npm run build:web
 docker compose config --quiet
-docker compose up --build -d api worker
+docker compose up --build --detach --wait api worker
 docker compose ps
 ```
 
@@ -193,11 +212,17 @@ reproductions, validation results and remaining risks are in [the F01–F15 chec
 - [Publisher-rights workflow](docs/publisher-rights-workflow.md)
 - [Correction policy](docs/correction-policy.md)
 - [Backup and recovery](docs/backup-recovery.md)
+- [Production observability and alert thresholds](docs/observability.md)
+- [Secret rotation](docs/secret-rotation.md)
+- [Rights-safe publisher pilot checklist](docs/publisher-pilot-checklist.md)
+- [Founder acceptance matrix](docs/founder-acceptance.md)
 - [Product decisions](docs/product-decisions.md)
 
 ## Explicit boundary
 
-Milestone 2B does not include real publisher connections, publisher self-service, reader accounts, OpenSearch, paid AI, browser push, Android packaging, production deployment, full-article hosting or political-bias scoring.
+Milestone 2C does not include real publisher connections, publisher self-service, reader accounts,
+OpenSearch, paid AI, browser push, Android packaging, production deployment, full-article hosting or
+political-bias scoring. The live-feed kill switch remains mandatory.
 
 ## Licence
 

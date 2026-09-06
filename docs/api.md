@@ -43,13 +43,27 @@ Local base URL: `http://localhost:8000`. OpenAPI is available at `/docs` and `/o
 }
 ```
 
-Each response includes `X-Request-ID`. A safe caller-supplied `X-Request-ID` is preserved; otherwise the API generates one.
+Each response includes `X-Request-ID`. A safe caller-supplied `X-Request-ID` is preserved; otherwise
+the API generates one. Request/health/metrics responses are non-cacheable.
+
+## Operations endpoints
+
+| Method and path | Access | Result |
+| --- | --- | --- |
+| `GET /health/live` | network policy | Process liveness only; no dependency claim |
+| `GET /health/ready` | network policy | Bounded PostgreSQL query and Redis ping |
+| `GET /health` | network policy | Compatibility alias for readiness |
+| `GET /metrics` | bearer token when configured; mandatory in production | OpenMetrics requests, feed states, retries, leases, queue depths, dead letters and reviews |
+
+Worker port `8001` is internal-only and serves `/health/live`, `/health/ready` and `/metrics` for
+lifecycle/loop/recovery diagnostics. Do not route it through the public web/API ingress. See
+[production observability](observability.md) for thresholds and data-minimization boundaries.
 
 ## Public reader endpoints
 
 | Method and path | Parameters | Result |
 | --- | --- | --- |
-| `GET /health` | — | Database-backed service health |
+| `GET /health` | — | PostgreSQL/Redis-backed service readiness |
 | `GET /v1/feed/top` | `language`, `page`, `page_size`, `category`, `status` | Cluster page |
 | `GET /v1/feed/local` | above plus `area` | Delhi NCR/local cluster page |
 | `GET /v1/clusters/{slug}` | `language` | Cluster claims, evidence, sources, timeline, documents, corrections |

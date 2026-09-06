@@ -31,13 +31,48 @@ requires restoring a tested pre-upgrade database backup and matching code while 
 Owners/superusers can still change triggers/grants: protect and audit their credentials separately.
 Never delete application volumes as a migration or test shortcut.
 
-This repository contains local foundations, not a production deployment or automated backup service. The following is the required production design baseline.
+This repository contains local foundations, not a production deployment or automated backup service.
+The following is the required production design baseline.
+
+## Guarded backup and restore commands
+
+`scripts/backup-postgres.sh` creates a new custom-format `pg_dump` with owner/ACL metadata removed,
+mode-restricted output and atomic final placement. It refuses to overwrite an existing file. Supply
+the connection URL through the environment so it does not appear in process arguments written by an
+operator shell history:
+
+```bash
+NUZENIO_BACKUP_DATABASE_URL="$DATABASE_URL_FROM_SECRET_MANAGER" \
+NUZENIO_BACKUP_OUTPUT=/secure/new/nuzenio-2026-09-07.dump \
+scripts/backup-postgres.sh
+```
+
+`scripts/restore-postgres.sh` accepts only a readable custom backup, an exact confirmation matching
+the connected database, a target name containing `restore` or `recovery`, and a database with zero
+user tables. It never uses `--clean`, never drops a database and restores in one transaction:
+
+```bash
+NUZENIO_RESTORE_DATABASE_URL="$ISOLATED_EMPTY_RESTORE_URL" \
+NUZENIO_RESTORE_CONFIRM_DATABASE=nuzenio_restore_drill \
+NUZENIO_RESTORE_INPUT=/secure/nuzenio-2026-09-07.dump \
+scripts/restore-postgres.sh
+```
+
+`scripts/verify-postgres-restore.sh` runs both and compares the Alembic head plus cluster/audit row
+counts. The CI Compose job executes it against a second tmpfs PostgreSQL instance, never a developer
+volume. A production drill must additionally perform foreign-key, trigger/role, rights/expiry,
+session-revocation and reader acceptance checks listed below. Encrypt and checksum backup artifacts
+with infrastructure controls outside this repository.
 
 ## PostgreSQL
 
 PostgreSQL is authoritative for staff accounts, hashed sessions, publisher rights, editorial versions, audit history, feed-run state and reader content. Use encrypted continuous WAL archiving plus scheduled full backups, with separate credentials and immutable retention for audit-bearing backups. Protect encryption keys outside the database environment.
 
-Set recovery objectives before launch. A reasonable starting proposal is an RPO under 15 minutes and RTO under 2 hours, subject to legal/editorial review. Run restore drills into an isolated environment at least quarterly. A restore is complete only after:
+Provisional launch assumptions are an RPO of 15 minutes and RTO of 2 hours. They require continuous
+encrypted WAL archival, at least daily encrypted full backups, an independent retention location and
+measured quarterly restore drills; without those deployed controls the targets are not met. Legal,
+editorial and infrastructure owners must approve the final objectives. A restore is complete only
+after:
 
 1. the expected Alembic revision is present;
 2. row counts and foreign-key checks pass;
@@ -47,6 +82,10 @@ Set recovery objectives before launch. A reasonable starting proposal is an RPO 
 6. a reader/API smoke test passes before traffic resumes.
 
 Do not restore by running the demonstration seed over production.
+
+Record backup start/end, encrypted object identifier, checksum, PostgreSQL/Alembic version, operator
+and retention class without recording connection URLs. Alert on a missed daily backup, WAL archival
+lag beyond 10 minutes, verification failure or a quarterly drill exceeding the RTO.
 
 ## Redis
 
