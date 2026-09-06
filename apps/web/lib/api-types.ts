@@ -74,6 +74,10 @@ export interface ApiClusterDetail extends ApiClusterCard {
     description: string;
     status: string;
     publishedAt: string | null;
+    resolution: string | null;
+    sourceUrl: string | null;
+    evidence: string | null;
+    turnaroundSeconds: number | null;
   }>;
 }
 

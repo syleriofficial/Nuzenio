@@ -13,7 +13,7 @@ export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
     ),
   ).size;
   return (
-    <>
+    <main className="top-news-page">
       <section className="page-heading">
         <div>
           <p className="eyebrow">
@@ -42,7 +42,7 @@ export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
         )}
       </div>
       <div className="feed-grid">
-        <main
+        <div
           className="story-feed"
           aria-label={t('Top story clusters', 'मुख्य स्टोरी क्लस्टर')}
         >
@@ -69,7 +69,7 @@ export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
               </p>
             </section>
           )}
-        </main>
+        </div>
         <aside
           className="rail"
           aria-label={t('Today at a glance', 'आज एक नजर में')}
@@ -117,6 +117,6 @@ export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
           </div>
         </aside>
       </div>
-    </>
+    </main>
   );
 }

@@ -7,11 +7,15 @@
     "dev:web": "npm --workspace apps/web run dev",
     "lint:web": "npm --workspace apps/web run lint",
     "format:web": "npm --workspace apps/web run format",
+    "format:check:web": "npm --workspace apps/web run format:check",
     "test:web": "npm --workspace apps/web run test",
     "build:web": "npm --workspace apps/web run build",
+    "test:e2e:setup": "NUZENIO_ENVIRONMENT=test NUZENIO_DATABASE_URL=postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_e2e apps/api/.venv/bin/python -m nuzenio_api.e2e_setup",
+    "test:e2e": "npm run test:e2e:setup && npm --workspace apps/web run test:e2e",
     "test:api": "apps/api/.venv/bin/pytest apps/api/tests",
     "lint:api": "apps/api/.venv/bin/ruff check apps/api",
     "format:api": "apps/api/.venv/bin/ruff format apps/api"
   },
-  "engines": { "node": ">=22.13.0" }
+  "engines": { "node": ">=22.13.0" },
+  "overrides": { "vite": "7.3.6" }
 }

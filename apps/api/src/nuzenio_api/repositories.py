@@ -11,6 +11,7 @@ from nuzenio_api.models import (
     ClaimState,
     ClusterArticle,
     ContentStatus,
+    EditionControl,
     EventCluster,
     PublisherOrganization,
     ReviewState,
@@ -33,6 +34,9 @@ def _cluster_options():
         selectinload(EventCluster.articles)
         .selectinload(ClusterArticle.article)
         .selectinload(Article.feed),
+        selectinload(EventCluster.articles)
+        .selectinload(ClusterArticle.article)
+        .selectinload(Article.corrections),
         selectinload(EventCluster.claims).selectinload(Claim.evidence),
         selectinload(EventCluster.claims)
         .selectinload(Claim.evidence)
@@ -55,22 +59,35 @@ class ReaderRepository:
     def publishable_clusters() -> Select[tuple[EventCluster]]:
         return select(EventCluster).where(
             EventCluster.status == ContentStatus.PUBLISHED,
+            func.nuzenio_correction_lineage_complete(EventCluster.id),
             EventCluster.review_state.in_([ReviewState.NOT_REQUIRED, ReviewState.APPROVED]),
             or_(
                 EventCluster.risk_level != RiskLevel.HIGH,
-                EventCluster.review_state == ReviewState.APPROVED,
+                and_(
+                    EventCluster.review_state == ReviewState.APPROVED,
+                    func.nuzenio_current_review(EventCluster.id),
+                ),
+            ),
+            or_(
+                ~func.lower(EventCluster.category).in_(
+                    [
+                        "elections",
+                        "communal violence",
+                        "war",
+                        "terrorism",
+                        "health emergencies",
+                        "public safety",
+                        "market-moving",
+                    ]
+                ),
+                func.nuzenio_current_review(EventCluster.id),
             ),
         )
 
     @classmethod
-    def reader_ready_clusters(cls) -> Select[tuple[EventCluster]]:
+    def reader_ready_clusters(cls, language: str = "en") -> Select[tuple[EventCluster]]:
         return cls.publishable_clusters().where(
-            EventCluster.summaries.any(
-                and_(
-                    func.length(func.trim(SummaryVersion.summary_text)) > 0,
-                    SummaryVersion.evidence_map != {},
-                )
-            )
+            func.nuzenio_public_summary(EventCluster.id, language).is_not(None)
         )
 
     def list_clusters(
@@ -83,8 +100,9 @@ class ReaderRepository:
         location: str | None = None,
         query: str | None = None,
         organization_id: object | None = None,
+        language: str = "en",
     ) -> Page:
-        statement = self.reader_ready_clusters()
+        statement = self.reader_ready_clusters(language)
         if category:
             statement = statement.where(func.lower(EventCluster.category) == category.lower())
         if location:
@@ -121,7 +139,13 @@ class ReaderRepository:
                     EventCluster.neutral_headline_hi.ilike(pattern),
                     EventCluster.category.ilike(pattern),
                     EventCluster.location.ilike(pattern),
-                    EventCluster.summaries.any(SummaryVersion.summary_text.ilike(pattern)),
+                    EventCluster.summaries.any(
+                        and_(
+                            SummaryVersion.id
+                            == func.nuzenio_public_summary(EventCluster.id, language),
+                            SummaryVersion.summary_text.ilike(pattern),
+                        )
+                    ),
                     EventCluster.articles.any(
                         ClusterArticle.article.has(
                             or_(Article.title.ilike(pattern), Article.title_hi.ilike(pattern))
@@ -176,26 +200,27 @@ class ReaderRepository:
             )
         )
 
-    def clusters_by_slugs(self, slugs: list[str]) -> list[EventCluster]:
-        if not slugs:
+    def clusters_by_ids(self, ids: list[str], language: str = "en") -> list[EventCluster]:
+        if not ids:
             return []
         items = list(
             self.session.scalars(
-                self.reader_ready_clusters()
-                .where(EventCluster.slug.in_(slugs))
+                self.reader_ready_clusters(language)
+                .where(EventCluster.id.in_(ids))
                 .options(*_cluster_options())
             ).unique()
         )
-        by_slug = {cluster.slug: cluster for cluster in items}
-        return [by_slug[slug] for slug in slugs if slug in by_slug]
+        by_id = {str(cluster.id): cluster for cluster in items}
+        return [by_id[key] for key in ids if key in by_id]
 
     def recent_clusters_for_source(
-        self, *, organization_id: object, limit: int = 5
+        self, *, organization_id: object, limit: int = 5, language: str = "en"
     ) -> list[EventCluster]:
         return self.list_clusters(
             page=1,
             page_size=limit,
             organization_id=organization_id,
+            language=language,
         ).items
 
     def count_cluster_entities(self) -> dict[str, int]:
@@ -204,6 +229,13 @@ class ReaderRepository:
             "articles": int(self.session.scalar(select(func.count(Article.id))) or 0),
             "claims": int(self.session.scalar(select(func.count(Claim.id))) or 0),
         }
+
+    def edition_paused(self, edition: str = "india") -> bool:
+        return bool(
+            self.session.scalar(
+                select(EditionControl.paused).where(EditionControl.edition == edition)
+            )
+        )
 
 
 def independent_organization_ids(cluster: EventCluster) -> set[object]:

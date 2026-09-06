@@ -19,6 +19,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -68,6 +69,39 @@ class ReviewState(StrEnum):
     REJECTED = "REJECTED"
 
 
+class StaffRole(StrEnum):
+    ADMINISTRATOR = "ADMINISTRATOR"
+    EDITOR = "EDITOR"
+    REVIEWER = "REVIEWER"
+    PUBLISHER_MANAGER = "PUBLISHER_MANAGER"
+    ANALYST = "ANALYST"
+
+
+class OnboardingState(StrEnum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    APPROVED = "APPROVED"
+    PAUSED = "PAUSED"
+    BLOCKED = "BLOCKED"
+    REJECTED = "REJECTED"
+
+
+class DecisionState(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class FeedRunState(StrEnum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    RETRYING = "RETRYING"
+    DEAD_LETTERED = "DEAD_LETTERED"
+    SKIPPED = "SKIPPED"
+
+
 class PublisherOrganization(UUIDTimestampMixin, Base):
     __tablename__ = "publisher_organizations"
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -77,6 +111,17 @@ class PublisherOrganization(UUIDTimestampMixin, Base):
     correction_policy: Mapped[str] = mapped_column(Text, default="")
     country_code: Mapped[str] = mapped_column(String(2), default="IN")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    onboarding_state: Mapped[OnboardingState] = mapped_column(
+        Enum(OnboardingState, native_enum=False, length=32), default=OnboardingState.DRAFT
+    )
+    contact_name: Mapped[str] = mapped_column(String(200), default="")
+    contact_email: Mapped[str] = mapped_column(String(320), default="")
+    correction_route: Mapped[str] = mapped_column(String(1000), default="")
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("staff_users.id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
     domains: Mapped[list[PublisherDomain]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
     )
@@ -96,6 +141,15 @@ class PublisherDomain(UUIDTimestampMixin, Base):
     )
     domain: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    onboarding_state: Mapped[OnboardingState] = mapped_column(
+        Enum(OnboardingState, native_enum=False, length=32), default=OnboardingState.DRAFT
+    )
+    ownership_evidence: Mapped[str] = mapped_column(Text, default="")
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("staff_users.id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
     organization: Mapped[PublisherOrganization] = relationship(back_populates="domains")
 
 
@@ -108,9 +162,26 @@ class RightsPolicy(UUIDTimestampMixin, Base):
     may_store_full_text: Mapped[bool] = mapped_column(Boolean, default=False)
     may_store_excerpt: Mapped[bool] = mapped_column(Boolean, default=True)
     may_summarize: Mapped[bool] = mapped_column(Boolean, default=True)
+    may_use_headline: Mapped[bool] = mapped_column(Boolean, default=True)
+    may_use_thumbnail: Mapped[bool] = mapped_column(Boolean, default=False)
+    may_translate: Mapped[bool] = mapped_column(Boolean, default=False)
+    may_generate_audio: Mapped[bool] = mapped_column(Boolean, default=False)
+    may_display_full_text: Mapped[bool] = mapped_column(Boolean, default=False)
     attribution_required: Mapped[bool] = mapped_column(Boolean, default=True)
     terms_url: Mapped[str | None] = mapped_column(String(1000))
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    onboarding_state: Mapped[OnboardingState] = mapped_column(
+        Enum(OnboardingState, native_enum=False, length=32), default=OnboardingState.DRAFT
+    )
+    evidence_url: Mapped[str | None] = mapped_column(String(1000))
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("staff_users.id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
     organization: Mapped[PublisherOrganization] = relationship(back_populates="rights_policies")
     feeds: Mapped[list[SourceFeed]] = relationship(back_populates="rights_policy")
 
@@ -121,11 +192,23 @@ class SourceFeed(UUIDTimestampMixin, Base):
         ForeignKey("publisher_organizations.id", ondelete="CASCADE"), index=True
     )
     rights_policy_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rights_policies.id"))
+    domain_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("publisher_domains.id"))
     name: Mapped[str] = mapped_column(String(200))
     feed_type: Mapped[FeedType] = mapped_column(Enum(FeedType))
     url: Mapped[str] = mapped_column(String(1000), unique=True)
     language: Mapped[str] = mapped_column(String(12), default="en")
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    onboarding_state: Mapped[OnboardingState] = mapped_column(
+        Enum(OnboardingState, native_enum=False, length=32), default=OnboardingState.DRAFT
+    )
+    paused_reason: Mapped[str | None] = mapped_column(Text)
+    kill_switch: Mapped[bool] = mapped_column(Boolean, default=False)
+    poll_interval_seconds: Mapped[int] = mapped_column(Integer, default=900)
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=6)
+    etag: Mapped[str | None] = mapped_column(String(500))
+    last_modified: Mapped[str | None] = mapped_column(String(500))
+    next_poll_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     health_status: Mapped[str] = mapped_column(String(32), default="UNKNOWN")
     organization: Mapped[PublisherOrganization] = relationship(back_populates="feeds")
@@ -149,6 +232,7 @@ class Article(UUIDTimestampMixin, Base):
         Enum(ContentStatus), default=ContentStatus.INGESTED
     )
     source_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    version: Mapped[int] = mapped_column(Integer, default=1)
     feed: Mapped[SourceFeed] = relationship(back_populates="articles")
     publisher_organization: Mapped[PublisherOrganization] = relationship(back_populates="articles")
     fingerprint: Mapped[ArticleFingerprint | None] = relationship(
@@ -156,6 +240,7 @@ class Article(UUIDTimestampMixin, Base):
     )
     cluster_memberships: Mapped[list[ClusterArticle]] = relationship(back_populates="article")
     evidence: Mapped[list[ClaimEvidence]] = relationship(back_populates="article")
+    corrections: Mapped[list[Correction]] = relationship(back_populates="article")
 
 
 class ArticleFingerprint(UUIDTimestampMixin, Base):
@@ -184,6 +269,14 @@ class EventCluster(UUIDTimestampMixin, Base):
     )
     event_embedding: Mapped[list[float] | None] = mapped_column(Vector(768))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    material_revision: Mapped[int] = mapped_column(Integer, default=1)
+    # New application-created content has a known lineage. SQL/legacy inserts fail
+    # closed; migration must never infer missing historical authors.
+    provenance_complete: Mapped[bool] = mapped_column(Boolean, default=True, server_default="false")
+    suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suppression_reason: Mapped[str | None] = mapped_column(Text)
+    corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    push_ready: Mapped[bool] = mapped_column(Boolean, default=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
     timeline_json: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     why_shown: Mapped[str] = mapped_column(Text, default="")
@@ -202,6 +295,16 @@ class EventCluster(UUIDTimestampMixin, Base):
     )
     corrections: Mapped[list[Correction]] = relationship(back_populates="cluster")
     __table_args__ = (Index("ix_event_cluster_category_location", "category", "location"),)
+
+
+class MaterialContributor(UUIDTimestampMixin, Base):
+    __tablename__ = "material_contributors"
+    cluster_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("event_clusters.id"), index=True)
+    staff_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"), index=True)
+    first_material_revision: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint("cluster_id", "staff_user_id", name="uq_material_contributor"),
+    )
 
 
 class ClusterArticle(UUIDTimestampMixin, Base):
@@ -229,6 +332,7 @@ class Claim(UUIDTimestampMixin, Base):
     text_hi: Mapped[str] = mapped_column(Text)
     state: Mapped[ClaimState] = mapped_column(Enum(ClaimState), index=True)
     materiality: Mapped[int] = mapped_column(Integer, default=1)
+    version: Mapped[int] = mapped_column(Integer, default=1)
     cluster: Mapped[EventCluster] = relationship(back_populates="claims")
     evidence: Mapped[list[ClaimEvidence]] = relationship(
         back_populates="claim", cascade="all, delete-orphan"
@@ -246,6 +350,7 @@ class PrimaryDocument(UUIDTimestampMixin, Base):
     url: Mapped[str] = mapped_column(String(1400), unique=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     document_hash: Mapped[str | None] = mapped_column(String(64))
+    version: Mapped[int] = mapped_column(Integer, default=1)
     cluster: Mapped[EventCluster] = relationship(back_populates="primary_documents")
     evidence: Mapped[list[ClaimEvidence]] = relationship(back_populates="primary_document")
 
@@ -289,6 +394,17 @@ class SummaryVersion(UUIDTimestampMixin, Base):
     evidence_map: Mapped[dict[str, Any]] = mapped_column(JSONB)
     generator_name: Mapped[str] = mapped_column(String(100))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision: Mapped[DecisionState] = mapped_column(
+        Enum(DecisionState, native_enum=False, length=32), default=DecisionState.PENDING
+    )
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("staff_users.id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    rejection_reason: Mapped[str | None] = mapped_column(Text)
+    row_version: Mapped[int] = mapped_column(Integer, default=1)
+    invalidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    invalidation_reason: Mapped[str | None] = mapped_column(Text)
     cluster: Mapped[EventCluster] = relationship(back_populates="summaries")
     __table_args__ = (
         UniqueConstraint("cluster_id", "version", "language", name="uq_summary_version_language"),
@@ -305,8 +421,29 @@ class Correction(UUIDTimestampMixin, Base):
     description_hi: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(32), default="OPEN")
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_url: Mapped[str] = mapped_column(String(1400), default="")
+    evidence: Mapped[str] = mapped_column(Text, default="")
+    resolution: Mapped[str | None] = mapped_column(Text)
+    raised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    resolved_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    provenance_complete: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     cluster: Mapped[EventCluster | None] = relationship(back_populates="corrections")
-    article: Mapped[Article | None] = relationship()
+    article: Mapped[Article | None] = relationship(back_populates="corrections")
+
+
+class CorrectionContributor(UUIDTimestampMixin, Base):
+    __tablename__ = "correction_contributors"
+    correction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("corrections.id"), index=True)
+    staff_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"), index=True)
+    first_version: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        UniqueConstraint("correction_id", "staff_user_id", name="uq_correction_contributor"),
+    )
 
 
 class UserPreference(UUIDTimestampMixin, Base):
@@ -334,6 +471,8 @@ class SavedCluster(UUIDTimestampMixin, Base):
     cluster_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("event_clusters.id", ondelete="CASCADE"), index=True
     )
+    offline_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    snapshot_version: Mapped[int] = mapped_column(Integer, default=1)
     __table_args__ = (UniqueConstraint("user_id", "cluster_id", name="uq_saved_cluster"),)
 
 
@@ -344,7 +483,10 @@ class Brief(UUIDTimestampMixin, Base):
     language: Mapped[str] = mapped_column(String(12))
     title: Mapped[str] = mapped_column(String(400))
     cluster_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    legacy_cluster_slugs: Mapped[list[str] | None] = mapped_column(JSONB)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint("edition", "period", "language", name="uq_brief_edition_period_language"),
     )
@@ -372,6 +514,17 @@ class EditorialReview(UUIDTimestampMixin, Base):
     state: Mapped[ReviewState] = mapped_column(Enum(ReviewState), default=ReviewState.PENDING)
     reviewer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    risk_category: Mapped[str] = mapped_column(String(80), default="")
+    drafted_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    decision: Mapped[DecisionState] = mapped_column(
+        Enum(DecisionState, native_enum=False, length=32), default=DecisionState.PENDING
+    )
+    notes: Mapped[str] = mapped_column(Text, default="")
+    push_approved_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    push_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    material_revision: Mapped[int] = mapped_column(Integer, default=1)
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class AuditLog(UUIDTimestampMixin, Base):
@@ -380,4 +533,149 @@ class AuditLog(UUIDTimestampMixin, Base):
     action: Mapped[str] = mapped_column(String(100), index=True)
     entity_type: Mapped[str] = mapped_column(String(100), index=True)
     entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    actor_role: Mapped[str | None] = mapped_column(String(40), index=True)
+    before_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    after_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    request_id: Mapped[str] = mapped_column(String(80), index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(80))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    approval_of_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    outcome: Mapped[str] = mapped_column(String(32), default="SUCCESS", index=True)
+    reason: Mapped[str | None] = mapped_column(Text)
+
+
+class StaffUser(UUIDTimestampMixin, Base):
+    __tablename__ = "staff_users"
+    username: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(200))
+    password_hash: Mapped[str] = mapped_column(String(500))
+    role: Mapped[StaffRole] = mapped_column(
+        Enum(StaffRole, native_enum=False, length=40), index=True
+    )
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    password_changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class StaffSession(UUIDTimestampMixin, Base):
+    __tablename__ = "staff_sessions"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    csrf_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    ip_address: Mapped[str | None] = mapped_column(String(80))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    user: Mapped[StaffUser] = relationship()
+
+
+class LoginThrottle(UUIDTimestampMixin, Base):
+    __tablename__ = "login_throttles"
+    subject_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    window_started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class AuthenticationEvent(UUIDTimestampMixin, Base):
+    __tablename__ = "authentication_events"
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"), index=True)
+    username_hash: Mapped[str] = mapped_column(String(64), index=True)
+    action: Mapped[str] = mapped_column(String(40), index=True)
+    successful: Mapped[bool] = mapped_column(Boolean, index=True)
+    reason: Mapped[str | None] = mapped_column(String(160))
+    request_id: Mapped[str] = mapped_column(String(80), index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(80))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+
+
+class EditionControl(UUIDTimestampMixin, Base):
+    __tablename__ = "edition_controls"
+    edition: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class FeedRun(UUIDTimestampMixin, Base):
+    __tablename__ = "feed_runs"
+    feed_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("source_feeds.id"), index=True)
+    state: Mapped[FeedRunState] = mapped_column(
+        Enum(FeedRunState, native_enum=False, length=32), index=True
+    )
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    fetched_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    parsed_items: Mapped[int] = mapped_column(Integer, default=0)
+    new_articles: Mapped[int] = mapped_column(Integer, default=0)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    error_code: Mapped[str | None] = mapped_column(String(100))
+    internal_error: Mapped[str | None] = mapped_column(Text)
+    request_id: Mapped[str] = mapped_column(String(80), index=True)
+    manual_actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        Index(
+            "uq_feed_run_active",
+            "feed_id",
+            unique=True,
+            postgresql_where=text("state IN ('QUEUED','RUNNING','RETRYING')"),
+        ),
+    )
+
+
+class FeedControl(Base):
+    __tablename__ = "feed_controls"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __table_args__ = (CheckConstraint("id = 1", name="ck_feed_control_singleton"),)
+
+
+class DeadLetterJob(UUIDTimestampMixin, Base):
+    __tablename__ = "dead_letter_jobs"
+    feed_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feed_runs.id"), unique=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    reason: Mapped[str] = mapped_column(Text)
+    retried_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ContentRevision(UUIDTimestampMixin, Base):
+    __tablename__ = "content_revisions"
+    entity_type: Mapped[str] = mapped_column(String(80), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    entity_version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    correction_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("corrections.id"))
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+    __table_args__ = (
+        UniqueConstraint("entity_type", "entity_id", "entity_version", name="uq_content_revision"),
+    )
+
+
+class CorrectionImpact(UUIDTimestampMixin, Base):
+    __tablename__ = "correction_impacts"
+    correction_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("corrections.id", ondelete="CASCADE"), index=True
+    )
+    entity_type: Mapped[str] = mapped_column(String(80), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    action: Mapped[str] = mapped_column(String(80))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)

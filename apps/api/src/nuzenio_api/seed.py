@@ -7,8 +7,10 @@ from datetime import datetime
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from nuzenio_api.config import get_settings
 from nuzenio_api.db import SessionLocal
 from nuzenio_api.demo_data import BRIEFS, CLUSTERS, PUBLISHERS
+from nuzenio_api.evidence import fixture_evidence
 from nuzenio_api.models import (
     Article,
     ArticleFingerprint,
@@ -17,10 +19,14 @@ from nuzenio_api.models import (
     ClaimEvidence,
     ClaimState,
     ClusterArticle,
+    ContentRevision,
     ContentStatus,
     Correction,
+    DecisionState,
+    EditionControl,
     EventCluster,
     FeedType,
+    OnboardingState,
     PrimaryDocument,
     PublisherDomain,
     PublisherOrganization,
@@ -44,6 +50,9 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         organization = session.scalar(
             select(PublisherOrganization).where(PublisherOrganization.slug == item["slug"])
         )
+        if organization is not None:
+            organizations[item["slug"]] = organization
+            continue
         if organization is None:
             organization = PublisherOrganization(slug=item["slug"], name=item["name"])
             session.add(organization)
@@ -53,18 +62,26 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         organization.ownership = item["ownership"]
         organization.correction_policy = item["correction_policy"]
         organization.active = True
+        organization.onboarding_state = OnboardingState.APPROVED
+        organization.contact_name = "Demonstration publisher desk"
+        organization.contact_email = f"corrections@{item['domains'][0]}"
+        organization.correction_route = f"https://{item['domains'][0]}/demo-corrections"
         for domain_name in item["domains"]:
             domain = session.scalar(
                 select(PublisherDomain).where(PublisherDomain.domain == domain_name)
             )
+            if domain is not None:
+                raise RuntimeError("Fixture domain already exists; no changes made")
             if domain is None:
-                session.add(
-                    PublisherDomain(
-                        organization_id=organization.id,
-                        domain=domain_name,
-                        verified=True,
-                    )
+                domain = PublisherDomain(
+                    organization_id=organization.id,
+                    domain=domain_name,
+                    verified=True,
                 )
+                session.add(domain)
+            domain.verified = True
+            domain.onboarding_state = OnboardingState.APPROVED
+            domain.ownership_evidence = "Fictional fixture ownership record; not a real publisher."
         rights = session.scalar(
             select(RightsPolicy).where(RightsPolicy.organization_id == organization.id)
         )
@@ -80,7 +97,17 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
         rights.may_store_excerpt = True
         rights.may_summarize = True
         rights.attribution_required = True
+        rights.may_use_headline = True
+        rights.may_use_thumbnail = False
+        rights.may_translate = True
+        rights.may_generate_audio = False
+        rights.may_display_full_text = False
+        rights.onboarding_state = OnboardingState.APPROVED
+        rights.evidence_url = f"https://{item['domains'][0]}/demo-rights"
         rights.metadata_json = {"demonstration_data": True}
+        primary_domain = session.scalar(
+            select(PublisherDomain).where(PublisherDomain.domain == item["domains"][0])
+        )
         for language in item["languages"]:
             feed_url = f"https://{item['domains'][0]}/demo-feed-{language}.xml"
             feed = session.scalar(select(SourceFeed).where(SourceFeed.url == feed_url))
@@ -95,6 +122,9 @@ def _publisher_records(session: Session) -> dict[str, PublisherOrganization]:
                 )
                 session.add(feed)
             feed.approved = True
+            feed.onboarding_state = OnboardingState.APPROVED
+            feed.domain_id = primary_domain.id if primary_domain else None
+            feed.kill_switch = False
             feed.health_status = item["health"]
             feed.last_success_at = _timestamp("2026-09-02T12:00:00+05:30")
         organizations[item["slug"]] = organization
@@ -130,6 +160,8 @@ def _upsert_article(
     if publisher_slug != organization.slug:
         raise RuntimeError("article publisher does not match the selected organization")
     article = session.scalar(select(Article).where(Article.canonical_url == url))
+    if article is not None:
+        return article
     if article is None:
         article = Article(
             feed_id=_feed_for(session, organization.id, str(language)).id,
@@ -179,6 +211,17 @@ def _seed_cluster(
     organizations: dict[str, PublisherOrganization],
 ) -> None:
     cluster = session.scalar(select(EventCluster).where(EventCluster.slug == item["slug"]))
+    if cluster is not None:
+        return
+    if session.scalar(
+        select(ContentRevision.id)
+        .where(
+            ContentRevision.entity_type == "EventCluster",
+            ContentRevision.snapshot["slug"].astext == str(item["slug"]),
+        )
+        .limit(1)
+    ):
+        return  # Renamed/split fixture: do not recreate its old identity.
     if cluster is None:
         cluster = EventCluster(
             slug=str(item["slug"]),
@@ -196,6 +239,9 @@ def _seed_cluster(
     cluster.status = ContentStatus.PUBLISHED
     cluster.risk_level = RiskLevel(str(item["risk"]))
     cluster.review_state = ReviewState(str(item["review"]))
+    if cluster.risk_level == RiskLevel.HIGH:
+        cluster.status = ContentStatus.HELD
+        cluster.review_state = ReviewState.PENDING
     cluster.display_order = display_order
     cluster.updated_at = updated_at
     cluster.timeline_json = [
@@ -216,6 +262,8 @@ def _seed_cluster(
         document = session.scalar(
             select(PrimaryDocument).where(PrimaryDocument.url == document_data[3])
         )
+        if document is not None:
+            raise RuntimeError("Fixture document URL already exists; no changes made")
         if document is None:
             document = PrimaryDocument(
                 cluster_id=cluster.id,
@@ -297,6 +345,10 @@ def _seed_cluster(
                 )
             )
 
+    session.flush()
+    evidence_ids = list(
+        session.scalars(select(ClaimEvidence.id).join(Claim).where(Claim.cluster_id == cluster.id))
+    )
     for language, text in (("en", item["summary"]), ("hi", item["summary_hi"])):
         summary = session.scalar(
             select(SummaryVersion).where(
@@ -316,15 +368,14 @@ def _seed_cluster(
             )
             session.add(summary)
         summary.summary_text = str(text)
-        summary.evidence_map = {
-            "sentences": [str(article.id) for article in articles if article.id is not None]
-        }
+        summary.evidence_map = fixture_evidence(str(text), evidence_ids)
         summary.generator_name = (
             "deterministic-machine-translation-v1"
             if language == "hi"
             else "deterministic-evidence-first-v1"
         )
         summary.published_at = updated_at
+        summary.decision = DecisionState.APPROVED
 
     for correction_data in item["corrections"]:
         correction = session.scalar(
@@ -338,14 +389,25 @@ def _seed_cluster(
                 cluster_id=cluster.id,
                 description=correction_data[0],
                 description_hi=correction_data[1],
+                # Explicit new fictional generator content has no staff authors.
+                # This never repairs existing/legacy or production provenance.
+                provenance_complete=True,
             )
             session.add(correction)
         correction.description_hi = correction_data[1]
         correction.status = "PUBLISHED"
         correction.published_at = _timestamp(correction_data[2])
+        correction.source_url = "https://example.com/official-mobility-clarification"
+        correction.evidence = "Fictional official clarification reference."
+        correction.resolution = correction_data[0]
+        correction.raised_at = _timestamp(correction_data[2])
+        correction.resolved_at = _timestamp(correction_data[2])
 
 
 def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, int | bool]:
+    settings = get_settings()
+    if settings.environment not in {"development", "test"} or not settings.demo_mode:
+        raise RuntimeError("Fixture seeding is allowed only in explicit development/test demo mode")
     with session_factory.begin() as session:
         organizations = _publisher_records(session)
         for display_order, item in enumerate(CLUSTERS, start=1):
@@ -364,6 +426,8 @@ def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, i
                         Brief.language == language,
                     )
                 )
+                if brief is not None:
+                    continue
                 if brief is None:
                     brief = Brief(
                         edition="india",
@@ -373,8 +437,14 @@ def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, i
                     )
                     session.add(brief)
                 brief.title = brief_data[language]
-                brief.cluster_ids = brief_data["clusters"]
+                brief.cluster_ids = [
+                    str(session.scalar(select(EventCluster.id).where(EventCluster.slug == slug)))
+                    for slug in brief_data["clusters"]
+                ]
                 brief.published_at = _timestamp("2026-09-02T18:30:00+05:30")
+        edition = session.scalar(select(EditionControl).where(EditionControl.edition == "india"))
+        if edition is None:
+            session.add(EditionControl(edition="india", paused=False, version=1))
         session.flush()
         return {
             "demonstration_data": True,

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nuzenio-api"
-version = "0.2.0"
+version = "0.3.0"
 description = "Nuzenio persistent reader and deterministic content-processing API"
 requires-python = ">=3.12"
 dependencies = [
@@ -18,11 +18,14 @@ dependencies = [
   "pgvector>=0.4,<1",
   "redis>=6.2,<7",
   "httpx>=0.28,<1",
+  "argon2-cffi>=25.1,<26",
+  "defusedxml>=0.7,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.4,<9",
+  "pytest>=9.0.3,<10",
+  "pip-audit>=2.9,<3",
   "pytest-cov>=6.2,<7",
   "ruff>=0.12,<1",
 ]
