@@ -58,7 +58,14 @@ def test_production_settings_fail_closed() -> None:
         cookie_secure=True,
         session_hash_pepper="a-unique-production-pepper-over-32-characters",
         cors_origins=["https://news.example"],
+        allowed_hosts=["news.example"],
         feed_https_required=True,
+        feed_kill_switch=True,
+        metrics_token="a-unique-metrics-token-over-32-characters",
+        database_url=(
+            "postgresql+psycopg://nuzenio_runtime:a-long-runtime-password@postgres.example/nuzenio"
+        ),
+        redis_url="rediss://:a-long-redis-password@redis.example/0",
         _env_file=None,
     )
     assert settings.environment == "production"
