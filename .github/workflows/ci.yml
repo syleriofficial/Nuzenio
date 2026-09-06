@@ -119,7 +119,7 @@ jobs:
       - run: python -m venv apps/api/.venv
       - run: apps/api/.venv/bin/pip install -e "apps/api[dev]"
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --retries=0
 
   compose:
     runs-on: ubuntu-latest
