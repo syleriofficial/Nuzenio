@@ -4,6 +4,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -47,7 +49,7 @@ printf 'fixture-backup' > "$output"
     environment = {
         **os.environ,
         "PATH": f"{bin_directory}:{os.environ['PATH']}",
-        "NUZENIO_BACKUP_DATABASE_URL": "postgresql://fixture/nuzenio",
+        "NUZENIO_BACKUP_DATABASE_URL": "postgresql://fixture:fixture@db.example/nuzenio",
         "NUZENIO_BACKUP_OUTPUT": str(output),
     }
 
@@ -97,7 +99,9 @@ esac
     environment = {
         **os.environ,
         "PATH": f"{bin_directory}:{os.environ['PATH']}",
-        "NUZENIO_RESTORE_DATABASE_URL": "postgresql://fixture/nuzenio_restore_verify",
+        "NUZENIO_RESTORE_DATABASE_URL": (
+            "postgresql://fixture:fixture@db.example/nuzenio_restore_verify"
+        ),
         "NUZENIO_RESTORE_INPUT": str(backup),
         "NUZENIO_RESTORE_CONFIRM_DATABASE": "nuzenio_restore_verify",
     }
@@ -138,7 +142,7 @@ def test_restore_rejects_wrong_confirmation_and_non_disposable_name(tmp_path) ->
     base = {
         **os.environ,
         "PATH": f"{bin_directory}:{os.environ['PATH']}",
-        "NUZENIO_RESTORE_DATABASE_URL": "postgresql://fixture/nuzenio",
+        "NUZENIO_RESTORE_DATABASE_URL": "postgresql://fixture:fixture@db.example/nuzenio",
         "NUZENIO_RESTORE_INPUT": str(backup),
     }
 
@@ -161,3 +165,98 @@ def test_restore_rejects_wrong_confirmation_and_non_disposable_name(tmp_path) ->
     )
     assert unsafe.returncode == 2
     assert "restore or recovery" in unsafe.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "--command=SELECT 1",
+        "-cSELECT 1",
+        " postgresql://user:pass@db.example/restore",
+        "postgresql://user:pass@db.example/restore\n",
+        "not-a-uri",
+        "mysql://user:pass@db.example/restore",
+        "postgresql://db.example/restore",
+        "postgresql://user:pass@db.example/restore?password=second-secret",
+    ],
+)
+def test_restore_rejects_malformed_or_option_shaped_connection_before_psql(tmp_path, value):
+    bin_directory = tmp_path / "bin"
+    bin_directory.mkdir()
+    called = tmp_path / "psql-called"
+    executable(bin_directory, "psql", f"touch '{called}'\nexit 99\n")
+    executable(bin_directory, "pg_restore", "exit 99\n")
+    backup = tmp_path / "backup.dump"
+    backup.write_text("fixture")
+    result = subprocess.run(
+        [ROOT / "scripts/restore-postgres.sh"],
+        env={
+            **os.environ,
+            "PATH": f"{bin_directory}:{os.environ['PATH']}",
+            "NUZENIO_RESTORE_DATABASE_URL": value,
+            "NUZENIO_RESTORE_INPUT": str(backup),
+            "NUZENIO_RESTORE_CONFIRM_DATABASE": "nuzenio_restore_verify",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert "Invalid PostgreSQL connection URI" in result.stderr
+    assert not called.exists()
+
+
+def test_backup_uses_random_restricted_temp_and_atomic_no_clobber(tmp_path) -> None:
+    bin_directory = tmp_path / "bin"
+    bin_directory.mkdir()
+    executable(
+        bin_directory,
+        "pg_dump",
+        """
+for argument in "$@"; do
+  case "$argument" in --file=*) output=${argument#--file=} ;; esac
+done
+printf 'fixture-backup' > "$output"
+touch "${FIXTURE_DESTINATION_RACE:?}"
+""",
+    )
+    output = tmp_path / "backup.dump"
+    result = subprocess.run(
+        [ROOT / "scripts/backup-postgres.sh"],
+        env={
+            **os.environ,
+            "PATH": f"{bin_directory}:{os.environ['PATH']}",
+            "NUZENIO_BACKUP_DATABASE_URL": (
+                "postgresql://fixture:unique-marker@db.example/nuzenio"
+            ),
+            "NUZENIO_BACKUP_OUTPUT": str(output),
+            "FIXTURE_DESTINATION_RACE": str(output),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert output.read_bytes() == b""
+    assert not list(tmp_path.glob(".nuzenio-backup.partial.*"))
+    assert "unique-marker" not in result.stdout + result.stderr
+
+
+def test_backup_rejects_destination_symlink_without_touching_target(tmp_path) -> None:
+    target = tmp_path / "target"
+    target.write_text("preserve")
+    output = tmp_path / "backup.dump"
+    output.symlink_to(target)
+    result = subprocess.run(
+        [ROOT / "scripts/backup-postgres.sh"],
+        env={
+            **os.environ,
+            "NUZENIO_BACKUP_DATABASE_URL": ("postgresql://fixture:fixture@db.example/nuzenio"),
+            "NUZENIO_BACKUP_OUTPUT": str(output),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert target.read_text() == "preserve"

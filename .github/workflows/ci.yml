@@ -143,7 +143,7 @@ jobs:
       - name: Validate Compose configuration
         run: docker compose --profile ci config --quiet
       - name: Build isolated service images
-        run: docker compose --profile ci build api worker migrate seed
+        run: docker compose --profile ci build api worker migrate seed restore-verify postgres-ops-test
       - name: Start isolated application stack and wait for health
         run: docker compose up --detach --wait --wait-timeout 180 api worker
       - name: Load explicit fictional fixtures
@@ -170,6 +170,7 @@ jobs:
         run: |
           docker compose --profile ci up --detach --wait --wait-timeout 120 postgres-restore
           docker compose --profile ci run --rm restore-verify
+          docker compose --profile ci run --rm postgres-ops-test
       - name: Capture diagnostics on failure
         if: failure()
         run: |

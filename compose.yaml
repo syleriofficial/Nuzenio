@@ -141,7 +141,9 @@ services:
 
   restore-verify:
     profiles: ["ci"]
-    image: pgvector/pgvector:pg17
+    build:
+      context: .
+      dockerfile: infra/postgres-tools/Dockerfile
     environment:
       NUZENIO_BACKUP_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_RESTORE_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres-restore:5432/nuzenio_restore_verify
@@ -153,6 +155,23 @@ services:
       postgres:
         condition: service_healthy
       postgres-restore:
+        condition: service_healthy
+
+  postgres-ops-test:
+    profiles: ["ci"]
+    build:
+      context: .
+      dockerfile: infra/postgres-tools/Dockerfile
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nuzenio}
+      POSTGRES_USER: ${POSTGRES_USER:-nuzenio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuzenio}
+      NUZENIO_BACKUP_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+    volumes:
+      - ./scripts:/workspace/scripts:ro
+    command: ["/workspace/scripts/test-postgres-operations.sh"]
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
