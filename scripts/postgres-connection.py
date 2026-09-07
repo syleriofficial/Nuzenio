@@ -9,6 +9,7 @@ import os
 import re
 import stat
 import sys
+import unicodedata
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit
 
@@ -24,15 +25,35 @@ _QUERY_KEYS = {
     "sslrootcert",
     "target_session_attrs",
 }
+_CONTROL_CATEGORIES = {"Cc", "Cf", "Cs", "Zl", "Zp"}
+
+
+def _has_control(value: str) -> bool:
+    return any(
+        ord(character) == 127 or unicodedata.category(character) in _CONTROL_CATEGORIES
+        for character in value
+    )
 
 
 def _decoded(value: str, label: str) -> str:
-    result = unquote(value)
-    if not result or any(
-        character.isspace() or ord(character) < 32 for character in result
+    result = unquote(value, errors="strict")
+    if (
+        not result
+        or any(character.isspace() for character in result)
+        or _has_control(result)
     ):
         raise ValueError(f"Invalid {label}")
     return result
+
+
+def _validate_query_component(value: str) -> None:
+    """Reject raw and one-more-pass encoded controls after parse_qsl decoding."""
+
+    if _has_control(value):
+        raise ValueError("Invalid PostgreSQL URI parameter")
+    decoded_again = unquote(value, errors="strict")
+    if _has_control(decoded_again):
+        raise ValueError("Invalid PostgreSQL URI parameter")
 
 
 def _pgpass_field(value: str) -> str:
@@ -40,7 +61,7 @@ def _pgpass_field(value: str) -> str:
 
 
 def _validate_hostname(hostname: str) -> None:
-    if any(character.isspace() or ord(character) < 32 for character in hostname):
+    if any(character.isspace() for character in hostname) or _has_control(hostname):
         raise ValueError("Invalid PostgreSQL hostname")
     try:
         ipaddress.ip_address(hostname)
@@ -66,7 +87,7 @@ def _validate_hostname(hostname: str) -> None:
 
 
 def split_connection_uri(uri: str) -> tuple[str, str]:
-    if not uri or uri != uri.strip() or any(ord(character) < 32 for character in uri):
+    if not uri or uri != uri.strip() or _has_control(uri):
         raise ValueError("Invalid PostgreSQL connection URI")
     parsed = urlsplit(uri)
     if parsed.scheme not in {"postgres", "postgresql"} or parsed.fragment:
@@ -87,10 +108,20 @@ def split_connection_uri(uri: str) -> tuple[str, str]:
         raise ValueError("Invalid PostgreSQL port") from error
     if not 1 <= port <= 65535:
         raise ValueError("Invalid PostgreSQL port")
-    password = unquote(parsed.password or "")
-    if any(ord(character) < 32 for character in password):
+    password = unquote(parsed.password or "", errors="strict")
+    if _has_control(password):
         raise ValueError("Invalid PostgreSQL password")
-    query = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
+    query = parse_qsl(
+        parsed.query,
+        keep_blank_values=True,
+        strict_parsing=True,
+        encoding="utf-8",
+        errors="strict",
+        max_num_fields=64,
+    )
+    for key, value in query:
+        _validate_query_component(key)
+        _validate_query_component(value)
     if any(key not in _QUERY_KEYS for key, _ in query):
         raise ValueError("Unsupported PostgreSQL URI parameter")
     safe_host = f"[{hostname}]" if ":" in hostname else hostname

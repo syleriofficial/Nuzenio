@@ -51,6 +51,12 @@ test ! -s "$test_directory/victim"
 test ! -e "$test_directory/process-result"
 test "$(stat -c '%a' "$test_directory/safe.dump")" = 600
 
+# Valid repeated allowlisted query parameters still reach the real pg_dump boundary.
+parameterized_source_url="${NUZENIO_BACKUP_DATABASE_URL}?connect_timeout=5&application_name=Nuzenio%20Backup&application_name=Nuzenio%20Validation"
+NUZENIO_BACKUP_DATABASE_URL="$parameterized_source_url" \
+  run_backup "$test_directory/parameterized.dump" >/dev/null
+pg_restore --list "$test_directory/parameterized.dump" >/dev/null
+
 # A symlink destination is rejected without modifying its target.
 printf preserve > "$test_directory/symlink-target"
 ln -s "$test_directory/symlink-target" "$test_directory/symlink.dump"
@@ -109,6 +115,12 @@ malicious_values=(
   $'postgresql://user:pass@postgres/database\n'
   'not-a-uri'
   'mysql://user:pass@postgres/nuzenio_review_source'
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%00"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%0A"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%2500"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%250D"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%25E2%2580%25AE"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=ok&application_name=%250A"
 )
 for malicious in "${malicious_values[@]}"; do
   if NUZENIO_RESTORE_DATABASE_URL="$malicious" \

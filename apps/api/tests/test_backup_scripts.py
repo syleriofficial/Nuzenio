@@ -43,6 +43,73 @@ def test_connection_helper_uses_restricted_pgpass_and_passwordless_output(tmp_pa
     assert pgpass.read_text() == ("db.example:5432:nuzenio:fixture:unique\\:marker\\\\segment\n")
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "application_name=%00",
+        "application_name=%0A",
+        "application_name=%0a",
+        "application_name=%0D",
+        "application_name=%0d",
+        "application_name=%2500",
+        "application_name=%250A",
+        "application_name=%250d",
+        "application_name=%25E2%2580%25AE",
+        "application_name=raw\nline",
+        "application_name=raw\rline",
+        "application_name=raw\u0085line",
+        "application_name=raw\u202eline",
+        "application_name%0A=fixture",
+        "application_name%250A=fixture",
+        "sslmode=%00require",
+        "application_name=first&application_name=%250A",
+    ],
+)
+def test_connection_helper_rejects_raw_encoded_and_double_encoded_query_controls(query) -> None:
+    result = subprocess.run(
+        [
+            ROOT / "scripts/postgres-connection.py",
+            "--uri-env",
+            "FIXTURE_DATABASE_URL",
+            "--validate-only",
+        ],
+        env={
+            **os.environ,
+            "FIXTURE_DATABASE_URL": (f"postgresql://fixture:fixture@db.example/nuzenio?{query}"),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert "Invalid PostgreSQL connection URI" in result.stderr
+
+
+def test_connection_helper_preserves_valid_repeated_allowlisted_parameters() -> None:
+    result = subprocess.run(
+        [
+            ROOT / "scripts/postgres-connection.py",
+            "--uri-env",
+            "FIXTURE_DATABASE_URL",
+            "--validate-only",
+        ],
+        env={
+            **os.environ,
+            "FIXTURE_DATABASE_URL": (
+                "postgresql://fixture:fixture@db.example/nuzenio"
+                "?sslmode=require&application_name=Nuzenio%20Backup"
+                "&application_name=Nuzenio%20Restore"
+            ),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "sslmode=require" in result.stdout
+    assert result.stdout.count("application_name=") == 2
+
+
 def test_compose_ci_is_isolated_health_checked_and_always_torn_down() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text()
     assert (
@@ -250,6 +317,63 @@ def test_operation_rejects_invalid_connection_before_temporary_files(tmp_path, o
     assert result.returncode == 2
     assert "Invalid PostgreSQL connection URI" in result.stderr
     assert not called.exists()
+
+
+@pytest.mark.parametrize("operation", ["backup", "restore", "verify"])
+def test_operations_reject_encoded_query_controls_before_tools_or_filesystem_mutation(
+    tmp_path, operation
+) -> None:
+    bin_directory = tmp_path / "bin"
+    bin_directory.mkdir()
+    called = tmp_path / "tool-called"
+    for name in ("mktemp", "psql", "pg_dump", "pg_restore"):
+        executable(bin_directory, name, f"touch '{called}'\nexit 99\n")
+
+    invalid_url = (
+        "postgresql://fixture:fixture@db.example/nuzenio_restore_verify"
+        "?application_name=%250Aunique-marker"
+    )
+    output = tmp_path / "backup.dump"
+    backup = tmp_path / "input.dump"
+    backup.write_bytes(b"fixture")
+    environment = {
+        **os.environ,
+        "PATH": f"{bin_directory}:{os.environ['PATH']}",
+    }
+    if operation == "backup":
+        command = ROOT / "scripts/backup-postgres.sh"
+        environment.update(
+            {
+                "NUZENIO_BACKUP_DATABASE_URL": invalid_url,
+                "NUZENIO_BACKUP_OUTPUT": str(output),
+            }
+        )
+    elif operation == "restore":
+        command = ROOT / "scripts/restore-postgres.sh"
+        environment.update(
+            {
+                "NUZENIO_RESTORE_DATABASE_URL": invalid_url,
+                "NUZENIO_RESTORE_INPUT": str(backup),
+                "NUZENIO_RESTORE_CONFIRM_DATABASE": "nuzenio_restore_verify",
+            }
+        )
+    else:
+        command = ROOT / "scripts/verify-postgres-restore.sh"
+        environment.update(
+            {
+                "NUZENIO_BACKUP_DATABASE_URL": invalid_url,
+                "NUZENIO_RESTORE_DATABASE_URL": (
+                    "postgresql://fixture:fixture@db.example/nuzenio_restore_verify"
+                ),
+                "NUZENIO_RESTORE_CONFIRM_DATABASE": "nuzenio_restore_verify",
+            }
+        )
+
+    result = subprocess.run([command], env=environment, capture_output=True, text=True, check=False)
+    assert result.returncode == 2
+    assert "Invalid PostgreSQL connection URI" in result.stderr
+    assert not called.exists()
+    assert not output.exists()
 
 
 @pytest.mark.parametrize(

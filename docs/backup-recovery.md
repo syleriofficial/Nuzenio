@@ -72,9 +72,12 @@ with infrastructure controls outside this repository.
 
 Only canonical `postgres://` or `postgresql://` URIs with a user, host and database are accepted;
 option-shaped inputs, control characters, malformed authorities, unsafe components and unapproved
-connection parameters fail before any PostgreSQL command runs. These scripts require Python 3 and
-PostgreSQL client tools. The CI `postgres-ops-test` runs real dump/restore tooling and exercises URI
-injection, argv/environment credential absence, symlinks, races, concurrent writers and interruption.
+connection parameters fail before any PostgreSQL command runs. Every allowed query key and value is
+checked after normal parsing and one additional decoding pass, so raw, percent-encoded and
+double-percent-encoded ASCII or Unicode controls cannot reach `psql`, `pg_dump` or `pg_restore`.
+Repeated allowlisted parameters remain supported. These scripts require Python 3 and PostgreSQL
+client tools. The CI `postgres-ops-test` runs real dump/restore tooling and exercises URI injection,
+argv/environment credential absence, symlinks, races, concurrent writers and interruption.
 
 ## PostgreSQL
 
