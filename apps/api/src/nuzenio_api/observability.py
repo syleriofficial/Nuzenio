@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from time import monotonic
 from typing import Any
+from urllib.parse import unquote
 
 import redis
 from sqlalchemy import func, select
@@ -67,16 +68,49 @@ _ENCODED_ASSIGNMENT = re.compile(
     r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
     r"%3d(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
 )
+_MAX_LOG_MESSAGE_LENGTH = 8_192
+_MAX_PERCENT_DECODE_PASSES = 2
+_TRUNCATED_SUFFIX = "...[TRUNCATED]"
+_ENCODED_SECRET_REDACTION = "[REDACTED ENCODED SENSITIVE LOG MESSAGE]"
 
 
-def sanitize_log_message(value: str) -> str:
-    """Best-effort defense for free-form and third-party log strings."""
-
+def _sanitize_visible_log_message(value: str) -> str:
     result = _CREDENTIAL_URI.sub(r"\1[REDACTED]\2", value)
     result = _BEARER.sub(r"\1 [REDACTED]", result)
     result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
     result = _ASSIGNMENT.sub(r"\1\2[REDACTED]", result)
     return _ENCODED_ASSIGNMENT.sub(r"\1%3D[REDACTED]", result)
+
+
+def sanitize_log_message(value: str) -> str:
+    """Bounded defense for free-form and third-party log strings.
+
+    Percent-decoded values are used only as a detection shadow. They are never
+    returned, because logging a newly decoded representation can itself reveal
+    material that the caller did not submit in clear text.
+    """
+
+    truncated = len(value) > _MAX_LOG_MESSAGE_LENGTH
+    visible_limit = (
+        _MAX_LOG_MESSAGE_LENGTH - len(_TRUNCATED_SUFFIX) if truncated else _MAX_LOG_MESSAGE_LENGTH
+    )
+    visible = value[:visible_limit]
+    sanitized_visible = _sanitize_visible_log_message(visible)
+
+    shadow = visible
+    for _ in range(_MAX_PERCENT_DECODE_PASSES):
+        try:
+            decoded = unquote(shadow, errors="replace")[:_MAX_LOG_MESSAGE_LENGTH]
+        except (UnicodeError, ValueError):
+            break
+        if decoded == shadow:
+            break
+        if _sanitize_visible_log_message(decoded) != decoded:
+            return _ENCODED_SECRET_REDACTION
+        shadow = decoded
+
+    suffix = _TRUNCATED_SUFFIX if truncated else ""
+    return (sanitized_visible + suffix)[:_MAX_LOG_MESSAGE_LENGTH]
 
 
 def _redact(value: Any) -> Any:

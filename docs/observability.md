@@ -6,9 +6,11 @@ use route templates rather than raw paths and do not include bodies, query strin
 authorization values or client IPs by default. Fields whose names indicate passwords, tokens,
 secrets, cookies, authorization or CSRF values are recursively redacted.
 Free-form third-party messages cross the same sanitizer boundary: common PostgreSQL/Redis credential
-URIs, bearer/cookie values and password/token/secret assignments (including common percent-encoded
-forms) are redacted. Application code should still prefer stable structured event names; redaction is
-defense in depth, not permission to log request bodies or secret-bearing exception text.
+URIs, bearer/cookie values and password/token/secret assignments are redacted in plain, single- and
+double-percent-encoded forms. Detection uses at most two bounded decoding shadows and never emits a
+decoded representation; each sanitized string is capped at 8,192 characters. Application code
+should still prefer stable structured event names. Redaction is defense in depth, not permission to
+log request bodies or secret-bearing exception text, and novel encodings remain an operational risk.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the

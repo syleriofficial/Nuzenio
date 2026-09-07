@@ -24,7 +24,7 @@ from nuzenio_api.db import engine
 from nuzenio_api.db_roles import assert_audit_reader_identity, provision_audit_reader
 from nuzenio_api.environment import Environment, environment_from_os, is_production
 from nuzenio_api.main import app
-from nuzenio_api.observability import JsonLogFormatter
+from nuzenio_api.observability import JsonLogFormatter, sanitize_log_message
 from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 
 
@@ -259,14 +259,42 @@ def test_json_logs_include_correlation_fields_and_redact_secrets() -> None:
         "Authorization%3A%20Bearer%20unique-marker",
         "Authorization%3A%09Bearer%09unique-marker",
         "postgresql://operator:unique-marker%2Fpart%40database.example/nuzenio",
+        "postgresql%253A%252F%252Foperator%253Aunique-marker%2540database.example%252Fnuzenio",
+        "ReDiS%253a%252f%252f%253aunique-marker%2540redis.example%252f0",
+        "Authorization%253A%2520Bearer%2520unique-marker",
+        "Cookie%253A%2520session%253Dunique-marker%253B%2520theme%253Ddark",
+        "PASSWORD%253Dunique-marker",
+        "csrf%253dunique-marker",
+        "diagnostic%253Dfailed%250APaSsWoRd%253Dunique-marker",
     ],
 )
 def test_free_form_and_nested_log_values_redact_common_secret_forms(message) -> None:
     formatter = JsonLogFormatter("test-service")
     record = logging.LogRecord("third-party", logging.ERROR, __file__, 1, message, (), None)
-    record.fields = {"diagnostic": message}
+    record.fields = {
+        "diagnostic": {"nested": [message]},
+        "exception": RuntimeError(message),
+    }
     output = formatter.format(record)
     assert "unique-marker" not in output
+
+
+def test_log_sanitizer_is_bounded_and_handles_malformed_percent_input() -> None:
+    malformed_safe_message = "Fixture progress is 100%2 and literal %zz remains readable"
+    assert sanitize_log_message(malformed_safe_message) == malformed_safe_message
+
+    oversized = "x" * 20_000 + " PASSWORD=unique-marker"
+    sanitized = sanitize_log_message(oversized)
+    assert len(sanitized) <= 8_192
+    assert "unique-marker" not in sanitized
+
+
+def test_json_log_output_cannot_be_split_by_message_injection() -> None:
+    message = 'safe fixture\n{"level":"critical","event":"forged"}'
+    record = logging.LogRecord("fixture", logging.INFO, __file__, 1, message, (), None)
+    output = JsonLogFormatter("test-service").format(record)
+    assert len(output.splitlines()) == 1
+    assert json.loads(output)["event"] == message
 
 
 def test_log_sanitizer_does_not_corrupt_safe_messages() -> None:
