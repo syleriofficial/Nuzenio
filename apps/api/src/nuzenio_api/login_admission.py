@@ -11,6 +11,7 @@ import stat
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from time import monotonic, sleep
 
 import redis
 
@@ -25,6 +26,8 @@ for i=1,3 do
 end
 return tonumber(redis.call('GET', KEYS[3]))
 """
+_CONFIG_LOCK_TIMEOUT_SECONDS = 0.25
+_CONFIG_LOCK_RETRY_SECONDS = 0.005
 
 
 class AdmissionDenied(Exception):
@@ -57,7 +60,15 @@ def _capacity_slot():
         raise AdmissionDenied(unavailable=True)
     config_fd = _open_lock(directory / "capacity")
     try:
-        fcntl.flock(config_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        deadline = monotonic() + _CONFIG_LOCK_TIMEOUT_SECONDS
+        while True:
+            try:
+                fcntl.flock(config_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError as error:
+                if monotonic() >= deadline:
+                    raise AdmissionDenied(unavailable=True) from error
+                sleep(_CONFIG_LOCK_RETRY_SECONDS)
         configured = os.read(config_fd, 32)
         capacity = str(settings.login_concurrency).encode()
         if configured and configured != capacity:
