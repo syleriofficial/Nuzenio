@@ -121,6 +121,11 @@ malicious_values=(
   "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%250D"
   "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%25E2%2580%25AE"
   "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=ok&application_name=%250A"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%ZZ"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%0G"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%25ZZ"
+  "postgresql://user:pass@postgres/$POSTGRES_DB?application_name=%2525ZZ"
 )
 for malicious in "${malicious_values[@]}"; do
   if NUZENIO_RESTORE_DATABASE_URL="$malicious" \

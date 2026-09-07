@@ -26,6 +26,7 @@ _QUERY_KEYS = {
     "target_session_attrs",
 }
 _CONTROL_CATEGORIES = {"Cc", "Cf", "Cs", "Zl", "Zp"}
+_MALFORMED_PERCENT_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
 
 
 def _has_control(value: str) -> bool:
@@ -46,12 +47,19 @@ def _decoded(value: str, label: str) -> str:
     return result
 
 
-def _validate_query_component(value: str) -> None:
-    """Reject raw and one-more-pass encoded controls after parse_qsl decoding."""
+def _validate_percent_escapes(value: str) -> None:
+    if _MALFORMED_PERCENT_ESCAPE.search(value):
+        raise ValueError("Invalid PostgreSQL URI percent escape")
 
+
+def _validate_query_component(value: str) -> None:
+    """Reject malformed escapes and controls after each bounded decode pass."""
+
+    _validate_percent_escapes(value)
     if _has_control(value):
         raise ValueError("Invalid PostgreSQL URI parameter")
     decoded_again = unquote(value, errors="strict")
+    _validate_percent_escapes(decoded_again)
     if _has_control(decoded_again):
         raise ValueError("Invalid PostgreSQL URI parameter")
 
@@ -111,6 +119,7 @@ def split_connection_uri(uri: str) -> tuple[str, str]:
     password = unquote(parsed.password or "", errors="strict")
     if _has_control(password):
         raise ValueError("Invalid PostgreSQL password")
+    _validate_percent_escapes(parsed.query)
     query = parse_qsl(
         parsed.query,
         keep_blank_values=True,
