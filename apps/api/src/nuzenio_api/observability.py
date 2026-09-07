@@ -54,10 +54,17 @@ _STANDARD_RECORD_FIELDS = frozenset(
     }
 )
 _SENSITIVE_FRAGMENTS = ("password", "token", "secret", "cookie", "authorization", "csrf")
-_CREDENTIAL_URI = re.compile(
-    r"(?is)((?:postgres(?:ql)?(?:\+[a-z0-9_-]+)?|rediss?)(?::|%3a)(?://|%2f%2f))"
-    r"[a-z0-9_.+%-]{0,128}(?::|%3a)(?:(?!@|%40|/).){1,512}?(@|%40)"
+_MAX_LOG_MESSAGE_LENGTH = 8_192
+_MAX_LOG_SCAN_LENGTH = 16_384
+_MAX_PERCENT_DECODE_PASSES = 2
+_TRUNCATED_SUFFIX = "...[TRUNCATED]"
+_ENCODED_SECRET_REDACTION = "[REDACTED ENCODED SENSITIVE LOG MESSAGE]"
+_CREDENTIAL_URI_PREFIX = re.compile(
+    r"(?i)(?:postgres(?:ql)?(?:\+[a-z0-9_-]+)?|rediss?)"
+    r"(?::|%3a)(?://|%2f%2f)"
 )
+_AUTHORITY_CREDENTIAL_SEPARATOR = re.compile(r"(?i):|%3a")
+_AUTHORITY_TERMINATOR = re.compile(r"(?i)@|%40")
 _BEARER = re.compile(r"(?i)(?<![a-z])(bearer)(?:\s+|%(?:09|0a|0d|20))+[a-z0-9._~+/=%:-]+")
 _COOKIE_HEADER = re.compile(r"(?i)\b((?:set-)?cookie\s*[:=]\s*)[^\r\n]+")
 _ASSIGNMENT = re.compile(
@@ -68,14 +75,46 @@ _ENCODED_ASSIGNMENT = re.compile(
     r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
     r"%3d(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
 )
-_MAX_LOG_MESSAGE_LENGTH = 8_192
-_MAX_PERCENT_DECODE_PASSES = 2
-_TRUNCATED_SUFFIX = "...[TRUNCATED]"
-_ENCODED_SECRET_REDACTION = "[REDACTED ENCODED SENSITIVE LOG MESSAGE]"
+
+
+def _redact_credential_uris(value: str) -> str:
+    """Redact complete and scan-window-truncated PostgreSQL/Redis userinfo."""
+
+    parts: list[str] = []
+    cursor = 0
+    while prefix := _CREDENTIAL_URI_PREFIX.search(value, cursor):
+        parts.append(value[cursor : prefix.end()])
+        authority_start = prefix.end()
+        authority_tail = value[authority_start:]
+        terminator = _AUTHORITY_TERMINATOR.search(authority_tail)
+        path = authority_tail.find("/")
+        query = authority_tail.find("?")
+        fragment = authority_tail.find("#")
+        boundary_candidates = [position for position in (path, query, fragment) if position >= 0]
+        boundary = min(boundary_candidates, default=-1)
+
+        if terminator is not None and (boundary < 0 or terminator.start() < boundary):
+            credentials = authority_tail[: terminator.start()]
+            if _AUTHORITY_CREDENTIAL_SEPARATOR.search(credentials):
+                parts.extend(("[REDACTED]", terminator.group(0)))
+                cursor = authority_start + terminator.end()
+                continue
+        elif boundary < 0:
+            # The bounded scan may end in the middle of a username/password and
+            # before the @host delimiter. Conservatively redact the unfinished
+            # authority rather than emitting a credential prefix.
+            parts.append("[REDACTED]")
+            cursor = len(value)
+            break
+
+        cursor = prefix.end()
+
+    parts.append(value[cursor:])
+    return "".join(parts)
 
 
 def _sanitize_visible_log_message(value: str) -> str:
-    result = _CREDENTIAL_URI.sub(r"\1[REDACTED]\2", value)
+    result = _redact_credential_uris(value)
     result = _BEARER.sub(r"\1 [REDACTED]", result)
     result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
     result = _ASSIGNMENT.sub(r"\1\2[REDACTED]", result)
@@ -94,13 +133,13 @@ def sanitize_log_message(value: str) -> str:
     visible_limit = (
         _MAX_LOG_MESSAGE_LENGTH - len(_TRUNCATED_SUFFIX) if truncated else _MAX_LOG_MESSAGE_LENGTH
     )
-    visible = value[:visible_limit]
-    sanitized_visible = _sanitize_visible_log_message(visible)
+    scan = value[:_MAX_LOG_SCAN_LENGTH]
+    sanitized_scan = _sanitize_visible_log_message(scan)
 
-    shadow = visible
+    shadow = scan
     for _ in range(_MAX_PERCENT_DECODE_PASSES):
         try:
-            decoded = unquote(shadow, errors="replace")[:_MAX_LOG_MESSAGE_LENGTH]
+            decoded = unquote(shadow, errors="replace")[:_MAX_LOG_SCAN_LENGTH]
         except (UnicodeError, ValueError):
             break
         if decoded == shadow:
@@ -110,13 +149,13 @@ def sanitize_log_message(value: str) -> str:
         shadow = decoded
 
     suffix = _TRUNCATED_SUFFIX if truncated else ""
-    return (sanitized_visible + suffix)[:_MAX_LOG_MESSAGE_LENGTH]
+    return (sanitized_scan[:visible_limit] + suffix)[:_MAX_LOG_MESSAGE_LENGTH]
 
 
 def _redact(value: Any) -> Any:
     if isinstance(value, dict):
         return {
-            str(key): (
+            sanitize_log_message(str(key)): (
                 "[REDACTED]"
                 if any(fragment in str(key).casefold() for fragment in _SENSITIVE_FRAGMENTS)
                 else _redact(item)

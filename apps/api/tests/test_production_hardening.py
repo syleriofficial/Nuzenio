@@ -11,6 +11,7 @@ import threading
 import urllib.error
 import urllib.request
 import uuid
+from urllib.parse import quote
 
 import pytest
 import redis
@@ -287,6 +288,58 @@ def test_log_sanitizer_is_bounded_and_handles_malformed_percent_input() -> None:
     sanitized = sanitize_log_message(oversized)
     assert len(sanitized) <= 8_192
     assert "unique-marker" not in sanitized
+
+
+def test_log_sanitizer_redacts_credentials_crossing_the_truncation_boundary() -> None:
+    canary = "boundary-canary-7q9x"
+    raw_uri = f"postgresql://operator:{canary}{'p' * 9_000}@database.example/nuzenio"
+    messages = [
+        raw_uri,
+        f"redis://:{canary}{'r' * 9_000}@redis.example/0",
+        f"{'x' * 8_060} postgresql://operator:{canary}{'p' * 500}@database.example/db",
+        f"postgresql://{'u' * 8_000}:{canary}{'p' * 500}@database.example/db",
+        f"postgresql://operator:{canary}@{'h' * 9_000}.example/db",
+        f"Authorization: Bearer {canary}{'b' * 9_000}",
+        f"Cookie: session={canary}{'c' * 9_000}",
+        f"PASSWORD={canary}{'p' * 9_000}",
+        f"token={canary}{'t' * 9_000}",
+        quote(raw_uri, safe=""),
+        quote(quote(raw_uri, safe=""), safe=""),
+        f"{'x' * 8_300}{canary}",
+    ]
+    formatter = JsonLogFormatter("test-service")
+    for message in messages:
+        record = logging.LogRecord("third-party", logging.ERROR, __file__, 1, message, (), None)
+        record.fields = {
+            f"diagnostic-{message}": {"nested": [message]},
+            "exception": RuntimeError(message),
+        }
+        output = formatter.format(record)
+        assert canary not in output
+        assert len(json.loads(output)["event"]) <= 8_192
+
+
+def test_log_sanitizer_is_bounded_before_decoding_and_truncates_safe_text_predictably(
+    monkeypatch,
+) -> None:
+    from nuzenio_api import observability
+
+    calls: list[int] = []
+    original_unquote = observability.unquote
+
+    def bounded_unquote(value, *args, **kwargs):
+        calls.append(len(value))
+        return original_unquote(value, *args, **kwargs)
+
+    monkeypatch.setattr(observability, "unquote", bounded_unquote)
+    safe = "s" * 1_000_000
+    sanitized = observability.sanitize_log_message(safe)
+    assert sanitized == "s" * (8_192 - len("...[TRUNCATED]")) + "...[TRUNCATED]"
+    assert len(calls) <= 2
+    assert all(length <= 16_384 for length in calls)
+
+    malformed = "%zz%" * 500_000
+    assert len(observability.sanitize_log_message(malformed)) <= 8_192
 
 
 def test_json_log_output_cannot_be_split_by_message_injection() -> None:
