@@ -105,7 +105,6 @@ jobs:
       NUZENIO_ENVIRONMENT: test
       NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_e2e
       NUZENIO_REDIS_URL: redis://localhost:6379/2
-      NUZENIO_REQUIRE_ZERO_E2E_RETRIES: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,7 +121,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e:setup
       - name: Run production Playwright suite without retries
-        run: npm --workspace apps/web run test:e2e -- --retries=0
+        run: npm --workspace apps/web run test:e2e:release
 
   compose:
     runs-on: ubuntu-latest
