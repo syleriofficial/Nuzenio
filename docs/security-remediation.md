@@ -278,3 +278,18 @@ migration owner, re-run role provisioning, then assert both restricted identitie
 API/worker. Backup/restore tests use disposable PostgreSQL and fictional data only. The operational
 scripts require a protected destination directory and PostgreSQL/Python tools; they are not an
 encrypted retention service or substitute for WAL archival. Independent re-review remains mandatory.
+
+## PR #2 closure follow-up
+
+Starting head `119b1c576a1ecf51dbe664563db3092328c0b819` was independently reported to
+retain one P2 release-gate issue and two P3 defense-in-depth gaps. This implementation preserves the
+previous migration head and all editorial, ingestion, audit and offline-cache controls.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 Playwright retry forwarding | `npm run test:e2e -- --retries=0` consumed the option at the outer npm layer; Playwright resolved both projects to the CI default of one retry | CI now runs fixture setup separately and invokes the web workspace directly with `--retries=0`. A Playwright reporter inspects the fully resolved project configuration, fails the release gate on any nonzero retry and prints the effective value | The old effective configuration fails with `chromium=1, mobile-chromium=1`; the direct command lists exactly 26 tests and reports effective retries zero. Unit coverage exercises both reporter outcomes | Local developer runs retain their existing retry default; `NUZENIO_REQUIRE_ZERO_E2E_RETRIES=true` is mandatory for a release gate and is set by CI |
+| P3 double-encoded log secrets | Double-percent-encoded URI, bearer, cookie and assignment canaries survived the visible-string patterns | Free-form strings are length-bounded; at most two percent-decoding passes are used only as detection shadows. A detected encoded secret replaces the whole value, and no decoded representation is emitted | Plain, mixed-case, multiline, single/double-encoded and nested canaries are absent from JSON logs; malformed percent input and safe messages remain readable; JSON line injection stays encoded | Pattern redaction cannot recognize every transform or novel encoding, so stable non-secret event names remain the primary control |
+| P3 PostgreSQL query controls | Allowed query values were reconstructed without checking decoded control characters; `%00`, `%0A`, `%0D`, double encoding and Unicode format controls reached the passwordless URI | The shared connection parser rejects ASCII, Unicode and surrogate controls in every decoded key/value and one further decoding pass before any operation can create temporary output or invoke a PostgreSQL tool | Helper and all three operation-script regressions cover raw, mixed-case, encoded/double-encoded, key/value, Unicode and repeated-parameter cases; valid repeated allowlisted parameters remain accepted | The explicit PostgreSQL option allowlist must be reassessed with client upgrades; this parser is intentionally stricter than general libpq URI parsing |
+
+No schema or data migration is required; Alembic head remains `6d0a4f2b8c91`. This work does not
+enable feeds, contact publishers, deploy, merge or claim independent closure.
