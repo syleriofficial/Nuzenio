@@ -18,15 +18,17 @@ from urllib.parse import quote
 
 import pytest
 import redis
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from psycopg import sql
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import sessionmaker
 
 from nuzenio_api.config import Settings, get_settings
-from nuzenio_api.database_security import engine_logging_options
+from nuzenio_api.database_security import DetachedDatabaseError, engine_logging_options
 from nuzenio_api.db import engine
 from nuzenio_api.db_roles import (
     _ensure_login_role,
@@ -34,6 +36,7 @@ from nuzenio_api.db_roles import (
     provision_audit_reader,
 )
 from nuzenio_api.environment import Environment, environment_from_os, is_production
+from nuzenio_api.errors import register_error_handlers
 from nuzenio_api.main import app
 from nuzenio_api.observability import JsonLogFormatter, configure_logging, sanitize_log_message
 from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
@@ -165,7 +168,7 @@ def test_production_engine_never_logs_bound_parameters() -> None:
                     text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
                     {"value": failure_canary},
                 )
-                with pytest.raises(DBAPIError) as caught:
+                with pytest.raises(DetachedDatabaseError) as caught:
                     connection.execute(
                         text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
                         {"value": failure_canary},
@@ -204,6 +207,197 @@ def test_production_engine_never_logs_bound_parameters() -> None:
     assert unrelated_preserved
 
 
+def _render_reachable_exception_graph(error: BaseException) -> str:
+    """Render every outward diagnostic edge without traversing traceback frame locals."""
+
+    pending: list[object] = [error]
+    seen: set[int] = set()
+    rendered = ["".join(traceback.format_exception(error))]
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        for renderer in (str, repr):
+            try:
+                rendered.append(renderer(current))
+            except Exception as rendering_error:  # pragma: no cover - adversarial helper
+                rendered.append(type(rendering_error).__name__)
+        if isinstance(current, dict):
+            pending.extend(current.keys())
+            pending.extend(current.values())
+            continue
+        if isinstance(current, (list, tuple, set, frozenset)):
+            pending.extend(current)
+            continue
+        for attribute in (
+            "__cause__",
+            "__context__",
+            "orig",
+            "diag",
+            "args",
+            "statement",
+            "params",
+            "exceptions",
+        ):
+            try:
+                value = getattr(current, attribute, None)
+            except Exception as diagnostic_error:  # pragma: no cover - defensive helper
+                rendered.append(type(diagnostic_error).__name__)
+                continue
+            if value is not None:
+                pending.append(value)
+        if type(current).__name__.endswith("Diagnostic") or current is getattr(error, "diag", None):
+            for attribute in dir(current):
+                if attribute.startswith("_"):
+                    continue
+                try:
+                    value = getattr(current, attribute)
+                except Exception:
+                    continue
+                if not callable(value) and value is not None:
+                    pending.append(value)
+    return "\n".join(rendered)
+
+
+def test_production_database_errors_are_detached_after_rollback() -> None:
+    from nuzenio_api import db
+
+    settings = production_settings().model_copy(update={"log_level": "DEBUG"})
+    secured_engine = db.build_engine(os.environ["NUZENIO_DATABASE_URL"], settings=settings)
+    table_suffix = secrets.token_hex(5)
+    parent_table = f"detached_parent_{table_suffix}"
+    child_table = f"detached_child_{table_suffix}"
+    canaries = {
+        "integer": f"invalid-integer-{secrets.token_hex(6)}",
+        "date": f"invalid-date-{secrets.token_hex(6)}",
+        "uuid": f"invalid-uuid-{secrets.token_hex(6)}",
+        "unique": f"unique-नाम-{secrets.token_hex(6)}",
+        "foreign_key": f"foreign-key-{secrets.token_hex(6)}",
+        "check": f"check-value-that-is-too-long-{secrets.token_hex(6)}",
+        "update": f"update-value-that-is-too-long-{secrets.token_hex(6)}",
+    }
+    try:
+        with secured_engine.begin() as connection:
+            connection.exec_driver_sql(f"CREATE TABLE {parent_table} (id text PRIMARY KEY)")
+            connection.exec_driver_sql(
+                f"CREATE TABLE {child_table} ("
+                "id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "
+                "unique_value text UNIQUE NOT NULL, "
+                f"parent_id text REFERENCES {parent_table}(id), "
+                "checked_value text CHECK (length(checked_value) < 10))"
+            )
+            connection.execute(
+                text(
+                    f"INSERT INTO {child_table} "
+                    "(unique_value, checked_value) VALUES (:unique_value, 'safe')"
+                ),
+                {"unique_value": canaries["unique"]},
+            )
+
+        failures = [
+            ("SELECT CAST(:value AS integer)", canaries["integer"], "22P02"),
+            ("SELECT CAST(:value AS date)", canaries["date"], "22007"),
+            ("SELECT CAST(:value AS uuid)", canaries["uuid"], "22P02"),
+            (
+                f"INSERT INTO {child_table} (unique_value, checked_value) VALUES (:value, 'safe')",
+                canaries["unique"],
+                "23505",
+            ),
+            (
+                f"INSERT INTO {child_table} (unique_value, parent_id, checked_value) "
+                "VALUES ('fresh-foreign-key', :value, 'safe')",
+                canaries["foreign_key"],
+                "23503",
+            ),
+            (
+                f"INSERT INTO {child_table} (unique_value, checked_value) "
+                "VALUES ('fresh-check', :value)",
+                canaries["check"],
+                "23514",
+            ),
+            (
+                f"UPDATE {child_table} SET checked_value=:value WHERE unique_value=:unique_value",
+                canaries["update"],
+                "23514",
+            ),
+        ]
+        for statement, canary, expected_sqlstate in failures:
+            parameters = {"value": canary, "unique_value": canaries["unique"]}
+            with (
+                pytest.raises(DetachedDatabaseError) as caught,
+                secured_engine.begin() as connection,
+            ):
+                connection.execute(text(statement), parameters)
+            outward = caught.value
+            assert outward.__cause__ is None
+            assert outward.__context__ is None
+            assert not hasattr(outward, "orig")
+            assert not hasattr(outward, "diag")
+            assert not hasattr(outward, "statement")
+            assert not hasattr(outward, "params")
+            assert outward.sqlstate == expected_sqlstate
+            assert canary not in _render_reachable_exception_graph(outward)
+            with secured_engine.connect() as recovered:
+                assert recovered.scalar(text("SELECT 1")) == 1
+
+        session_factory = sessionmaker(bind=secured_engine)
+        with session_factory() as session:
+            with pytest.raises(DetachedDatabaseError) as caught:
+                session.execute(
+                    text("SELECT CAST(:value AS integer)"), {"value": canaries["integer"]}
+                )
+            session.rollback()
+            assert session.scalar(text("SELECT 1")) == 1
+            assert canaries["integer"] not in _render_reachable_exception_graph(caught.value)
+    finally:
+        with secured_engine.begin() as connection:
+            connection.exec_driver_sql(f"DROP TABLE IF EXISTS {child_table}")
+            connection.exec_driver_sql(f"DROP TABLE IF EXISTS {parent_table}")
+        secured_engine.dispose()
+
+
+def test_production_connection_failure_does_not_retain_url_password() -> None:
+    from nuzenio_api import db
+
+    credential_canary = f"connection-password-{secrets.token_hex(8)}"
+    invalid_url = make_url(os.environ["NUZENIO_DATABASE_URL"]).set(password=credential_canary)
+    secured_engine = db.build_engine(
+        invalid_url.render_as_string(hide_password=False),
+        settings=production_settings(),
+    )
+    try:
+        with pytest.raises(DetachedDatabaseError) as caught, secured_engine.connect():
+            pass
+        outward = caught.value
+        assert outward.__cause__ is None
+        assert outward.__context__ is None
+        assert credential_canary not in _render_reachable_exception_graph(outward)
+        assert credential_canary not in repr(secured_engine)
+    finally:
+        secured_engine.dispose()
+
+
+def test_detached_database_error_preserves_generic_http_contract() -> None:
+    test_app = FastAPI()
+    register_error_handlers(test_app)
+
+    @test_app.get("/database-failure")
+    def database_failure() -> None:
+        raise DetachedDatabaseError(
+            category="IntegrityError",
+            sqlstate="23505",
+            connection_invalidated=False,
+        )
+
+    response = TestClient(test_app, raise_server_exceptions=False).get("/database-failure")
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "database_unavailable"
+    assert "IntegrityError" not in response.text
+    assert "23505" not in response.text
+    assert response.headers["Cache-Control"] == "private, no-store"
+
+
 def test_engine_logging_policy_reparses_environment_at_its_boundary() -> None:
     assert engine_logging_options("production", sql_echo=True) == {
         "echo": False,
@@ -219,7 +413,7 @@ def test_role_password_ddl_bypasses_sqlalchemy_logging() -> None:
     from nuzenio_api import db
 
     role = f"logging_probe_{secrets.token_hex(5)}"
-    password_canary = f"role-password-canary-{secrets.token_hex(6)}"
+    password_canary = f"role-password-canary-नाम-'\\-{secrets.token_hex(6)}"
     failed_password_canary = f"failed-role-canary-{secrets.token_hex(6)}"
     settings = production_settings().model_copy(update={"log_level": "DEBUG"})
     stdout = io.StringIO()
@@ -269,7 +463,18 @@ def test_role_password_ddl_bypasses_sqlalchemy_logging() -> None:
                 assert connection.scalar(text("SELECT :value"), {"value": "safe"}) == "safe"
             with pytest.raises(RuntimeError) as caught, secured_engine.begin() as connection:
                 _ensure_login_role(connection, f"failed_{role}", failed_password_canary + "\0")
-            assert failed_password_canary not in str(caught.value)
+            assert caught.value.__cause__ is None
+            assert caught.value.__context__ is None
+            assert failed_password_canary not in _render_reachable_exception_graph(caught.value)
+            with secured_engine.connect() as connection:
+                assert connection.scalar(text("SELECT 1")) == 1
+                assert (
+                    connection.scalar(
+                        text("SELECT count(*) FROM pg_roles WHERE rolname=:role"),
+                        {"role": f"failed_{role}"},
+                    )
+                    == 0
+                )
     finally:
         if credential_engine is not None:
             credential_engine.dispose()

@@ -25,13 +25,18 @@ def _ensure_login_role(connection, role: str, password: str) -> str:
     # Password-bearing role DDL deliberately executes below SQLAlchemy's
     # statement/result logging layer. Psycopg still performs identifier and
     # literal quoting, and the cursor participates in the enclosing transaction.
+    outward_error: RuntimeError | None = None
     try:
         with connection.connection.driver_connection.cursor() as cursor:
             cursor.execute(command)
     except PsycopgError as error:
         sqlstate = getattr(error, "sqlstate", None)
         suffix = f" (SQLSTATE {sqlstate})" if re.fullmatch(r"[A-Z0-9]{5}", sqlstate or "") else ""
-        raise RuntimeError(f"Database role operation failed{suffix}") from None
+        outward_error = RuntimeError(f"Database role operation failed{suffix}")
+    # Raise only after leaving the driver exception context. `from None` hides a
+    # context while rendering; raising here ensures no driver object is attached.
+    if outward_error is not None:
+        raise outward_error from None
     return '"' + role + '"'
 
 

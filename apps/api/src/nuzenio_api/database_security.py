@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 import re
-from contextlib import suppress
+from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy import Engine, event
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy import Connection, Engine, event
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from nuzenio_api.environment import Environment, is_production, parse_environment
 
@@ -21,6 +21,29 @@ _SQLALCHEMY_LOGGER_ROOTS = (
 
 class _SanitizedDatabaseDriverError(Exception):
     """Non-secret production replacement for a database-driver exception."""
+
+    def __init__(self, category: str, sqlstate: str | None) -> None:
+        self.category = category
+        self.sqlstate = sqlstate
+        suffix = f" (SQLSTATE {sqlstate})" if sqlstate else ""
+        super().__init__(f"{category}{suffix}")
+
+
+class DetachedDatabaseError(SQLAlchemyError):
+    """Metadata-only database failure with no reachable driver exception."""
+
+    def __init__(
+        self,
+        *,
+        category: str,
+        sqlstate: str | None,
+        connection_invalidated: bool,
+    ) -> None:
+        self.category = category
+        self.sqlstate = sqlstate
+        self.connection_invalidated = connection_invalidated
+        suffix = f", SQLSTATE {sqlstate}" if sqlstate else ""
+        super().__init__(f"Database operation failed ({category}{suffix}).")
 
 
 class _ProductionSQLAlchemyFilter(logging.Filter):
@@ -63,15 +86,12 @@ def configure_sqlalchemy_logging(environment: Environment | str) -> None:
 def _safe_database_error(context: Any) -> DBAPIError:
     original = context.original_exception
     sqlstate = getattr(original, "sqlstate", None)
-    detail = type(original).__name__
-    if isinstance(sqlstate, str) and _SAFE_SQLSTATE.fullmatch(sqlstate):
-        detail = f"{detail} (SQLSTATE {sqlstate})"
-    # SQLAlchemy chains a replacement exception from the original DBAPI error.
-    # Psycopg server details can repeat bound values, so sanitize the chained
-    # exception before SQLAlchemy attaches it as __cause__/__context__.
-    with suppress(AttributeError, TypeError):
-        original.args = (detail,)
-    sanitized = _SanitizedDatabaseDriverError(detail)
+    if not isinstance(sqlstate, str) or not _SAFE_SQLSTATE.fullmatch(sqlstate):
+        sqlstate = None
+    # This is an intermediate SQLAlchemy-compatible error. The outer production
+    # connection boundary discards its complete graph after SQLAlchemy finishes
+    # normal transaction and pool bookkeeping; it never mutates the driver error.
+    sanitized = _SanitizedDatabaseDriverError(type(original).__name__, sqlstate)
     return DBAPIError.instance(
         context.statement,
         None,
@@ -81,6 +101,57 @@ def _safe_database_error(context: Any) -> DBAPIError:
         connection_invalidated=context.is_disconnect,
         dialect=context.dialect,
     )
+
+
+def _detached_database_error(error: DBAPIError) -> DetachedDatabaseError:
+    original = error.orig
+    sqlstate = getattr(original, "sqlstate", None)
+    if not isinstance(sqlstate, str) or not _SAFE_SQLSTATE.fullmatch(sqlstate):
+        sqlstate = None
+    category = getattr(original, "category", None)
+    if not isinstance(category, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,79}", category):
+        category = type(error).__name__
+    return DetachedDatabaseError(
+        category=category,
+        sqlstate=sqlstate,
+        connection_invalidated=bool(error.connection_invalidated),
+    )
+
+
+def _call_with_detached_database_errors(operation: Callable[..., Any], *args: Any, **kwargs: Any):
+    """Raise only after leaving the active DBAPI exception context.
+
+    SQLAlchemy must first perform its normal rollback/invalidation bookkeeping.
+    The caught exception is deliberately not retained by the replacement.
+    """
+
+    detached: DetachedDatabaseError | None = None
+    try:
+        return operation(*args, **kwargs)
+    except DBAPIError as error:
+        detached = _detached_database_error(error)
+    if detached is not None:
+        raise detached from None
+    raise AssertionError("Database exception translation reached an invalid state")
+
+
+class _ProductionConnection(Connection):
+    """Connection boundary that removes SQLAlchemy/Psycopg exception graphs."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        _call_with_detached_database_errors(super().__init__, *args, **kwargs)
+
+    def _execute_context(self, *args: Any, **kwargs: Any):
+        return _call_with_detached_database_errors(super()._execute_context, *args, **kwargs)
+
+    def _commit_impl(self) -> None:
+        _call_with_detached_database_errors(super()._commit_impl)
+
+    def _rollback_impl(self) -> None:
+        _call_with_detached_database_errors(super()._rollback_impl)
+
+    def close(self) -> None:
+        _call_with_detached_database_errors(super().close)
 
 
 def engine_logging_options(environment: Environment | str, *, sql_echo: bool) -> dict[str, bool]:
@@ -102,4 +173,9 @@ def harden_database_engine(engine: Engine, environment: Environment | str) -> En
     configure_sqlalchemy_logging(parsed_environment)
     if is_production(parsed_environment):
         event.listen(engine, "handle_error", _safe_database_error, retval=True)
+        # Engine.connect() consults this factory for API, worker, ORM, Alembic,
+        # and role-provisioning connections. SQLAlchemy remains responsible for
+        # transaction/pool handling; only the already-processed outward error is
+        # replaced at the outer connection boundary.
+        engine._connection_cls = _ProductionConnection  # type: ignore[attr-defined]
     return engine
