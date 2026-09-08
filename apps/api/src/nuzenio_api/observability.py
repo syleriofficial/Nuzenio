@@ -78,6 +78,8 @@ _OWNED_HANDLER_ATTRIBUTE = "_nuzenio_owned_handler"
 _SANITIZING_FILTER_ATTRIBUTE = "_nuzenio_sanitizing_filter"
 _MAX_LOG_CONTAINER_DEPTH = 8
 _MAX_LOG_CONTAINER_ITEMS = 128
+_MAX_LOG_FORMAT_CONVERSIONS = 128
+_OMITTED_LOG_COMPOSITION = "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
 
 
 def _split_identifier(value: str) -> tuple[str, ...] | None:
@@ -166,12 +168,16 @@ def _assignment_value_end(value: str, start: int, separator: str) -> int:
     return cursor
 
 
-def _redact_sensitive_assignments(value: str) -> str:
+def _redact_sensitive_assignments(
+    value: str, *, argument_spans: list[tuple[int, int]] | None = None
+) -> str:
     """Redact assignment values with a bounded, single-pass scanner."""
 
     output: list[str] = []
     emitted = 0
     index = 0
+    span_index = 0
+    spans = argument_spans or []
     length = len(value)
     while index < length:
         parsed = _parse_assignment_key(value, index)
@@ -193,6 +199,15 @@ def _redact_sensitive_assignments(value: str) -> str:
             index = max(value_start, advance)
             continue
         value_end = _assignment_value_end(value, value_start, separator)
+        # The whole interpolation is one untrusted value. A password containing
+        # spaces/newlines/delimiters must not leak its tail simply because the
+        # free-form scanner would treat that delimiter as the assignment's end.
+        # Sorted disjoint spans are traversed once; no prefix rescanning occurs.
+        while span_index < len(spans) and spans[span_index][1] <= value_start:
+            span_index += 1
+        while span_index < len(spans) and spans[span_index][0] <= value_end:
+            value_end = max(value_end, spans[span_index][1])
+            span_index += 1
         output.append(value[emitted:value_start])
         output.append("[REDACTED]")
         emitted = value_end
@@ -363,12 +378,168 @@ def _redact(
         return f"<{type(value).__name__}>"
 
 
-def _safe_log_arguments(arguments: Any) -> Any:
-    if isinstance(arguments, tuple):
-        return tuple(_redact(argument) for argument in arguments)
-    if isinstance(arguments, dict):
-        return _redact(arguments)
-    return _redact(arguments)
+def _bounded_format_argument(value: Any) -> str | int | float | bool | None:
+    """Never call application-defined renderers from the logging boundary."""
+
+    if type(value) is str:
+        return value[:_MAX_LOG_SCAN_LENGTH]
+    if type(value) is int:
+        if value.bit_length() > 4_096:
+            raise ValueError("oversized log integer")
+        return value
+    if type(value) in {float, bool, type(None)}:
+        return value
+    raise ValueError("unsupported log argument renderer")
+
+
+def _sensitive_match_splits_argument(value: str, spans: list[tuple[int, int]]) -> bool:
+    """Fail closed when a header/token delimiter splits its actual argument."""
+
+    for pattern in (_BEARER, _COOKIE_HEADER):
+        span_index = 0
+        for match in pattern.finditer(value):
+            while span_index < len(spans) and spans[span_index][1] <= match.start():
+                span_index += 1
+            while span_index < len(spans) and spans[span_index][0] <= match.end():
+                if spans[span_index][1] > match.end():
+                    return True
+                span_index += 1
+    return False
+
+
+def _compose_log_message(template: Any, arguments: Any) -> str:
+    """Compose before redaction without unrestricted percent interpolation.
+
+    Parse a bounded template once, render at most 128 conversions, and bound
+    each primitive, field width, precision and the aggregate scan buffer before
+    rendering. No caller-defined __str__, __repr__ or mapping hooks execute.
+    Invalid/oversized layouts yield only a constant; never their raw arguments
+    or a formatting exception. A valid mapping may contain unused values, but
+    none are retained on the replacement record.
+    """
+
+    if type(template) is not str or type(arguments) not in {tuple, dict}:
+        return _OMITTED_LOG_COMPOSITION
+    if not arguments:
+        return sanitize_log_message(template)
+    if len(template) > _MAX_LOG_SCAN_LENGTH:
+        return _OMITTED_LOG_COMPOSITION
+    # Exact builtin string keys prevent a colliding custom key's __eq__
+    # from running during lookup. Bound validation of unused mapping fields
+    # too, rather than copying or walking arbitrarily large mappings.
+    if type(arguments) is dict and (
+        len(arguments) > _MAX_LOG_CONTAINER_ITEMS
+        or any(type(key) is not str or len(key) > _MAX_LOG_SCAN_LENGTH for key in arguments)
+    ):
+        return _OMITTED_LOG_COMPOSITION
+
+    index = 0
+    argument_index = 0
+    conversions = 0
+    remaining = _MAX_LOG_SCAN_LENGTH
+    output: list[str] = []
+    argument_spans: list[tuple[int, int]] = []
+
+    def append(value: str, *, interpolated: bool = False) -> None:
+        nonlocal remaining
+        bounded = value[:remaining]
+        if interpolated and bounded:
+            start = _MAX_LOG_SCAN_LENGTH - remaining
+            argument_spans.append((start, start + len(bounded)))
+        output.append(bounded)
+        remaining -= len(bounded)
+
+    def next_argument() -> Any:
+        nonlocal argument_index
+        if type(arguments) is not tuple or argument_index >= len(arguments):
+            raise ValueError("missing positional log argument")
+        value = arguments[argument_index]
+        argument_index += 1
+        return value
+
+    def field_size() -> tuple[str, list[int]]:
+        nonlocal index
+        if index < len(template) and template[index] == "*":
+            index += 1
+            size = next_argument()
+            if type(size) is not int or abs(size) > _MAX_LOG_SCAN_LENGTH:
+                raise ValueError("oversized log field")
+            return "*", [size]
+        start = index
+        while index < len(template) and template[index] in string.digits:
+            index += 1
+        digits = template[start:index]
+        if len(digits) > 5 or (digits and int(digits) > _MAX_LOG_SCAN_LENGTH):
+            raise ValueError("oversized log field")
+        return digits, []
+
+    try:
+        while index < len(template) and remaining:
+            if template[index] != "%":
+                start = index
+                while index < len(template) and template[index] != "%":
+                    index += 1
+                append(template[start:index])
+                continue
+            index += 1
+            if index < len(template) and template[index] == "%":
+                append("%")
+                index += 1
+                continue
+            conversions += 1
+            if conversions > _MAX_LOG_FORMAT_CONVERSIONS:
+                raise ValueError("too many log conversions")
+
+            key: str | None = None
+            if index < len(template) and template[index] == "(":
+                index += 1
+                start = index
+                depth = 1
+                while index < len(template) and depth:
+                    if template[index] == "(":
+                        depth += 1
+                    elif template[index] == ")":
+                        depth -= 1
+                    index += 1
+                if depth or type(arguments) is not dict:
+                    raise ValueError("invalid log mapping")
+                key = template[start : index - 1]
+
+            flags_start = index
+            while index < len(template) and template[index] in "#0- +":
+                index += 1
+            flags = template[flags_start:index]
+            if len(flags) > 8:
+                raise ValueError("oversized log flags")
+            width, render_arguments = field_size()
+            precision = ""
+            if index < len(template) and template[index] == ".":
+                index += 1
+                digits, precision_arguments = field_size()
+                precision = "." + digits
+                render_arguments.extend(precision_arguments)
+            modifier = ""
+            if index < len(template) and template[index] in "hlL":
+                modifier = template[index]
+                index += 1
+            if index >= len(template) or template[index] not in "diouxXeEfFgGcrsa":
+                raise ValueError("invalid log conversion")
+            conversion = template[index]
+            index += 1
+            argument = arguments[key] if key is not None else next_argument()
+            render_arguments.append(_bounded_format_argument(argument))
+            token = "%" + flags + width + precision + modifier + conversion
+            # This token and every input it can expand have already been bounded.
+            append(token % tuple(render_arguments), interpolated=True)
+        if remaining and type(arguments) is tuple and argument_index != len(arguments):
+            raise ValueError("unused positional log arguments")
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return _OMITTED_LOG_COMPOSITION
+    composed = "".join(output)
+    if _sensitive_match_splits_argument(composed, argument_spans):
+        return "[REDACTED]"
+    composed = _redact_sensitive_assignments(composed, argument_spans=argument_spans)
+    return sanitize_log_message(composed)
 
 
 def _safe_exception_info(exc_info: Any) -> Any:
@@ -385,20 +556,11 @@ def _sanitized_log_record(record: logging.LogRecord) -> logging.LogRecord:
     """Return a detached record containing no original mutable or exception objects."""
 
     attributes = record.__dict__.copy()
-    original_message = record.msg
-    safe_message = (
-        sanitize_log_message(original_message)
-        if isinstance(original_message, str)
-        else _redact(original_message)
-    )
-    safe_arguments = _safe_log_arguments(record.args)
-    # A redacted format template may no longer contain its original placeholders.
-    # Collapse it to the already-safe message rather than allowing a formatter to
-    # render untrusted arguments or fail on the changed template.
-    if safe_message != original_message:
-        safe_arguments = ()
-    attributes["msg"] = safe_message
-    attributes["args"] = safe_arguments
+    # Sensitive identifiers can be assembled by positional/mapping interpolation.
+    # Compose and sanitize before existing filters, not just the JSON formatter.
+    # Clearing args also removes unclassified raw material from telemetry sinks.
+    attributes["msg"] = _compose_log_message(record.msg, record.args)
+    attributes["args"] = ()
     attributes.pop("message", None)
     attributes["exc_info"] = _safe_exception_info(record.exc_info)
     # Pre-rendered exception text cannot be proven to exclude unlabeled bound

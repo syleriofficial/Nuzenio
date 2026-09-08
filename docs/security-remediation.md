@@ -359,3 +359,44 @@ This adds no migration or schema change; head remains `6d0a4f2b8c91`. Existing r
 execution/constraint, audit/contributor, authentication and worker regressions remain required.
 Source changes are confined to `database_security.py`, its new result-consumption tests and these
 operational notes. Independent read-only closure review is still required before merge.
+
+## PR #2 composed-message logging closure and validation
+
+The same starting head leaked each of `db_%s=%s`, `%s=%s` and
+`%(field_name)s=%(field_value)s` to pre-existing external filters/plain/raw-record handlers when
+arguments assembled a sensitive key. All three initial regressions failed before the fix: separate
+template/argument sanitation could not recognize the eventual assignment, although Nuzenio's JSON
+formatter redacted it later.
+
+| Finding | Fix | Regression | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 deferred-format external-sink disclosure | Bound and compose builtin positional/mapping values before sink filters, sanitize the composed message, and clear replacement args. Bound token count, field widths/precision, template and output before rendering; use a constant fallback for invalid formats. Whole-argument spans prevent delimiter-containing secret tails escaping redaction | 41 new tests cover all three reproductions on root/descendant loggers, raw collectors, existing filters/plain/JSON formatters, original-object preservation, encoded/boundary/nested secrets, excessive widths, malformed/missing keys, hostile renderers, repeated initialization and concurrent output. Supplemental adversarial split-key matrix: 1,740 cases without a canary leak | Application-defined renderers/nonprimitive percent arguments are deliberately omitted. Redaction remains bounded defense in depth; privileged post-initialization logging reconfiguration and nonstandard dispatch are not protected |
+
+Source changes are `observability.py`, `test_logging_composition.py` and the existing handler test's
+assertion that a safe message is composed and replacement args are empty. No controls or retries were
+weakened, no migration changed, and no real feeds were enabled.
+
+Validation before push:
+
+- macOS/Python 3.14: initial full API run 478 passed; final expanded result suite 52 passed.
+- Linux/Python 3.12, real PostgreSQL 17/Redis: final full API run **479 passed** (including
+  existing SQL/role, F01–F15/R1–R6, concurrency, clean/legacy migration and schema-drift regressions).
+- Linux Node 22.13: clean `npm ci`, formatting/lint, **48 web tests**, production Next.js build and
+  **26 Playwright tests**, two projects, effective retries zero. Browser API uses the repository's
+  explicit test-fixture configuration on an outbound-disabled Docker network; no worker/live feed
+  runs there. Production/Compose kill switches remain on.
+- Ruff format/lint, npm/Python audits, diff and tracked-artifact checks passed.
+- Unique Compose projects built/started PostgreSQL, Redis, API and worker, verified readiness,
+  restored a backup through `6d0a4f2b8c91`, and passed PostgreSQL operation security checks. Normal
+  teardown removed project resources; a separate deliberate exit 42 after health checks also
+  removed all project containers, networks and volumes while preserving the failure exit code.
+
+Initial Linux harness failures were investigated, not retried blindly: the old test image copied
+pre-existing ignored web `dist` output and omitted root `scripts`/`.github` files needed by tests.
+Validation used a clean tracked-plus-new-file snapshot and read-only support-file mounts without
+removing developer artifacts. A runner-wide kill-switch override also correctly invalidated the
+fixture dry run; the final browser run used standard test semantics with outbound networking blocked.
+The native metadata compatibility probe was corrected to respect SQLAlchemy cursor cleanup after
+unsupported `lastrowid`, and the error hook now leaves non-driver exceptions unclassified.
+Existing bounded stream-cancellation diagnostics were not changed. Exact-head GitHub results are
+reported separately after pushing; independent read-only closure review remains mandatory.

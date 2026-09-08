@@ -1078,7 +1078,8 @@ def test_production_sanitizes_detached_records_before_every_configured_sink() ->
         assert canary not in complete_output
         assert "DriverFailure (SQLSTATE 23505)" in complete_output
         assert complete_output.count(safe_value) >= 4
-        assert telemetry_handler.records[-1]["args"] == (safe_value,)
+        assert telemetry_handler.records[-1]["args"] == ()
+        assert telemetry_handler.records[-1]["msg"] == f"safe telemetry {safe_value}"
         assert descendant_handler.records[-1]["extras"] == {"diagnostic": {"queue_depth": 3}}
         assert nested_original["database"]["password"] == canary
         assert raw_error.diag.message_primary.endswith(canary)

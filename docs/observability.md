@@ -51,6 +51,18 @@ independent infrastructure boundary. Deliberate privileged logging reconfigurati
 application initialization is outside this guarantee; deployment startup must not add unreviewed
 post-initialization handlers.
 
+Replacement records compose positional/mapping percent-format messages before sanitization and
+always clear `args`; raw templates/arguments are not retained in custom fields. Composition parses
+at most 16,384 template characters and 128 conversions, caps widths/precision and the combined scan
+buffer before rendering, and accepts only bounded builtin scalar values. It never invokes arbitrary
+application `__str__`/`__repr__` or custom mapping hooks. Malformed formats, missing keys, oversized
+fields and unsupported objects produce a constant omission event without raw arguments or formatting
+exceptions. This intentionally changes nonprimitive diagnostic `%s` rendering; prefer stable event
+names with structured fields for such data. Sensitive interpolations are redacted as whole values,
+including embedded whitespace/delimiters. Final output retains the existing 8,192-character limit
+and bounded single/double-encoding protections. Safe ordinary primitive interpolation, handler
+levels/filters/formatters/destinations and original application objects remain unchanged.
+
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the
 ID to the user when investigating a failed request. Feed runs retain their durable request ID and log
