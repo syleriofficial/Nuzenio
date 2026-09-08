@@ -400,3 +400,42 @@ The native metadata compatibility probe was corrected to respect SQLAlchemy curs
 unsupported `lastrowid`, and the error hook now leaves non-driver exceptions unclassified.
 Existing bounded stream-cancellation diagnostics were not changed. Exact-head GitHub results are
 reported separately after pushing; independent read-only closure review remains mandatory.
+
+## PR #2 named-mapping classification closure
+
+Starting head `6f43ecd98ffcbd00c2eee8b58d298597b20eee92` was independently reported to
+lose a named mapping argument's sensitive classification during composition. The regression
+`authentication rejected credential=%(password)s` exposed its value to configured raw-record sinks,
+existing filters, plain formatters and Nuzenio JSON. Newly added sink-level tests failed before the
+implementation changed (the reproduction run stopped after its first two failures).
+
+| Finding | Fix | Regression evidence | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 sensitive named placeholders | Use the existing shared key classifier, including cookies, after bounded format validation and before argument access/rendering. Emit a fixed marker for classified values, retain post-composition scanning and empty replacement arguments | 73 new cases cover 20 qualified/case variants across root/descendant sinks; repeated/mixed placeholders; `%s`/`%r`, numeric conversions, width/precision and escaped percent; no invocation of the original value renderer; malformed omission; original record/mapping/extra preservation. The complete composition suite has 114 cases | Classified values deliberately do not honor padding/precision on the marker. Unsupported objects and oversized/malformed formats retain their safe omission behavior |
+| Overlapping classified placeholder and dynamic label | A classified value could itself have supplied an erased assignment/header prefix. Keep a bounded ambiguity flag and redact an unclassified interpolation or ambiguous literal suffix following that hidden prefix unless a literal field boundary establishes independence | Twelve overlap cases are included in the 73 regressions: assignment, qualified assignment, Bearer and Cookie layouts, each at root/descendant sinks, plus literal suffixes before later boundaries. Supplemental outside-repository adversarial suites plus the composition suite total 695 passing cases | Ambiguous adjacent unlabelled interpolations may redact the entire event. Explicitly label/separate safe fields; do not reconstruct original secret-bearing shadow messages |
+
+The tests initialize production logging after pytest installs its call-phase capture handlers as well
+as after the explicitly configured sinks. No handler or assertion is removed: this makes original
+record-preservation assertions cover every sink present at initialization, rather than allowing a
+later pytest formatter to mutate the original record.
+
+Changes are confined to `observability.py`, `test_logging_composition.py`, this evidence and
+`docs/observability.md`. The independently closed database-fetch implementation and its 52
+regressions are unchanged. No migration or dependency change is required; Alembic head remains
+`6d0a4f2b8c91`. Full validation and exact-head CI results are reported with the delivery. No real
+feeds are enabled, no publisher is contacted, and independent read-only closure review remains
+required before merge.
+
+Pre-push validation: 695 combined composition/adversarial cases passed locally; the full Linux
+PostgreSQL/Redis API suite passed **552 tests** after the final literal-suffix refinement, including
+the unchanged 52 database-consumption
+tests, clean/legacy migrations, runtime-role and security/concurrency suites. Alembic upgrade/check
+and two explicit fictional seed runs passed. The two existing warnings concern Starlette's httpx
+test-client integration and AnyIO's deprecated BlockingPortal alias, not this change.
+
+Linux clean `npm ci`, web formatting/lint, **48 web tests**, production Next.js build, npm/Python
+audits, Ruff formatting/lint, diff and bounded tracked-secret/artifact scans passed. Production
+Playwright passed **26 tests**, two projects, effective retries zero, on an outbound-disabled
+fixture network. Isolated Compose build/readiness/backup/restore/security checks passed. A separate
+intentional exit 42 after readiness preserved the failure exit and still removed all project
+containers, networks and volumes. No existing developer service or volume was removed.

@@ -63,6 +63,18 @@ including embedded whitespace/delimiters. Final output retains the existing 8,19
 and bounded single/double-encoding protections. Safe ordinary primitive interpolation, handler
 levels/filters/formatters/destinations and original application objects remain unchanged.
 
+Named mapping placeholders also retain the shared sensitive-key classification (including cookies).
+A sensitive placeholder emits the fixed `[REDACTED]` marker without reading or rendering its value;
+valid conversion flags, width and precision do not transform that marker. Format syntax and size
+limits still apply. Post-composition scanning remains enabled for dynamically assembled identifiers.
+If a removed placeholder could have supplied the key/header for a following unclassified
+interpolation, the ambiguous message is conservatively redacted. Literal field boundaries (`;`,
+newline, or an explicit field such as ` count=`) at the start of the suffix establish independent
+subsequent fields; a later boundary cannot rescue an earlier ambiguous literal suffix. A statically
+labelled value such as `credential=%(password)s` retains ordinary safe literal suffixes. Prefer
+`credential=%(password)s; count=%(count)d` over adjacent, unlabelled interpolations. This preserves
+readable safe fields without reconstructing a secret-bearing shadow message.
+
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the
 ID to the user when investigating a failed request. Feed runs retain their durable request ID and log
