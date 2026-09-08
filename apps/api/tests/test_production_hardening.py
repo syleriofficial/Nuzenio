@@ -8,6 +8,8 @@ import secrets
 import subprocess
 import sys
 import threading
+import time
+import traceback
 import urllib.error
 import urllib.request
 import uuid
@@ -17,13 +19,20 @@ from urllib.parse import quote
 import pytest
 import redis
 from fastapi.testclient import TestClient
+from psycopg import sql
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 
 from nuzenio_api.config import Settings, get_settings
+from nuzenio_api.database_security import engine_logging_options
 from nuzenio_api.db import engine
-from nuzenio_api.db_roles import assert_audit_reader_identity, provision_audit_reader
+from nuzenio_api.db_roles import (
+    _ensure_login_role,
+    assert_audit_reader_identity,
+    provision_audit_reader,
+)
 from nuzenio_api.environment import Environment, environment_from_os, is_production
 from nuzenio_api.main import app
 from nuzenio_api.observability import JsonLogFormatter, configure_logging, sanitize_log_message
@@ -86,14 +95,17 @@ def test_production_engine_never_logs_bound_parameters() -> None:
 
     select_canary = "private-select-canary-c83ad5"
     insert_canary = "private-insert-canary-f92e17"
+    update_canary = "private-update-canary-a319df"
+    failure_canary = "private-failure-canary-b673e4"
     # model_copy deliberately bypasses Pydantic validation to prove that engine
     # construction independently enforces the production invariant.
-    settings = production_settings().model_copy(update={"sql_echo": True})
+    settings = production_settings().model_copy(update={"sql_echo": True, "log_level": "DEBUG"})
 
     stdout = io.StringIO()
     stderr = io.StringIO()
     external_sqlalchemy = io.StringIO()
     stale_echo_output = io.StringIO()
+    unrelated_root_output = io.StringIO()
     root = logging.getLogger()
     sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
     sqlalchemy_engine_logger = logging.getLogger("sqlalchemy.engine.Engine")
@@ -106,18 +118,26 @@ def test_production_engine_never_logs_bound_parameters() -> None:
     previous_engine_level = sqlalchemy_engine_logger.level
     previous_engine_propagate = sqlalchemy_engine_logger.propagate
     secured_engine = None
+    unrelated_preserved = False
     try:
+        unrelated_handler = logging.StreamHandler(unrelated_root_output)
+        root.addHandler(unrelated_handler)
         sqlalchemy_engine_logger.addHandler(logging.StreamHandler(stale_echo_output))
         with redirect_stdout(stdout), redirect_stderr(stderr):
             configure_logging("sql-logging-regression", settings)
+            configure_logging("sql-logging-regression", settings)
+            unrelated_preserved = unrelated_handler in root.handlers
             assert sqlalchemy_engine_logger.handlers == []
             external_handler = logging.StreamHandler(external_sqlalchemy)
             external_handler.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
             sqlalchemy_logger.addHandler(external_handler)
-            sqlalchemy_logger.setLevel(logging.INFO)
+            sqlalchemy_logger.setLevel(logging.DEBUG)
             sqlalchemy_logger.propagate = True
 
             secured_engine = db.build_engine(os.environ["NUZENIO_DATABASE_URL"], settings=settings)
+            # Even post-construction logger changes cannot route DEBUG result rows.
+            sqlalchemy_engine_logger.setLevel(logging.DEBUG)
+            sqlalchemy_engine_logger.addHandler(external_handler)
             assert secured_engine.echo is False
             assert secured_engine.hide_parameters is True
             assert secured_engine.pool._echo is False
@@ -132,10 +152,26 @@ def test_production_engine_never_logs_bound_parameters() -> None:
                     text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
                     {"value": insert_canary},
                 )
+                connection.execute(
+                    text("UPDATE nuzenio_sql_logging_probe SET value=:value"),
+                    {"value": update_canary},
+                )
                 assert (
                     connection.scalar(text("SELECT :value"), {"value": select_canary})
                     == select_canary
                 )
+                connection.execute(text("CREATE UNIQUE INDEX ON nuzenio_sql_logging_probe(value)"))
+                connection.execute(
+                    text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
+                    {"value": failure_canary},
+                )
+                with pytest.raises(DBAPIError) as caught:
+                    connection.execute(
+                        text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
+                        {"value": failure_canary},
+                    )
+                assert failure_canary not in str(caught.value)
+                assert failure_canary not in "".join(traceback.format_exception(caught.value))
     finally:
         if secured_engine is not None:
             secured_engine.dispose()
@@ -148,27 +184,132 @@ def test_production_engine_never_logs_bound_parameters() -> None:
         sqlalchemy_engine_logger.setLevel(previous_engine_level)
         sqlalchemy_engine_logger.propagate = previous_engine_propagate
 
-    complete_output = stdout.getvalue() + stderr.getvalue() + external_sqlalchemy.getvalue()
+    complete_output = (
+        stdout.getvalue()
+        + stderr.getvalue()
+        + external_sqlalchemy.getvalue()
+        + unrelated_root_output.getvalue()
+    )
     assert stale_echo_output.getvalue() == ""
     assert select_canary not in complete_output
     assert insert_canary not in complete_output
+    assert update_canary not in complete_output
+    assert failure_canary not in complete_output
     assert "SELECT" in complete_output
     assert "INSERT" in complete_output
     assert "SQL parameters hidden due to hide_parameters=True" in complete_output
     json_lines = [line for line in stdout.getvalue().splitlines() if line]
     assert json_lines
     assert all(json.loads(line)["service"] == "sql-logging-regression" for line in json_lines)
+    assert unrelated_preserved
+
+
+def test_engine_logging_policy_reparses_environment_at_its_boundary() -> None:
+    assert engine_logging_options("production", sql_echo=True) == {
+        "echo": False,
+        "echo_pool": False,
+        "hide_parameters": True,
+    }
+    for malformed in (None, "", "Production", "PRODUCTION", " production", "production "):
+        with pytest.raises(ValueError):
+            engine_logging_options(malformed, sql_echo=True)  # type: ignore[arg-type]
+
+
+def test_role_password_ddl_bypasses_sqlalchemy_logging() -> None:
+    from nuzenio_api import db
+
+    role = f"logging_probe_{secrets.token_hex(5)}"
+    password_canary = f"role-password-canary-{secrets.token_hex(6)}"
+    failed_password_canary = f"failed-role-canary-{secrets.token_hex(6)}"
+    settings = production_settings().model_copy(update={"log_level": "DEBUG"})
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    external_output = io.StringIO()
+    root = logging.getLogger()
+    sqlalchemy_loggers = [
+        logging.getLogger(name)
+        for name in (
+            "sqlalchemy",
+            "sqlalchemy.engine",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.pool",
+        )
+    ]
+    previous_root_handlers = root.handlers[:]
+    previous_root_level = root.level
+    previous_state = [
+        (logger, logger.handlers[:], logger.level, logger.propagate)
+        for logger in sqlalchemy_loggers
+    ]
+    secured_engine = None
+    credential_engine = None
+    credential_engine_repr = ""
+    try:
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            configure_logging("role-password-regression", settings)
+            for logger in sqlalchemy_loggers:
+                logger.setLevel(logging.DEBUG)
+                logger.addHandler(logging.StreamHandler(external_output))
+            secured_engine = db.build_engine(os.environ["NUZENIO_DATABASE_URL"], settings=settings)
+            for logger in sqlalchemy_loggers:
+                logger.setLevel(logging.DEBUG)
+                logger.addHandler(logging.StreamHandler(external_output))
+            with secured_engine.begin() as connection:
+                _ensure_login_role(connection, role, password_canary)
+            role_url = make_url(os.environ["NUZENIO_DATABASE_URL"]).set(
+                username=role,
+                password=password_canary,
+            )
+            credential_engine = db.build_engine(
+                role_url.render_as_string(hide_password=False),
+                settings=settings,
+            )
+            credential_engine_repr = repr(credential_engine)
+            with credential_engine.connect() as connection:
+                assert connection.scalar(text("SELECT :value"), {"value": "safe"}) == "safe"
+            with pytest.raises(RuntimeError) as caught, secured_engine.begin() as connection:
+                _ensure_login_role(connection, f"failed_{role}", failed_password_canary + "\0")
+            assert failed_password_canary not in str(caught.value)
+    finally:
+        if credential_engine is not None:
+            credential_engine.dispose()
+        if secured_engine is not None:
+            try:
+                with (
+                    secured_engine.begin() as connection,
+                    connection.connection.driver_connection.cursor() as cursor,
+                ):
+                    cursor.execute(sql.SQL("DROP ROLE IF EXISTS {}").format(sql.Identifier(role)))
+            finally:
+                secured_engine.dispose()
+        root.handlers = previous_root_handlers
+        root.setLevel(previous_root_level)
+        for logger, handlers, level, propagate in previous_state:
+            logger.handlers = handlers
+            logger.setLevel(level)
+            logger.propagate = propagate
+
+    complete_output = stdout.getvalue() + stderr.getvalue() + external_output.getvalue()
+    assert password_canary not in complete_output
+    assert password_canary not in credential_engine_repr
+    assert failed_password_canary not in complete_output
+    assert "CREATE ROLE" not in complete_output
 
 
 def test_development_sql_echo_remains_explicitly_configurable() -> None:
     from nuzenio_api import db
 
     settings = Settings(environment="development", sql_echo=True, _env_file=None)
-    development_engine = db.build_engine("sqlite+pysqlite:///:memory:", settings=settings)
+    output = io.StringIO()
+    with redirect_stdout(output):
+        development_engine = db.build_engine("sqlite+pysqlite:///:memory:", settings=settings)
+        with development_engine.connect() as connection:
+            assert connection.scalar(text("SELECT 1")) == 1
     try:
         assert development_engine.echo is True
         assert development_engine.hide_parameters is False
         assert development_engine.pool._echo is False
+        assert "SELECT 1" in output.getvalue()
     finally:
         development_engine.dispose()
 
@@ -462,6 +603,51 @@ def test_qualified_sensitive_assignments_are_redacted_from_complete_json(key) ->
 @pytest.mark.parametrize(
     "message",
     [
+        r"{\"db_password\":\"escaped-canary-27e91a\"}",
+        r"{\"api.token\": \"escaped-canary-27e91a\"}",
+        r"{\"client-secret\":\"escaped-canary-27e91a\"}",
+        r"{\"session_hash_pepper\":\"escaped-canary-27e91a\"}",
+        "db_password: |\n  escaped-canary-27e91a\n  continuation",
+        "API.Token: >\n  escaped-canary-27e91a\n  continuation",
+        "client-secret: |2-\n    escaped-canary-27e91a",
+        f"{'x' * 8_050} db_password: |\n  escaped-canary-27e91a",
+    ],
+)
+def test_escaped_and_block_style_sensitive_assignments_are_redacted(message) -> None:
+    formatter = JsonLogFormatter("escaped-assignment-regression")
+    variants = [message, quote(message, safe=""), quote(quote(message, safe=""), safe="")]
+    for variant in variants:
+        record = logging.LogRecord("third-party", logging.ERROR, __file__, 1, variant, (), None)
+        record.fields = {"nested": [variant, RuntimeError(variant)]}
+        output = formatter.format(record)
+        assert "escaped-canary-27e91a" not in output
+        assert len(json.loads(output)["event"]) <= 8_192
+
+
+def test_sensitive_assignment_scanner_has_bounded_near_linear_scaling() -> None:
+    measurements: list[tuple[int, float]] = []
+    for size in (1, 2, 4, 8, 12, 16):
+        target = size * 1_024
+        payload = ("scope." * (target // len("scope."))) + "passwordless=safe"
+        samples: list[float] = []
+        for _ in range(3):
+            started = time.perf_counter()
+            assert sanitize_log_message(payload).endswith("...[TRUNCATED]") or size < 8
+            samples.append(time.perf_counter() - started)
+        measurements.append((size, min(samples)))
+
+    smallest = measurements[0][1]
+    largest = measurements[-1][1]
+    # The previous backtracking expression took multiple seconds for 16 KiB.
+    # This generous ceiling tolerates shared CI hosts while detecting that class
+    # of regression, and the ratio bound checks that doubling input is not quadratic.
+    assert largest < 0.75
+    assert largest <= max(smallest * 30, 0.25)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
         "The secretary prepared the briefing",
         "tokenizer=sentencepiece",
         "passwordless:true",
@@ -475,6 +661,62 @@ def test_log_sanitizer_preserves_non_sensitive_fragment_words(message) -> None:
     record.fields = {message: "safe-value"}
     payload = json.loads(JsonLogFormatter("test-service").format(record))
     assert payload[message] == "safe-value"
+
+
+def test_logging_initialization_is_owned_idempotent_and_preserves_root_telemetry() -> None:
+    settings = production_settings(log_level="DEBUG")
+    root = logging.getLogger()
+    sqlalchemy_loggers = [
+        logging.getLogger(name)
+        for name in (
+            "sqlalchemy",
+            "sqlalchemy.engine",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.pool",
+        )
+    ]
+    previous_root_handlers = root.handlers[:]
+    previous_root_level = root.level
+    previous_state = [
+        (logger, logger.handlers[:], logger.filters[:], logger.level, logger.propagate)
+        for logger in sqlalchemy_loggers
+    ]
+    telemetry_output = io.StringIO()
+    telemetry_handler = logging.StreamHandler(telemetry_output)
+    unsafe_output = io.StringIO()
+    unsafe_handler = logging.StreamHandler(unsafe_output)
+    json_output = io.StringIO()
+    try:
+        root.addHandler(telemetry_handler)
+        for logger in sqlalchemy_loggers:
+            logger.addHandler(unsafe_handler)
+            logger.setLevel(logging.DEBUG)
+        with redirect_stdout(json_output):
+            configure_logging("ownership-regression", settings)
+            configure_logging("ownership-regression", settings)
+            logging.getLogger("nuzenio.ownership").info("safe ownership diagnostic")
+
+        assert telemetry_handler in root.handlers
+        assert (
+            sum(getattr(handler, "_nuzenio_owned_handler", False) for handler in root.handlers) == 1
+        )
+        assert all(unsafe_handler not in logger.handlers for logger in sqlalchemy_loggers)
+        assert unsafe_output.getvalue() == ""
+        structured = [
+            json.loads(line)
+            for line in json_output.getvalue().splitlines()
+            if "safe ownership diagnostic" in line
+        ]
+        assert len(structured) == 1
+        assert telemetry_output.getvalue().count("safe ownership diagnostic") == 1
+    finally:
+        root.handlers = previous_root_handlers
+        root.setLevel(previous_root_level)
+        for logger, handlers, filters, level, propagate in previous_state:
+            logger.handlers = handlers
+            logger.filters = filters
+            logger.setLevel(level)
+            logger.propagate = propagate
 
 
 def test_log_sanitizer_is_bounded_and_handles_malformed_percent_input() -> None:

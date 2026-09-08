@@ -4,6 +4,7 @@ import contextvars
 import json
 import logging
 import re
+import string
 import sys
 import threading
 from collections import Counter
@@ -17,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from nuzenio_api.config import Settings, get_settings
+from nuzenio_api.database_security import configure_sqlalchemy_logging
 from nuzenio_api.models import DeadLetterJob, EditorialReview, FeedRun, FeedRunState, ReviewState
 from nuzenio_api.serialization import json_safe
 
@@ -63,28 +65,138 @@ _CREDENTIAL_URI_PREFIX = re.compile(
     r"(?::|%3a)(?://|%2f%2f)"
 )
 _AUTHORITY_CREDENTIAL_SEPARATOR = re.compile(r"(?i):|%3a")
-_AUTHORITY_TERMINATOR = re.compile(r"(?i)@|%40")
 _BEARER = re.compile(r"(?i)(?<![a-z])(bearer)(?:\s+|%(?:09|0a|0d|20))+[a-z0-9._~+/=%:-]+")
 _COOKIE_HEADER = re.compile(r"(?i)\b((?:set-)?cookie\s*[:=]\s*)[^\r\n]+")
-_SENSITIVE_KEY_TERMINAL = (
-    r"session[_.-]hash[_.-]pepper|"
-    r"(?:csrf|access|refresh)[_.-]token|"
-    r"api[_.-]key|signing[_.-]secret|"
-    r"password|passwd|pwd|token|secret|session|csrf|authorization"
+_KEY_CHARS = frozenset(string.ascii_letters + string.digits + "_.-")
+_KEY_SEPARATORS = frozenset("_.-")
+_SENSITIVE_KEY_PARTS = frozenset(
+    {"password", "passwd", "pwd", "token", "secret", "session", "csrf", "authorization"}
 )
-_SENSITIVE_ASSIGNMENT_KEY = rf"(?:(?:[a-z0-9]+)[_.-])*(?:{_SENSITIVE_KEY_TERMINAL})"
-_SENSITIVE_STRUCTURED_KEY = re.compile(
-    rf"(?i){_SENSITIVE_ASSIGNMENT_KEY}|(?:(?:[a-z0-9]+)[_.-])*(?:cookie)"
-)
-_ASSIGNMENT = re.compile(
-    rf"(?i)(?<![a-z0-9_])(?P<key_quote>[\"']?)(?P<key>{_SENSITIVE_ASSIGNMENT_KEY})"
-    r"(?P=key_quote)(?![a-z0-9_])(?P<separator>\s*[:=]\s*)"
-    r"(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;]+)"
-)
-_ENCODED_ASSIGNMENT = re.compile(
-    rf"(?i)(?<![a-z0-9_])(?P<key>{_SENSITIVE_ASSIGNMENT_KEY})(?![a-z0-9_])"
-    r"(?P<separator>%(?:3a|3d))(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
-)
+_SENSITIVE_KEY_SUFFIXES = frozenset({("session", "hash", "pepper"), ("api", "key")})
+_OWNED_HANDLER_ATTRIBUTE = "_nuzenio_owned_handler"
+
+
+def _split_identifier(value: str) -> tuple[str, ...] | None:
+    """Split the bounded identifier in one pass, rejecting empty/unsafe parts."""
+
+    if not value or len(value) > _MAX_LOG_SCAN_LENGTH:
+        return None
+    parts: list[str] = []
+    start = 0
+    for index, character in enumerate(value):
+        if character in _KEY_SEPARATORS:
+            if index == start:
+                return None
+            parts.append(value[start:index].lower())
+            start = index + 1
+        elif character not in _KEY_CHARS:
+            return None
+    if start == len(value):
+        return None
+    parts.append(value[start:].lower())
+    return tuple(parts)
+
+
+def _is_sensitive_key(value: str, *, include_cookie: bool = False) -> bool:
+    parts = _split_identifier(value)
+    if not parts:
+        return False
+    if parts[-1] in _SENSITIVE_KEY_PARTS:
+        return True
+    if include_cookie and parts[-1] == "cookie":
+        return True
+    return any(
+        len(parts) >= len(suffix) and parts[-len(suffix) :] == suffix
+        for suffix in _SENSITIVE_KEY_SUFFIXES
+    )
+
+
+def _quote_at(value: str, index: int) -> str | None:
+    if value.startswith('\\"', index):
+        return '\\"'
+    if value.startswith("\\'", index):
+        return "\\'"
+    if index < len(value) and value[index] in {'"', "'"}:
+        return value[index]
+    return None
+
+
+def _parse_assignment_key(value: str, index: int) -> tuple[str, int, int] | None:
+    quote = _quote_at(value, index)
+    key_start = index + len(quote) if quote else index
+    if key_start >= len(value) or value[key_start] not in _KEY_CHARS:
+        return None
+    if not quote and index > 0 and value[index - 1] in _KEY_CHARS:
+        return None
+    cursor = key_start
+    while cursor < len(value) and value[cursor] in _KEY_CHARS:
+        cursor += 1
+    key = value[key_start:cursor]
+    if quote:
+        if not value.startswith(quote, cursor):
+            return None
+        cursor += len(quote)
+    if cursor < len(value) and value[cursor] in _KEY_CHARS:
+        return None
+    return key, cursor, max(cursor, index + 1)
+
+
+def _assignment_value_end(value: str, start: int, separator: str) -> int:
+    if start >= len(value):
+        return start
+    quote = _quote_at(value, start)
+    if quote:
+        cursor = start + len(quote)
+        while cursor < len(value):
+            if value.startswith(quote, cursor):
+                return cursor + len(quote)
+            cursor += 1
+        return len(value)
+    if separator == ":" and value[start] in "|>":
+        # Common YAML diagnostic blocks are conservatively removed through the
+        # bounded scan tail; guessing indentation could expose a continuation.
+        return len(value)
+    cursor = start
+    while cursor < len(value) and value[cursor] not in "\r\n\t ,;}])":
+        cursor += 1
+    return cursor
+
+
+def _redact_sensitive_assignments(value: str) -> str:
+    """Redact assignment values with a bounded, single-pass scanner."""
+
+    output: list[str] = []
+    emitted = 0
+    index = 0
+    length = len(value)
+    while index < length:
+        parsed = _parse_assignment_key(value, index)
+        if parsed is None:
+            index += 1
+            continue
+        key, cursor, advance = parsed
+        whitespace = cursor
+        while whitespace < length and value[whitespace].isspace():
+            whitespace += 1
+        if whitespace >= length or value[whitespace] not in ":=":
+            index = advance
+            continue
+        separator = value[whitespace]
+        value_start = whitespace + 1
+        while value_start < length and value[value_start].isspace():
+            value_start += 1
+        if not _is_sensitive_key(key):
+            index = max(value_start, advance)
+            continue
+        value_end = _assignment_value_end(value, value_start, separator)
+        output.append(value[emitted:value_start])
+        output.append("[REDACTED]")
+        emitted = value_end
+        index = max(value_end, value_start + 1)
+    if not output:
+        return value
+    output.append(value[emitted:])
+    return "".join(output)
 
 
 def _redact_credential_uris(value: str) -> str:
@@ -95,21 +207,31 @@ def _redact_credential_uris(value: str) -> str:
     while prefix := _CREDENTIAL_URI_PREFIX.search(value, cursor):
         parts.append(value[cursor : prefix.end()])
         authority_start = prefix.end()
-        authority_tail = value[authority_start:]
-        terminator = _AUTHORITY_TERMINATOR.search(authority_tail)
-        path = authority_tail.find("/")
-        query = authority_tail.find("?")
-        fragment = authority_tail.find("#")
-        boundary_candidates = [position for position in (path, query, fragment) if position >= 0]
-        boundary = min(boundary_candidates, default=-1)
+        boundary = len(value)
+        terminator_start: int | None = None
+        terminator_end: int | None = None
+        scan_cursor = authority_start
+        while scan_cursor < len(value):
+            if value[scan_cursor] in "/?#":
+                boundary = scan_cursor
+                break
+            if value[scan_cursor] == "@":
+                terminator_start = scan_cursor
+                terminator_end = scan_cursor + 1
+                break
+            if value[scan_cursor : scan_cursor + 3].lower() == "%40":
+                terminator_start = scan_cursor
+                terminator_end = scan_cursor + 3
+                break
+            scan_cursor += 1
 
-        if terminator is not None and (boundary < 0 or terminator.start() < boundary):
-            credentials = authority_tail[: terminator.start()]
+        if terminator_start is not None and terminator_end is not None:
+            credentials = value[authority_start:terminator_start]
             if _AUTHORITY_CREDENTIAL_SEPARATOR.search(credentials):
-                parts.extend(("[REDACTED]", terminator.group(0)))
-                cursor = authority_start + terminator.end()
+                parts.extend(("[REDACTED]", value[terminator_start:terminator_end]))
+                cursor = terminator_end
                 continue
-        elif boundary < 0:
+        elif boundary == len(value):
             # The bounded scan may end in the middle of a username/password and
             # before the @host delimiter. Conservatively redact the unfinished
             # authority rather than emitting a credential prefix.
@@ -127,17 +249,7 @@ def _sanitize_visible_log_message(value: str) -> str:
     result = _redact_credential_uris(value)
     result = _BEARER.sub(r"\1 [REDACTED]", result)
     result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
-    result = _ASSIGNMENT.sub(
-        lambda match: (
-            f"{match.group('key_quote')}{match.group('key')}{match.group('key_quote')}"
-            f"{match.group('separator')}[REDACTED]"
-        ),
-        result,
-    )
-    return _ENCODED_ASSIGNMENT.sub(
-        lambda match: f"{match.group('key')}{match.group('separator')}[REDACTED]",
-        result,
-    )
+    return _redact_sensitive_assignments(result)
 
 
 def sanitize_log_message(value: str) -> str:
@@ -175,7 +287,7 @@ def _redact(value: Any) -> Any:
     if isinstance(value, dict):
         return {
             sanitize_log_message(str(key)): (
-                "[REDACTED]" if _SENSITIVE_STRUCTURED_KEY.fullmatch(str(key)) else _redact(item)
+                "[REDACTED]" if _is_sensitive_key(str(key), include_cookie=True) else _redact(item)
             )
             for key, item in value.items()
         }
@@ -187,6 +299,12 @@ def _redact(value: Any) -> Any:
         return json_safe(value)
     except TypeError:
         return f"<{type(value).__name__}>"
+
+
+class _NuzenioStreamHandler(logging.StreamHandler):
+    """Marker class allowing idempotent replacement without touching telemetry handlers."""
+
+    _nuzenio_owned_handler = True
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -224,26 +342,26 @@ class JsonLogFormatter(logging.Formatter):
 
 def configure_logging(service: str, settings: Settings | None = None) -> None:
     configured = settings or get_settings()
-    handler = logging.StreamHandler(sys.stdout)
+    handler = _NuzenioStreamHandler(sys.stdout)
     if configured.log_json:
         handler.setFormatter(JsonLogFormatter(service))
     else:
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
     root = logging.getLogger()
-    root.handlers.clear()
+    for existing_handler in root.handlers[:]:
+        if getattr(existing_handler, _OWNED_HANDLER_ATTRIBUTE, False):
+            root.removeHandler(existing_handler)
+            existing_handler.close()
     root.addHandler(handler)
     root.setLevel(configured.log_level)
+    configure_sqlalchemy_logging(configured.environment)
     logger_names = {
         "uvicorn",
         "uvicorn.error",
         "uvicorn.access",
-        "sqlalchemy.engine",
-        "sqlalchemy.pool",
     }
     logger_names.update(
-        name
-        for name in logging.root.manager.loggerDict
-        if name.startswith(("sqlalchemy.engine.", "sqlalchemy.pool."))
+        name for name in logging.root.manager.loggerDict if name.startswith(("uvicorn.",))
     )
     for logger_name in logger_names:
         logger = logging.getLogger(logger_name)

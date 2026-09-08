@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from nuzenio_api.config import get_settings
-from nuzenio_api.database_security import engine_logging_options
+from nuzenio_api.database_security import engine_logging_options, harden_database_engine
 from nuzenio_api.models import Base
 
 config = context.config
@@ -29,11 +29,14 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-        **engine_logging_options(settings.environment, sql_echo=settings.sql_echo),
+    connectable = harden_database_engine(
+        engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+            **engine_logging_options(settings.environment, sql_echo=settings.sql_echo),
+        ),
+        settings.environment,
     )
     with connectable.connect() as connection:
         context.configure(

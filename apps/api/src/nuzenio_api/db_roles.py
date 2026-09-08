@@ -3,10 +3,11 @@
 import os
 import re
 
+from psycopg import Error as PsycopgError
 from psycopg import sql
 from sqlalchemy import create_engine, text
 
-from nuzenio_api.database_security import engine_logging_options
+from nuzenio_api.database_security import engine_logging_options, harden_database_engine
 from nuzenio_api.environment import environment_from_os, is_production
 
 
@@ -21,7 +22,16 @@ def _ensure_login_role(connection, role: str, password: str) -> str:
     command = sql.SQL(
         "{} ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD {}"
     ).format(sql.SQL("ALTER" if exists else "CREATE"), sql.Identifier(role), sql.Literal(password))
-    connection.exec_driver_sql(command.as_string(connection.connection.driver_connection))
+    # Password-bearing role DDL deliberately executes below SQLAlchemy's
+    # statement/result logging layer. Psycopg still performs identifier and
+    # literal quoting, and the cursor participates in the enclosing transaction.
+    try:
+        with connection.connection.driver_connection.cursor() as cursor:
+            cursor.execute(command)
+    except PsycopgError as error:
+        sqlstate = getattr(error, "sqlstate", None)
+        suffix = f" (SQLSTATE {sqlstate})" if re.fullmatch(r"[A-Z0-9]{5}", sqlstate or "") else ""
+        raise RuntimeError(f"Database role operation failed{suffix}") from None
     return '"' + role + '"'
 
 
@@ -160,9 +170,12 @@ def main():
         owner_url = migration_url or os.environ.get("NUZENIO_DATABASE_URL")
         if not owner_url:
             raise ValueError("A migration database URL is required")
-        migration_engine = create_engine(
-            owner_url,
-            **engine_logging_options(environment, sql_echo=False),
+        migration_engine = harden_database_engine(
+            create_engine(
+                owner_url,
+                **engine_logging_options(environment, sql_echo=False),
+            ),
+            environment,
         )
         provision_runtime(
             migration_engine,
