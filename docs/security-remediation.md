@@ -293,3 +293,18 @@ previous migration head and all editorial, ingestion, audit and offline-cache co
 
 No schema or data migration is required; Alembic head remains `6d0a4f2b8c91`. This work does not
 enable feeds, contact publishers, deploy, merge or claim independent closure.
+
+## PR #2 SQL/logging closure follow-up
+
+Starting head `5d81b608f49552f5ed1b7967f689e93c36a8cfb7` was independently reported to
+retain one P2 SQL-logging disclosure and one P3 qualified-assignment redaction gap. This focused
+implementation leaves the database schema, editorial controls, ingestion controls and feed kill
+switch unchanged.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 production SQL logging | Production accepted `NUZENIO_SQL_ECHO=true`, and the runtime engine forwarded it to SQLAlchemy, which emitted bound values through a plain echo handler and the root logger | Production settings reject every Pydantic truthy spelling. A shared engine policy forces SQL/pool echo off and `hide_parameters=true` for runtime, migrations and role provisioning; SQLAlchemy handlers are normalized into Nuzenio logging | A real PostgreSQL regression executes parameterized `SELECT` and `INSERT` statements with independent canaries while capturing stdout, stderr, JSON/root and an intentionally verbose SQLAlchemy handler. Both values stay absent while safe statement diagnostics remain present; a validation matrix covers `true`, `TRUE`, `1`, `yes` and `on` | Parameter hiding does not protect private values deliberately interpolated into SQL literals; application queries must bind private values. Database/platform logs remain separately governed infrastructure |
+| P3 qualified assignments | The free-form matcher recognized only standalone keys, so values assigned to names such as `db_password`, `api.token` and `client-secret` could survive | One case-insensitive bounded key grammar recognizes standalone and `_`/`.`/`-` qualified password, token, secret, session/CSRF and pepper forms at both free-form and structured-field boundaries | Raw, quoted, colon/equal, mixed-case, multiline, nested, single/double-encoded, truncation-crossing and million-character cases assert the original canary is absent from complete JSON output; `secretary`, `tokenizer` and `passwordless` controls remain readable | Pattern redaction is defense in depth and intentionally bounded to two decoding passes and a 16,384-character scan; stable non-secret event names remain the primary control |
+
+No forward migration is needed; Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted,
+and independent read-only closure review remains required before merge.

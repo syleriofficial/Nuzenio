@@ -53,7 +53,6 @@ _STANDARD_RECORD_FIELDS = frozenset(
         "threadName",
     }
 )
-_SENSITIVE_FRAGMENTS = ("password", "token", "secret", "cookie", "authorization", "csrf")
 _MAX_LOG_MESSAGE_LENGTH = 8_192
 _MAX_LOG_SCAN_LENGTH = 16_384
 _MAX_PERCENT_DECODE_PASSES = 2
@@ -67,13 +66,24 @@ _AUTHORITY_CREDENTIAL_SEPARATOR = re.compile(r"(?i):|%3a")
 _AUTHORITY_TERMINATOR = re.compile(r"(?i)@|%40")
 _BEARER = re.compile(r"(?i)(?<![a-z])(bearer)(?:\s+|%(?:09|0a|0d|20))+[a-z0-9._~+/=%:-]+")
 _COOKIE_HEADER = re.compile(r"(?i)\b((?:set-)?cookie\s*[:=]\s*)[^\r\n]+")
+_SENSITIVE_KEY_TERMINAL = (
+    r"session[_.-]hash[_.-]pepper|"
+    r"(?:csrf|access|refresh)[_.-]token|"
+    r"api[_.-]key|signing[_.-]secret|"
+    r"password|passwd|pwd|token|secret|session|csrf|authorization"
+)
+_SENSITIVE_ASSIGNMENT_KEY = rf"(?:(?:[a-z0-9]+)[_.-])*(?:{_SENSITIVE_KEY_TERMINAL})"
+_SENSITIVE_STRUCTURED_KEY = re.compile(
+    rf"(?i){_SENSITIVE_ASSIGNMENT_KEY}|(?:(?:[a-z0-9]+)[_.-])*(?:cookie)"
+)
 _ASSIGNMENT = re.compile(
-    r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
-    r"(\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)"
+    rf"(?i)(?<![a-z0-9_])(?P<key_quote>[\"']?)(?P<key>{_SENSITIVE_ASSIGNMENT_KEY})"
+    r"(?P=key_quote)(?![a-z0-9_])(?P<separator>\s*[:=]\s*)"
+    r"(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;]+)"
 )
 _ENCODED_ASSIGNMENT = re.compile(
-    r"(?i)\b(password|passwd|pwd|token|secret|session|csrf|authorization)"
-    r"%3d(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
+    rf"(?i)(?<![a-z0-9_])(?P<key>{_SENSITIVE_ASSIGNMENT_KEY})(?![a-z0-9_])"
+    r"(?P<separator>%(?:3a|3d))(?:%22[^%]*(?:%22|$)|%27[^%]*(?:%27|$)|[^%\s,;]+)"
 )
 
 
@@ -117,8 +127,17 @@ def _sanitize_visible_log_message(value: str) -> str:
     result = _redact_credential_uris(value)
     result = _BEARER.sub(r"\1 [REDACTED]", result)
     result = _COOKIE_HEADER.sub(r"\1[REDACTED]", result)
-    result = _ASSIGNMENT.sub(r"\1\2[REDACTED]", result)
-    return _ENCODED_ASSIGNMENT.sub(r"\1%3D[REDACTED]", result)
+    result = _ASSIGNMENT.sub(
+        lambda match: (
+            f"{match.group('key_quote')}{match.group('key')}{match.group('key_quote')}"
+            f"{match.group('separator')}[REDACTED]"
+        ),
+        result,
+    )
+    return _ENCODED_ASSIGNMENT.sub(
+        lambda match: f"{match.group('key')}{match.group('separator')}[REDACTED]",
+        result,
+    )
 
 
 def sanitize_log_message(value: str) -> str:
@@ -156,9 +175,7 @@ def _redact(value: Any) -> Any:
     if isinstance(value, dict):
         return {
             sanitize_log_message(str(key)): (
-                "[REDACTED]"
-                if any(fragment in str(key).casefold() for fragment in _SENSITIVE_FRAGMENTS)
-                else _redact(item)
+                "[REDACTED]" if _SENSITIVE_STRUCTURED_KEY.fullmatch(str(key)) else _redact(item)
             )
             for key, item in value.items()
         }

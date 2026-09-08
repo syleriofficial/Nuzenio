@@ -384,6 +384,87 @@ def test_free_form_and_nested_log_values_redact_common_secret_forms(message) -> 
     assert "unique-marker" not in output
 
 
+@pytest.mark.parametrize(
+    "key",
+    [
+        "db_password",
+        "database.password",
+        "database-password",
+        "api_token",
+        "api.token",
+        "api-token",
+        "client_secret",
+        "client.secret",
+        "client-secret",
+        "session_hash_pepper",
+        "NUZENIO_SESSION_HASH_PEPPER",
+        "csrf_token",
+        "access.token",
+        "refresh-token",
+        "api_key",
+        "signing.secret",
+    ],
+)
+def test_qualified_sensitive_assignments_are_redacted_from_complete_json(key) -> None:
+    canary = "qualified-canary-8c92e1"
+    raw_messages = [
+        f"{key}={canary}",
+        f"{key.swapcase()}: {canary}",
+        f'{key}="{canary}"',
+        f"{key}='{canary}'",
+        f'"{key}":"{canary}"',
+        f"'{key}': '{canary}'",
+        f"diagnostic failed\n{key}={canary}\nretrying",
+        f'{key}={canary}\n{{"event":"forged"}}',
+        f"{'x' * 8_039} {key}={canary}{'v' * 9_000}",
+    ]
+    messages = [
+        message
+        for raw in raw_messages
+        for message in (raw, quote(raw, safe=""), quote(quote(raw, safe=""), safe=""))
+    ]
+    formatter = JsonLogFormatter("qualified-assignment-regression")
+    for message in messages:
+        record = logging.LogRecord("third-party", logging.ERROR, __file__, 1, message, (), None)
+        record.fields = {"nested": {"diagnostic": [message]}}
+        output = formatter.format(record)
+        assert canary not in output
+        assert len(json.loads(output)["event"]) <= 8_192
+
+    oversized = f"{key}={canary}{'v' * 1_000_000}"
+    output = formatter.format(
+        logging.LogRecord("third-party", logging.ERROR, __file__, 1, oversized, (), None)
+    )
+    assert canary not in output
+    assert len(json.loads(output)["event"]) <= 8_192
+
+    structured_record = logging.LogRecord(
+        "third-party", logging.ERROR, __file__, 1, "structured diagnostic", (), None
+    )
+    structured_record.fields = {key: canary}
+    structured_output = formatter.format(structured_record)
+    assert canary not in structured_output
+    assert json.loads(structured_output)[key] == "[REDACTED]"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "The secretary prepared the briefing",
+        "tokenizer=sentencepiece",
+        "passwordless:true",
+        "The passwordless tokenizer assisted the secretary",
+    ],
+)
+def test_log_sanitizer_preserves_non_sensitive_fragment_words(message) -> None:
+    assert sanitize_log_message(message) == message
+
+    record = logging.LogRecord("fixture", logging.INFO, __file__, 1, "safe fields", (), None)
+    record.fields = {message: "safe-value"}
+    payload = json.loads(JsonLogFormatter("test-service").format(record))
+    assert payload[message] == "safe-value"
+
+
 def test_log_sanitizer_is_bounded_and_handles_malformed_percent_input() -> None:
     malformed_safe_message = "Fixture progress is 100%2 and literal %zz remains readable"
     assert sanitize_log_message(malformed_safe_message) == malformed_safe_message
