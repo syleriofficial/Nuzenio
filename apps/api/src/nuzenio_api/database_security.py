@@ -6,6 +6,8 @@ from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import Connection, Engine, event
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.engine.cursor import ResultFetchStrategy
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from nuzenio_api.environment import Environment, is_production, parse_environment
@@ -83,8 +85,12 @@ def configure_sqlalchemy_logging(environment: Environment | str) -> None:
         logger.propagate = True
 
 
-def _safe_database_error(context: Any) -> DBAPIError:
+def _safe_database_error(context: Any) -> DBAPIError | None:
     original = context.original_exception
+    if not isinstance(original, context.dialect.loaded_dbapi.Error):
+        # handle_error also observes non-driver failures (for example the
+        # unsupported Psycopg lastrowid attribute). Preserve their native type.
+        return None
     sqlstate = getattr(original, "sqlstate", None)
     if not isinstance(sqlstate, str) or not _SAFE_SQLSTATE.fullmatch(sqlstate):
         sqlstate = None
@@ -135,6 +141,65 @@ def _call_with_detached_database_errors(operation: Callable[..., Any], *args: An
     raise AssertionError("Database exception translation reached an invalid state")
 
 
+def _protect_result_consumption(result: CursorResult[Any]) -> None:
+    if not isinstance(result.cursor_strategy, _ProductionFetchStrategy):
+        result.cursor_strategy = _ProductionFetchStrategy(result.cursor_strategy)
+
+
+class _ProductionFetchStrategy(ResultFetchStrategy):
+    """Detach *after* SQLAlchemy's fetch strategy handles the driver failure.
+
+    SQLAlchemy has no public around-fetch error hook. This narrow, private 2.x
+    integration preserves the actual CursorResult/ScalarResult/ORM objects and
+    delegates cursor cleanup and pool invalidation to their original strategy.
+    Compatibility tests cover strategy replacement, buffered and streaming
+    consumption. Revalidate this boundary whenever SQLAlchemy is upgraded.
+    """
+
+    __slots__ = ("_delegate",)
+
+    def __init__(self, delegate: ResultFetchStrategy) -> None:
+        self._delegate = delegate
+
+    @property
+    def alternate_cursor_description(self):
+        return self._delegate.alternate_cursor_description
+
+    def _invoke(self, method: str, result: CursorResult[Any], *args: Any):
+        try:
+            return _call_with_detached_database_errors(
+                getattr(self._delegate, method), result, *args
+            )
+        finally:
+            # yield_per() and close/exhaustion may replace the native strategy.
+            # Protect its replacement without changing cursor/result semantics.
+            _protect_result_consumption(result)
+
+    def fetchone(self, result, dbapi_cursor, hard_close=False):
+        return self._invoke("fetchone", result, dbapi_cursor, hard_close)
+
+    def fetchmany(self, result, dbapi_cursor, size=None):
+        return self._invoke("fetchmany", result, dbapi_cursor, size)
+
+    def fetchall(self, result, dbapi_cursor):
+        return self._invoke("fetchall", result, dbapi_cursor)
+
+    def soft_close(self, result, dbapi_cursor):
+        return self._invoke("soft_close", result, dbapi_cursor)
+
+    def hard_close(self, result, dbapi_cursor):
+        return self._invoke("hard_close", result, dbapi_cursor)
+
+    def yield_per(self, result, dbapi_cursor, num):
+        return self._invoke("yield_per", result, dbapi_cursor, num)
+
+    def handle_exception(self, result, dbapi_cursor, error):
+        # Keep SQLAlchemy's metadata-property handling unchanged. Psycopg's
+        # rowcount is a cached integer; PostgreSQL inserts use RETURNING rather
+        # than lastrowid. Driver I/O lives in the protected fetch methods above.
+        return self._delegate.handle_exception(result, dbapi_cursor, error)
+
+
 class _ProductionConnection(Connection):
     """Connection boundary that removes SQLAlchemy/Psycopg exception graphs."""
 
@@ -142,7 +207,9 @@ class _ProductionConnection(Connection):
         _call_with_detached_database_errors(super().__init__, *args, **kwargs)
 
     def _execute_context(self, *args: Any, **kwargs: Any):
-        return _call_with_detached_database_errors(super()._execute_context, *args, **kwargs)
+        result = _call_with_detached_database_errors(super()._execute_context, *args, **kwargs)
+        _protect_result_consumption(result)
+        return result
 
     def _commit_impl(self) -> None:
         _call_with_detached_database_errors(super()._commit_impl)

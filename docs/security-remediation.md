@@ -343,3 +343,19 @@ No forward migration is required; Alembic head remains `6d0a4f2b8c91`. The produ
 Alembic and database-role provisioning all construct engines through the shared hardened boundary.
 No feed was enabled or contacted, and a fresh independent read-only closure review remains required
 before merge.
+
+## PR #2 result-consumption closure
+
+Starting head `20ef5111ce4a160d858d0b1926acf7c3607d2000` detached execution failures but returned
+before buffered Psycopg timestamp decoding. The exact `12087-04-23 11:37:42.123456` reproduction
+retained a driver `DataError` through SQLAlchemy's exception context. The first four newly added
+Core regressions failed before the implementation changed.
+
+| Finding | Fix | Regression | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 buffered result diagnostic disclosure | A production-only delegating fetch strategy translates failures after native SQLAlchemy error handling exits. It wraps fetchone/fetchmany/fetchall and re-protects strategies replaced by yield_per/close without replacing public result objects | `test_result_consumption.py`: 20 consumers each for Core and ORM, native result/scalar/mapping/row types, freeze/iteration/partitions, RETURNING, cached metadata, buffered/streaming strategy changes, normal application exceptions/cancellation, PostgreSQL query cancellation/backend termination, deferred commit and session recovery. Recursive outward-graph/traceback checks reject driver objects and canaries | SQLAlchemy private connection/fetch interfaces must be revalidated on upgrades. Supported PostgreSQL/Psycopg integrations are covered, not arbitrary third-party dialects or application-defined result processors; traceback-local telemetry remains excluded |
+
+This adds no migration or schema change; head remains `6d0a4f2b8c91`. Existing role-password,
+execution/constraint, audit/contributor, authentication and worker regressions remain required.
+Source changes are confined to `database_security.py`, its new result-consumption tests and these
+operational notes. Independent read-only closure review is still required before merge.

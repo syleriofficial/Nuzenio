@@ -24,7 +24,20 @@ and pool echo off, enable SQLAlchemy parameter hiding and replace driver excepti
 and SQLSTATE diagnostics. After SQLAlchemy completes transaction/pool bookkeeping, the production
 connection boundary raises a metadata-only `DetachedDatabaseError`; it retains no driver exception,
 diagnostic object, statement or parameters, and normal session rollback remains required before
-reuse. The application owns the complete `sqlalchemy` logging namespace: direct
+reuse.
+Result consumption has the same detachment boundary: a delegating fetch strategy surrounds native
+SQLAlchemy fetch operations after its driver-error handlers exit. It preserves native Core/ORM
+result objects, cleanup, exhaustion, streaming and `yield_per` strategy replacement. SQLAlchemy has
+no public around-fetch hook; `Engine._connection_cls`, private connection methods and
+`CursorResult.cursor_strategy` are version-sensitive integrations. The regression matrix validates
+SQLAlchemy 2.0.52 with Psycopg 3.3.5 on Python 3.12 and 3.14; the dependency range is not an assurance
+that every future release is compatible. Re-run the integration matrix on upgrades. Psycopg's cached
+rowcount and unsupported `lastrowid` retain native behavior; PostgreSQL inserts use `RETURNING`.
+Application result processors remain responsible for their own exceptions, which are not translated
+into database errors. Traceback-local collection must remain disabled: this policy does not erase
+arbitrary process memory or traceback frame locals.
+
+The application owns the complete `sqlalchemy` logging namespace: direct
 handlers are removed, DEBUG result-row records are suppressed and safe statement diagnostics route
 through the configured root handlers. In production, each handler configured at initialization gets
 an independently sanitized `LogRecord` clone before its own filters, formatter or emitter can inspect
