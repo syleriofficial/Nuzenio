@@ -131,8 +131,12 @@ before `TrustedHostMiddleware` is built.
 
 Every application-owned production SQLAlchemy engine—including API/worker runtime, Alembic online
 migrations and database-role provisioning—forces statement and pool echo off and enables
-`hide_parameters`. This remains true if a caller bypasses settings-model validation. Application SQL
-must use bound parameters; values intentionally embedded as SQL literals are outside this protection
+`hide_parameters`. The engine policy reparses the exact canonical environment at its own boundary,
+suppresses SQLAlchemy DEBUG result-row logging, normalizes direct SQLAlchemy namespace handlers and
+sanitizes driver exception details. Role passwords execute through a quoted raw-driver transaction
+boundary rather than SQLAlchemy statement logging. This remains true if a caller bypasses settings-
+model validation. Application SQL must use bound parameters; values intentionally embedded as SQL
+literals are outside this protection
 and are prohibited for private data.
 Every executable entry point uses the same environment enum and predicate; missing or malformed
 configuration cannot fall through to development behavior. API and worker images deliberately do

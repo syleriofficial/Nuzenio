@@ -7,21 +7,28 @@ authorization values or client IPs by default. Fields whose names indicate passw
 secrets, cookies, authorization or CSRF values are recursively redacted.
 Free-form third-party messages cross the same sanitizer boundary: common PostgreSQL/Redis credential
 URIs, bearer/cookie values and standalone or identifier-qualified password/token/secret assignments
-are redacted in plain, single- and double-percent-encoded forms. Qualified keys use `_`, `.` or `-`
-separators; ordinary words such as `secretary`, `tokenizer` and `passwordless` are not treated as
-secret keys. Sanitization scans a bounded 16,384-character window before applying
+are redacted in plain, escaped-JSON, common YAML-block, single- and double-percent-encoded forms.
+Qualified keys use `_`, `.` or `-` separators; ordinary words such as `secretary`, `tokenizer` and
+`passwordless` are not treated as secret keys. Assignment scanning is a bounded single-pass state
+machine rather than a backtracking regular expression. Sanitization scans a bounded 16,384-character
+window before applying
 the final 8,192-character output limit, and conservatively redacts a credential authority truncated
 inside that window. Detection uses at most two bounded decoding shadows and never emits a decoded
 representation. Application code should still prefer stable structured event names. Redaction is
 defense in depth, not permission to log request bodies or secret-bearing exception text, and novel
 encodings remain an operational risk.
 
-Production rejects SQL echo configuration. All application-owned production engines force SQL and
-pool echo off and enable SQLAlchemy parameter hiding, so bound values remain absent even when an
-operator raises the global SQLAlchemy logger level. Nuzenio logging also removes SQLAlchemy's local
-handlers so diagnostics flow through the configured root JSON formatter. Safe statement diagnostics
-remain available without parameter values. This boundary cannot protect values deliberately embedded
-as SQL literals; application queries carrying private values must use bound parameters.
+Production rejects SQL echo configuration. The shared engine policy independently parses the exact
+environment value; malformed values fail closed. All application-owned production engines force SQL
+and pool echo off, enable SQLAlchemy parameter hiding and replace driver exceptions with bounded type
+and SQLSTATE diagnostics. The application owns the complete `sqlalchemy` logging namespace: direct
+handlers are removed, DEBUG result-row records are suppressed and safe statement diagnostics route
+through the configured root handlers. Repeated Nuzenio logging initialization replaces only its own
+marked handler and preserves unrelated root telemetry handlers. Password-bearing role DDL executes
+through Psycopg beneath SQLAlchemy statement logging while retaining driver quoting and transaction
+semantics. This boundary cannot protect values deliberately embedded as SQL literals; application
+queries carrying private values must use bound parameters. Database/platform logs remain an
+independent infrastructure boundary.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the

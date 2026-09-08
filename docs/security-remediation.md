@@ -308,3 +308,22 @@ switch unchanged.
 
 No forward migration is needed; Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted,
 and independent read-only closure review remains required before merge.
+
+## PR #2 SQL namespace and linear-sanitizer closure
+
+Starting head `ff7d156dffc21628dc0fb602049c754698a53d18` was independently reported to
+retain two P2 SQL/logging findings and two related P3 defense-in-depth gaps. This focused round does
+not alter database schema, editorial policy, ingestion behavior or the live-feed kill switch.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 SQLAlchemy result/credential logging | A top-level verbose SQLAlchemy handler could receive DEBUG result rows; the policy helper trusted a typed caller; password-bearing role DDL crossed SQLAlchemy statement logging | The engine policy reparses the canonical environment, forces production echo/pool echo off and parameter hiding, installs bounded driver-error sanitization, and owns the complete SQLAlchemy namespace at logging initialization and engine construction. Password-bearing role DDL executes with Psycopg quoting below SQLAlchemy logging in the same transaction | Real PostgreSQL SELECT/INSERT/UPDATE/failure and role-password canaries are absent from stdout, stderr, JSON, plain handlers and exceptions under DEBUG root/SQLAlchemy configuration; malformed environment calls fail closed and safe statement diagnostics remain | SQL literals deliberately containing private values and independently configured database/platform logs remain outside this boundary; repository queries carrying private data must remain parameterized |
+| P2 quadratic qualified-key matching | A repeated-prefix regular expression rescanned dotted/hyphenated near misses from successive positions, taking multiple seconds at 16 KiB | A bounded single-pass tokenizer recognizes identifier boundaries, key separators, assignment syntax and value spans without ambiguous quantifiers or suffix backtracking | Adversarial 1/2/4/8/12/16 KiB near misses remain approximately linear and bounded; the 16 KiB local sample completes in milliseconds rather than seconds | Redaction remains defense in depth over a bounded 16,384-character scan; application code must not intentionally submit secret-bearing free-form diagnostics |
+| P3 escaped/block assignments | Escaped JSON keys and YAML `|`/`>` diagnostic values were outside the old assignment grammar | The same state machine recognizes literal or escaped quoted keys/values and conservatively redacts bounded YAML-block tails, including qualified and encoded variants | Raw/single/double-encoded, nested, exception and truncation-boundary canaries are absent; `secretary`, `tokenizer` and `passwordless` remain readable | This is intentionally not a complete JSON/YAML parser; uncommon serialization transforms remain a reason to use stable structured events |
+| P3 logging ownership | Logging initialization cleared unrelated root telemetry and did not own the top SQLAlchemy namespace, allowing loss and duplicate unsafe records | Nuzenio handlers carry an ownership marker; repeated initialization replaces only those handlers, preserves unrelated root handlers, and removes direct handlers across `sqlalchemy`, engine and pool descendants before safe root propagation | Repeated initialization emits one Nuzenio JSON record, preserves one external telemetry record, removes pre-existing SQLAlchemy handlers and blocks DEBUG result routing | A privileged runtime actor can reconfigure Python logging after initialization; deployment code must not install unreviewed SQLAlchemy handlers |
+
+The SQLAlchemy error boundary exposes only the exception type and a validated five-character SQLSTATE
+while retaining the parameterized statement text and hidden-parameter marker. Application and
+migration code must continue to avoid private SQL literals. No forward migration is required;
+Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted, and a fresh independent
+read-only closure review remains required before merge.
