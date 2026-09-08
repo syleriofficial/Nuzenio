@@ -6,6 +6,7 @@ import re
 from psycopg import sql
 from sqlalchemy import create_engine, text
 
+from nuzenio_api.database_security import engine_logging_options
 from nuzenio_api.environment import environment_from_os, is_production
 
 
@@ -159,7 +160,10 @@ def main():
         owner_url = migration_url or os.environ.get("NUZENIO_DATABASE_URL")
         if not owner_url:
             raise ValueError("A migration database URL is required")
-        migration_engine = create_engine(owner_url, echo=False)
+        migration_engine = create_engine(
+            owner_url,
+            **engine_logging_options(environment, sql_echo=False),
+        )
         provision_runtime(
             migration_engine,
             runtime_role,

@@ -126,6 +126,8 @@ class Settings(BaseSettings):
             raise ValueError("NUZENIO_DEMO_MODE must be false in production")
         if not self.log_json:
             raise ValueError("NUZENIO_LOG_JSON must be true in production")
+        if self.sql_echo:
+            raise ValueError("NUZENIO_SQL_ECHO must be false in production")
         metrics_token = self.metrics_token.get_secret_value() if self.metrics_token else ""
         if len(metrics_token) < 32:
             raise ValueError("NUZENIO_METRICS_TOKEN must be a unique 32+ character secret")

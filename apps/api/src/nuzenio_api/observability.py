@@ -216,7 +216,19 @@ def configure_logging(service: str, settings: Settings | None = None) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(configured.log_level)
-    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+    logger_names = {
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "sqlalchemy.engine",
+        "sqlalchemy.pool",
+    }
+    logger_names.update(
+        name
+        for name in logging.root.manager.loggerDict
+        if name.startswith(("sqlalchemy.engine.", "sqlalchemy.pool."))
+    )
+    for logger_name in logger_names:
         logger = logging.getLogger(logger_name)
         logger.handlers.clear()
         logger.propagate = True

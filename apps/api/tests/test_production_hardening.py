@@ -11,6 +11,7 @@ import threading
 import urllib.error
 import urllib.request
 import uuid
+from contextlib import redirect_stderr, redirect_stdout
 from urllib.parse import quote
 
 import pytest
@@ -25,7 +26,7 @@ from nuzenio_api.db import engine
 from nuzenio_api.db_roles import assert_audit_reader_identity, provision_audit_reader
 from nuzenio_api.environment import Environment, environment_from_os, is_production
 from nuzenio_api.main import app
-from nuzenio_api.observability import JsonLogFormatter, sanitize_log_message
+from nuzenio_api.observability import JsonLogFormatter, configure_logging, sanitize_log_message
 from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 
 
@@ -67,6 +68,109 @@ def production_settings(**overrides) -> Settings:
 def test_production_configuration_rejects_unsafe_boundaries(override) -> None:
     with pytest.raises(ValidationError):
         production_settings(**override)
+
+
+@pytest.mark.parametrize("value", [True, "true", "TRUE", "1", "yes", "on"])
+def test_production_configuration_rejects_every_truthy_sql_echo_variant(value) -> None:
+    with pytest.raises(ValidationError, match="NUZENIO_SQL_ECHO"):
+        production_settings(sql_echo=value)
+
+
+@pytest.mark.parametrize("value", [False, "false", "FALSE", "0", "no", "off"])
+def test_production_configuration_accepts_every_false_sql_echo_variant(value) -> None:
+    assert production_settings(sql_echo=value).sql_echo is False
+
+
+def test_production_engine_never_logs_bound_parameters() -> None:
+    from nuzenio_api import db
+
+    select_canary = "private-select-canary-c83ad5"
+    insert_canary = "private-insert-canary-f92e17"
+    # model_copy deliberately bypasses Pydantic validation to prove that engine
+    # construction independently enforces the production invariant.
+    settings = production_settings().model_copy(update={"sql_echo": True})
+
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    external_sqlalchemy = io.StringIO()
+    stale_echo_output = io.StringIO()
+    root = logging.getLogger()
+    sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
+    sqlalchemy_engine_logger = logging.getLogger("sqlalchemy.engine.Engine")
+    previous_root_handlers = root.handlers[:]
+    previous_root_level = root.level
+    previous_handlers = sqlalchemy_logger.handlers[:]
+    previous_level = sqlalchemy_logger.level
+    previous_propagate = sqlalchemy_logger.propagate
+    previous_engine_handlers = sqlalchemy_engine_logger.handlers[:]
+    previous_engine_level = sqlalchemy_engine_logger.level
+    previous_engine_propagate = sqlalchemy_engine_logger.propagate
+    secured_engine = None
+    try:
+        sqlalchemy_engine_logger.addHandler(logging.StreamHandler(stale_echo_output))
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            configure_logging("sql-logging-regression", settings)
+            assert sqlalchemy_engine_logger.handlers == []
+            external_handler = logging.StreamHandler(external_sqlalchemy)
+            external_handler.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
+            sqlalchemy_logger.addHandler(external_handler)
+            sqlalchemy_logger.setLevel(logging.INFO)
+            sqlalchemy_logger.propagate = True
+
+            secured_engine = db.build_engine(os.environ["NUZENIO_DATABASE_URL"], settings=settings)
+            assert secured_engine.echo is False
+            assert secured_engine.hide_parameters is True
+            assert secured_engine.pool._echo is False
+            with secured_engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "CREATE TEMPORARY TABLE nuzenio_sql_logging_probe "
+                        "(value text) ON COMMIT DROP"
+                    )
+                )
+                connection.execute(
+                    text("INSERT INTO nuzenio_sql_logging_probe (value) VALUES (:value)"),
+                    {"value": insert_canary},
+                )
+                assert (
+                    connection.scalar(text("SELECT :value"), {"value": select_canary})
+                    == select_canary
+                )
+    finally:
+        if secured_engine is not None:
+            secured_engine.dispose()
+        root.handlers = previous_root_handlers
+        root.setLevel(previous_root_level)
+        sqlalchemy_logger.handlers = previous_handlers
+        sqlalchemy_logger.setLevel(previous_level)
+        sqlalchemy_logger.propagate = previous_propagate
+        sqlalchemy_engine_logger.handlers = previous_engine_handlers
+        sqlalchemy_engine_logger.setLevel(previous_engine_level)
+        sqlalchemy_engine_logger.propagate = previous_engine_propagate
+
+    complete_output = stdout.getvalue() + stderr.getvalue() + external_sqlalchemy.getvalue()
+    assert stale_echo_output.getvalue() == ""
+    assert select_canary not in complete_output
+    assert insert_canary not in complete_output
+    assert "SELECT" in complete_output
+    assert "INSERT" in complete_output
+    assert "SQL parameters hidden due to hide_parameters=True" in complete_output
+    json_lines = [line for line in stdout.getvalue().splitlines() if line]
+    assert json_lines
+    assert all(json.loads(line)["service"] == "sql-logging-regression" for line in json_lines)
+
+
+def test_development_sql_echo_remains_explicitly_configurable() -> None:
+    from nuzenio_api import db
+
+    settings = Settings(environment="development", sql_echo=True, _env_file=None)
+    development_engine = db.build_engine("sqlite+pysqlite:///:memory:", settings=settings)
+    try:
+        assert development_engine.echo is True
+        assert development_engine.hide_parameters is False
+        assert development_engine.pool._echo is False
+    finally:
+        development_engine.dispose()
 
 
 @pytest.mark.parametrize(

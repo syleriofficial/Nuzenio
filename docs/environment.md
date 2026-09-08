@@ -67,7 +67,7 @@ Production code disables reader fixture fallback regardless of its configured va
 | `NUZENIO_CORS_ORIGINS` | `["http://localhost:3000"]` | Exact JSON origin allow-list; production entries must be HTTPS. |
 | `NUZENIO_ALLOWED_HOSTS` | local/test hosts | Host-header allow-list. Production requires explicit non-local names. |
 | `NUZENIO_MAX_PAGE_SIZE` | `50` | Maximum public reader page size. |
-| `NUZENIO_SQL_ECHO` | `false` | Local SQL diagnostics. |
+| `NUZENIO_SQL_ECHO` | `false` | Explicit development/test SQL diagnostics only. Every truthy value is rejected in production. |
 | `NUZENIO_DEMO_MODE` | `true` | Enables explicitly fictional `.example` dry-run handling. Must be false in production. |
 | `NUZENIO_LOG_LEVEL` | `INFO` | Minimum structured application log severity. |
 | `NUZENIO_LOG_JSON` | `true` | JSON stdout logs; required in production. |
@@ -117,7 +117,7 @@ a managed backup policy for any approved deployment.
 
 ## Production validation
 
-When `NUZENIO_ENVIRONMENT=production`, settings construction fails for an unsafe session pepper,
+When `NUZENIO_ENVIRONMENT=production`, settings construction fails for SQL echo, an unsafe session pepper,
 metrics token, runtime database identity/password, Redis TLS/password, cookie mode, CORS origin,
 Host allow-list, proxy CIDR, log format, demo mode or feed transport/kill-switch state. The global feed
 kill switch is deliberately required while the publisher pilot remains unapproved. These checks are
@@ -128,6 +128,12 @@ Production allowed hosts are round-trip canonical lowercase ASCII/IDNA DNS names
 trailing dots, malformed A-labels, schemes, ports, paths, userinfo, whitespace, IP literals, legacy
 numeric IPv4 forms, localhost/`.local`/`home.arpa` equivalents and single-label names are rejected
 before `TrustedHostMiddleware` is built.
+
+Every application-owned production SQLAlchemy engine—including API/worker runtime, Alembic online
+migrations and database-role provisioning—forces statement and pool echo off and enables
+`hide_parameters`. This remains true if a caller bypasses settings-model validation. Application SQL
+must use bound parameters; values intentionally embedded as SQL literals are outside this protection
+and are prohibited for private data.
 Every executable entry point uses the same environment enum and predicate; missing or malformed
 configuration cannot fall through to development behavior. API and worker images deliberately do
 not carry an environment default. Local Compose and test commands declare their non-production
