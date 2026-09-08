@@ -327,3 +327,19 @@ while retaining the parameterized statement text and hidden-parameter marker. Ap
 migration code must continue to avoid private SQL literals. No forward migration is required;
 Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted, and a fresh independent
 read-only closure review remains required before merge.
+
+## PR #2 detached database errors and sink-boundary logging
+
+Starting head `94af173af833637c2631e06a2518776139d3ce2b` was independently reported to
+retain two P2 disclosure paths. This focused round changes no schema, editorial decision, ingestion
+policy or feed state.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 reachable Psycopg diagnostics | SQLAlchemy's rendered message hid parameters, but `.orig`, `__cause__` and Psycopg `.diag` still retained server text containing private bound values | Every application-owned production engine translates the already-processed failure at its connection boundary into a metadata-only `DetachedDatabaseError` after SQLAlchemy transaction/pool bookkeeping. The outward graph carries only a bounded category, validated SQLSTATE and invalidation flag; role-provisioning driver failures are likewise raised only after leaving the Psycopg exception context | Real PostgreSQL invalid integer/date/UUID casts, unique/foreign-key/check failures, parameterized updates and connection failures traverse cause/context/orig/diag/args/statement/params/exception-group edges plus full rendered tracebacks. Independent canaries and URL passwords remain absent; explicit session rollback permits a subsequent query. Role-password failures are detached and their transaction is rolled back | Python tracebacks inherently describe application control flow, so production error collection must keep local-variable capture disabled. Direct infrastructure/driver use outside the shared engine is a separate boundary. SQLAlchemy's connection factory is pinned by the current dependency range and must be revalidated on upgrades |
+| P2 original records reaching external sinks | Nuzenio sanitized inside its own formatter, leaving pre-existing plain or telemetry handlers able to inspect the original message arguments, nested extras and exception object | Production initialization installs a Python 3.12 replacement-record filter first on every configured handler. Each sink receives its own recursively sanitized clone; the original record and referenced application objects are not mutated. Initialization remains ownership-aware and idempotent, and SQLAlchemy direct handlers remain removed | Plain, JSON-like, descendant and object-inspecting handlers receive exactly one record per applicable event after repeated initialization. Positional/mapping arguments, nested fields, encoded/boundary values, stack text and diagnostic-bearing exceptions contain no canary, while safe queue-depth and message fields survive | Privileged code can deliberately install an unsafe handler after secure initialization; deployment code must not reconfigure logging after startup. Custom handlers that bypass the standard Python `Handler.handle()` contract are unsupported |
+
+No forward migration is required; Alembic head remains `6d0a4f2b8c91`. The production API, worker,
+Alembic and database-role provisioning all construct engines through the shared hardened boundary.
+No feed was enabled or contacted, and a fresh independent read-only closure review remains required
+before merge.

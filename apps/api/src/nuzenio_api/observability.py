@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from nuzenio_api.config import Settings, get_settings
 from nuzenio_api.database_security import configure_sqlalchemy_logging
+from nuzenio_api.environment import is_production
 from nuzenio_api.models import DeadLetterJob, EditorialReview, FeedRun, FeedRunState, ReviewState
 from nuzenio_api.serialization import json_safe
 
@@ -74,6 +75,9 @@ _SENSITIVE_KEY_PARTS = frozenset(
 )
 _SENSITIVE_KEY_SUFFIXES = frozenset({("session", "hash", "pepper"), ("api", "key")})
 _OWNED_HANDLER_ATTRIBUTE = "_nuzenio_owned_handler"
+_SANITIZING_FILTER_ATTRIBUTE = "_nuzenio_sanitizing_filter"
+_MAX_LOG_CONTAINER_DEPTH = 8
+_MAX_LOG_CONTAINER_ITEMS = 128
 
 
 def _split_identifier(value: str) -> tuple[str, ...] | None:
@@ -283,22 +287,163 @@ def sanitize_log_message(value: str) -> str:
     return (sanitized_scan[:visible_limit] + suffix)[:_MAX_LOG_MESSAGE_LENGTH]
 
 
-def _redact(value: Any) -> Any:
+class _SanitizedLogException(Exception):
+    """Non-secret exception value supplied to production logging handlers."""
+
+
+def _safe_exception_summary(error: BaseException) -> str:
+    category = sanitize_log_message(type(error).__name__)
+    try:
+        sqlstate = getattr(error, "sqlstate", None)
+    except Exception:
+        sqlstate = None
+    suffix = (
+        f" (SQLSTATE {sqlstate})"
+        if isinstance(sqlstate, str) and re.fullmatch(r"[A-Z0-9]{5}", sqlstate)
+        else ""
+    )
+    # Arbitrary exception text is not data-classified. Database diagnostics in
+    # particular may repeat a bound value without a password/token label, so a
+    # production sink receives only type/category plus a validated SQLSTATE.
+    return f"{category}{suffix}"
+
+
+def _redact(
+    value: Any,
+    *,
+    _seen: set[int] | None = None,
+    _depth: int = 0,
+) -> Any:
+    if _depth >= _MAX_LOG_CONTAINER_DEPTH:
+        return "<maximum log depth>"
+    seen = _seen if _seen is not None else set()
+    if isinstance(value, BaseException):
+        return _safe_exception_summary(value)
     if isinstance(value, dict):
-        return {
-            sanitize_log_message(str(key)): (
-                "[REDACTED]" if _is_sensitive_key(str(key), include_cookie=True) else _redact(item)
-            )
-            for key, item in value.items()
-        }
+        identity = id(value)
+        if identity in seen:
+            return "<recursive mapping>"
+        seen.add(identity)
+        try:
+            result = {}
+            for index, (key, item) in enumerate(value.items()):
+                if index >= _MAX_LOG_CONTAINER_ITEMS:
+                    result["<truncated>"] = "<maximum log items>"
+                    break
+                safe_key = sanitize_log_message(str(key))
+                result[safe_key] = (
+                    "[REDACTED]"
+                    if _is_sensitive_key(str(key), include_cookie=True)
+                    else _redact(item, _seen=seen, _depth=_depth + 1)
+                )
+            return result
+        finally:
+            seen.remove(identity)
     if isinstance(value, (list, tuple, set, frozenset)):
-        return [_redact(item) for item in value]
+        identity = id(value)
+        if identity in seen:
+            return "<recursive sequence>"
+        seen.add(identity)
+        try:
+            items = list(value)
+            result = [
+                _redact(item, _seen=seen, _depth=_depth + 1)
+                for item in items[:_MAX_LOG_CONTAINER_ITEMS]
+            ]
+            if len(items) > _MAX_LOG_CONTAINER_ITEMS:
+                result.append("<maximum log items>")
+            return result
+        finally:
+            seen.remove(identity)
     if isinstance(value, str):
         return sanitize_log_message(value)
     try:
         return json_safe(value)
     except TypeError:
         return f"<{type(value).__name__}>"
+
+
+def _safe_log_arguments(arguments: Any) -> Any:
+    if isinstance(arguments, tuple):
+        return tuple(_redact(argument) for argument in arguments)
+    if isinstance(arguments, dict):
+        return _redact(arguments)
+    return _redact(arguments)
+
+
+def _safe_exception_info(exc_info: Any) -> Any:
+    if not isinstance(exc_info, tuple) or len(exc_info) != 3:
+        return None
+    error = exc_info[1]
+    if not isinstance(error, BaseException):
+        return None
+    sanitized = _SanitizedLogException(_safe_exception_summary(error))
+    return (_SanitizedLogException, sanitized, None)
+
+
+def _sanitized_log_record(record: logging.LogRecord) -> logging.LogRecord:
+    """Return a detached record containing no original mutable or exception objects."""
+
+    attributes = record.__dict__.copy()
+    original_message = record.msg
+    safe_message = (
+        sanitize_log_message(original_message)
+        if isinstance(original_message, str)
+        else _redact(original_message)
+    )
+    safe_arguments = _safe_log_arguments(record.args)
+    # A redacted format template may no longer contain its original placeholders.
+    # Collapse it to the already-safe message rather than allowing a formatter to
+    # render untrusted arguments or fail on the changed template.
+    if safe_message != original_message:
+        safe_arguments = ()
+    attributes["msg"] = safe_message
+    attributes["args"] = safe_arguments
+    attributes.pop("message", None)
+    attributes["exc_info"] = _safe_exception_info(record.exc_info)
+    # Pre-rendered exception text cannot be proven to exclude unlabeled bound
+    # values. A safe replacement will be rendered from `exc_info` when present.
+    attributes["exc_text"] = "[REDACTED EXCEPTION TEXT]" if record.exc_text else None
+    attributes["stack_info"] = (
+        sanitize_log_message(record.stack_info) if isinstance(record.stack_info, str) else None
+    )
+    for key, item in tuple(attributes.items()):
+        if key in _STANDARD_RECORD_FIELDS:
+            continue
+        if _is_sensitive_key(str(key), include_cookie=True):
+            attributes[key] = "[REDACTED]"
+        else:
+            attributes[key] = _redact(item)
+    return logging.makeLogRecord(attributes)
+
+
+class _ProductionSanitizingFilter(logging.Filter):
+    """Give each configured production sink its own sanitized record clone."""
+
+    _nuzenio_sanitizing_filter = True
+
+    def filter(self, record: logging.LogRecord) -> logging.LogRecord:
+        return _sanitized_log_record(record)
+
+
+def _secure_existing_logging_handlers() -> None:
+    loggers = [logging.getLogger()]
+    loggers.extend(
+        logger
+        for logger in logging.root.manager.loggerDict.values()
+        if isinstance(logger, logging.Logger)
+    )
+    handlers: dict[int, logging.Handler] = {}
+    for logger in loggers:
+        handlers.update((id(handler), handler) for handler in logger.handlers)
+    for handler in handlers.values():
+        if any(
+            getattr(existing_filter, _SANITIZING_FILTER_ATTRIBUTE, False)
+            for existing_filter in handler.filters
+        ):
+            continue
+        # Run before pre-existing handler filters so none can observe the original.
+        handler.filters.insert(0, _ProductionSanitizingFilter())
 
 
 class _NuzenioStreamHandler(logging.StreamHandler):
@@ -370,6 +515,8 @@ def configure_logging(service: str, settings: Settings | None = None) -> None:
         # The middleware emits bounded route-template events; Uvicorn access logs
         # can include raw paths and query strings.
         logger.disabled = logger_name == "uvicorn.access"
+    if is_production(configured.environment):
+        _secure_existing_logging_handlers()
 
 
 def log_event(

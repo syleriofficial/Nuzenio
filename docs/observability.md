@@ -21,14 +21,22 @@ encodings remain an operational risk.
 Production rejects SQL echo configuration. The shared engine policy independently parses the exact
 environment value; malformed values fail closed. All application-owned production engines force SQL
 and pool echo off, enable SQLAlchemy parameter hiding and replace driver exceptions with bounded type
-and SQLSTATE diagnostics. The application owns the complete `sqlalchemy` logging namespace: direct
+and SQLSTATE diagnostics. After SQLAlchemy completes transaction/pool bookkeeping, the production
+connection boundary raises a metadata-only `DetachedDatabaseError`; it retains no driver exception,
+diagnostic object, statement or parameters, and normal session rollback remains required before
+reuse. The application owns the complete `sqlalchemy` logging namespace: direct
 handlers are removed, DEBUG result-row records are suppressed and safe statement diagnostics route
-through the configured root handlers. Repeated Nuzenio logging initialization replaces only its own
-marked handler and preserves unrelated root telemetry handlers. Password-bearing role DDL executes
+through the configured root handlers. In production, each handler configured at initialization gets
+an independently sanitized `LogRecord` clone before its own filters, formatter or emitter can inspect
+the message, arguments, structured extras, stack text or exception data. Repeated Nuzenio logging
+initialization replaces only its own marked handler, preserves unrelated root telemetry handlers and
+does not wrap a handler more than once. Password-bearing role DDL executes
 through Psycopg beneath SQLAlchemy statement logging while retaining driver quoting and transaction
 semantics. This boundary cannot protect values deliberately embedded as SQL literals; application
 queries carrying private values must use bound parameters. Database/platform logs remain an
-independent infrastructure boundary.
+independent infrastructure boundary. Deliberate privileged logging reconfiguration after secure
+application initialization is outside this guarantee; deployment startup must not add unreviewed
+post-initialization handlers.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the

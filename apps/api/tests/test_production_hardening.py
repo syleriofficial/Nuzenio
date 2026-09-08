@@ -924,6 +924,180 @@ def test_logging_initialization_is_owned_idempotent_and_preserves_root_telemetry
             logger.propagate = propagate
 
 
+def test_production_sanitizes_detached_records_before_every_configured_sink() -> None:
+    class Diagnostic:
+        def __init__(self, marker: str) -> None:
+            self.message_primary = f"database.password={marker}"
+            self.message_detail = f"api_token={marker}"
+
+    class DriverFailure(Exception):
+        def __init__(self, marker: str) -> None:
+            self.diag = Diagnostic(marker)
+            self.sqlstate = "23505"
+            # Psycopg server messages can repeat an arbitrary bound value with
+            # no key label for the free-form sanitizer to recognize.
+            super().__init__(f'invalid input syntax for integer: "{marker}"')
+
+    class InspectingFilter(logging.Filter):
+        def __init__(self) -> None:
+            self.messages: list[str] = []
+
+        def filter(self, record: logging.LogRecord) -> bool:
+            self.messages.append(record.getMessage())
+            return True
+
+    class TelemetryHandler(logging.Handler):
+        def __init__(self) -> None:
+            super().__init__(logging.DEBUG)
+            self.records: list[dict[str, object]] = []
+
+        def emit(self, record: logging.LogRecord) -> None:
+            extras = {
+                key: value
+                for key, value in record.__dict__.items()
+                if key
+                not in {
+                    "name",
+                    "msg",
+                    "args",
+                    "levelname",
+                    "levelno",
+                    "pathname",
+                    "filename",
+                    "module",
+                    "exc_info",
+                    "exc_text",
+                    "stack_info",
+                    "lineno",
+                    "funcName",
+                    "created",
+                    "msecs",
+                    "relativeCreated",
+                    "thread",
+                    "threadName",
+                    "processName",
+                    "process",
+                    "taskName",
+                }
+            }
+            self.records.append(
+                {
+                    "message": record.getMessage(),
+                    "msg": record.msg,
+                    "args": record.args,
+                    "extras": extras,
+                    "exception": (
+                        _render_reachable_exception_graph(record.exc_info[1])
+                        if record.exc_info
+                        else None
+                    ),
+                    "stack_info": record.stack_info,
+                }
+            )
+
+    settings = production_settings(log_level="DEBUG")
+    canary = f"external-handler-canary-{secrets.token_hex(7)}"
+    raw_error = DriverFailure(canary)
+    nested_original = {"database": {"password": canary}, "api_token": canary}
+    encoded = quote(quote(f"client_secret={canary}", safe=""), safe="")
+    boundary = f"{'x' * 8_050} session_hash_pepper={canary}{'y' * 9_000}"
+    safe_value = "cluster-safe-42"
+
+    root = logging.getLogger()
+    descendant = logging.getLogger("nuzenio.external-sink-regression")
+    previous_root_handlers = root.handlers[:]
+    previous_root_level = root.level
+    previous_descendant_handlers = descendant.handlers[:]
+    previous_descendant_level = descendant.level
+    previous_descendant_propagate = descendant.propagate
+    plain_output = io.StringIO()
+    plain_handler = logging.StreamHandler(plain_output)
+    plain_handler.setLevel(logging.DEBUG)
+    plain_handler.setFormatter(logging.Formatter("plain %(levelname)s %(message)s %(diagnostic)s"))
+    inspecting_filter = InspectingFilter()
+    plain_handler.addFilter(inspecting_filter)
+    telemetry_handler = TelemetryHandler()
+    descendant_handler = TelemetryHandler()
+    json_output = io.StringIO()
+    event_count = 8
+    try:
+        root.handlers = [plain_handler, telemetry_handler]
+        root.setLevel(logging.DEBUG)
+        descendant.handlers = [descendant_handler]
+        descendant.setLevel(logging.DEBUG)
+        descendant.propagate = True
+        with redirect_stdout(json_output):
+            configure_logging("external-sink-regression", settings)
+            configure_logging("external-sink-regression", settings)
+            descendant.error(
+                "db_password=%s",
+                canary,
+                extra={"diagnostic": "positional assignment"},
+            )
+            descendant.error(
+                "api_token=%(credential)s",
+                {"credential": canary},
+                extra={"diagnostic": "mapping assignment"},
+            )
+            descendant.error(
+                "structured diagnostic",
+                extra={"diagnostic": nested_original},
+            )
+            descendant.error(encoded, extra={"diagnostic": encoded})
+            descendant.error(boundary, extra={"diagnostic": boundary})
+            descendant.error(
+                "database operation failed",
+                exc_info=(DriverFailure, raw_error, None),
+                stack_info=True,
+                extra={"diagnostic": {"exception": raw_error}},
+            )
+            root.error(
+                "client_secret=%s",
+                canary,
+                extra={"diagnostic": "direct root record"},
+            )
+            descendant.info(
+                "safe telemetry %s",
+                safe_value,
+                extra={"diagnostic": {"queue_depth": 3}},
+            )
+
+        assert len(telemetry_handler.records) == event_count
+        assert len(descendant_handler.records) == event_count - 1
+        assert len(inspecting_filter.messages) == event_count
+        assert len(json_output.getvalue().splitlines()) == event_count
+        complete_output = "\n".join(
+            [
+                plain_output.getvalue(),
+                json_output.getvalue(),
+                repr(telemetry_handler.records),
+                repr(descendant_handler.records),
+                repr(inspecting_filter.messages),
+            ]
+        )
+        assert canary not in complete_output
+        assert "DriverFailure (SQLSTATE 23505)" in complete_output
+        assert complete_output.count(safe_value) >= 4
+        assert telemetry_handler.records[-1]["args"] == (safe_value,)
+        assert descendant_handler.records[-1]["extras"] == {"diagnostic": {"queue_depth": 3}}
+        assert nested_original["database"]["password"] == canary
+        assert raw_error.diag.message_primary.endswith(canary)
+        for handler in (plain_handler, telemetry_handler, descendant_handler):
+            assert (
+                sum(
+                    getattr(filter_, "_nuzenio_sanitizing_filter", False)
+                    for filter_ in handler.filters
+                )
+                == 1
+            )
+    finally:
+        root.handlers = previous_root_handlers
+        root.setLevel(previous_root_level)
+        descendant.handlers = previous_descendant_handlers
+        descendant.setLevel(previous_descendant_level)
+        descendant.propagate = previous_descendant_propagate
+
+
 def test_log_sanitizer_is_bounded_and_handles_malformed_percent_input() -> None:
     malformed_safe_message = "Fixture progress is 100%2 and literal %zz remains readable"
     assert sanitize_log_message(malformed_safe_message) == malformed_safe_message
