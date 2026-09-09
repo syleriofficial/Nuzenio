@@ -513,3 +513,75 @@ Formatting/lint and npm/Python audits passed again. The 380 composition tests, o
 reproductions and a fresh 3,580-case punctuation/context/encoding/boundary matrix passed; bounded
 stress probes averaged 0.64–2.36 ms/message. Existing test-client warnings and previously reviewed
 stream-cancellation diagnostics were not silenced or reclassified as new failures.
+
+## PR #2 unconditional sensitive-template omission
+
+The independent review of `2ccf1adaf9a62bee85114b9d5902c150996e5c5b` found that
+`rejected header=%(cookie)s; sid=%(value)s`, with `cookie="Cookie: locale=en"`,
+still exposed the second cookie value. A literal `; sid=` matched the generic
+subsequent-field exception even though it belonged to the same erased header.
+The original independent eight-case reproduction failed again before this fix;
+new tracked regressions also failed at the confidentiality assertions across
+root/descendant raw records, existing filters, plain output and Nuzenio JSON.
+
+The policy is now intentionally simpler: **any sensitive named placeholder
+causes the entire composed message to become the same constant omission**.
+The shared classifier includes cookies and qualified/case variants. A bounded
+template-only parser validates and classifies before any interpolation value is
+accessed or rendered. Only after that succeeds are safe conversions rendered.
+Thus a large early value or width cannot fill the output buffer and hide a
+later sensitive reference. Oversized templates are omitted even when arguments
+are empty. The original value is never inspected to infer whether subsequent
+text is independent, and no prefix/suffix text is returned on rejection.
+
+The old erased-prefix state and generic subsequent-field regex are removed;
+there is no cookie-name denylist or substitute textual-boundary heuristic.
+Safe counts and other operational details belong in independently sanitized
+structured metadata, not in a partially recovered message. This deliberately
+changes even formerly readable `credential=%(password)s; count=%(count)d` to
+`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]`. Output-shape assertions are
+updated for this policy; every confidentiality assertion is retained. Original
+records/mappings remain unchanged, replacement arguments stay empty, and
+normal record metadata survives. Non-sensitive named templates, positional
+formatting and dynamic-key post-composition scanning remain supported.
+
+Regression coverage includes arbitrary first/subsequent cookie names, multiple
+pairs, literal/interpolated values, quoted/bracketed/multiline context, raw and
+single/double-encoded forms, sensitive placeholders before/between/after other
+content, and scan/output boundaries. Guards prohibit any call to the argument
+renderer for a sensitive template, including large preceding conversions and
+missing/empty arguments. Escaped literal percent signs and unused sensitive
+mapping entries do not classify an otherwise safe template. Existing handler,
+concurrency, formatting-bound and linear-sanitizer regressions are preserved.
+
+Only logging, its composition tests and observability/remediation documentation
+change. Database-fetch integration, its tests, migrations, dependencies and CI
+are unchanged; Alembic head remains `6d0a4f2b8c91`. Final local and exact-head CI
+results are reported with delivery. No publisher is contacted or live feed
+enabled. This implementation does not substitute for independent closure review.
+
+Completed local validation for this policy: **608 composition tests** (228 added),
+73 selected logging/sanitizer regressions and the original eight cookie-field
+reproductions pass. A supplemental 5,685-case format/classification matrix
+verified zero value-rendering calls for sensitive templates. Native 1–16 KiB
+near-miss probes scaled from about 0.12 to 1.84 ms; formatting/output limits,
+original-object preservation and one event per sink remain enforced.
+
+A fresh Linux Node 22.13.0/Python 3.12.14 environment passed clean `npm ci`,
+npm/Python audits, web formatting/lint, **48 web tests**, production build and
+Ruff checks. The disposable PostgreSQL/Redis suite passed **1,046 tests**,
+including unchanged database-fetch, authentication, runtime-role, migration,
+concurrency and earlier security regressions. Clean migration, schema-drift
+check and seed idempotency passed. Production Playwright passed **26 tests**,
+two projects, effective retries zero, with outbound access disabled during
+API/E2E tests. The two existing test-client deprecation warnings and bounded
+stream-cancellation diagnostics were not silenced.
+
+Isolated Compose build, four-service health, fixture/kill-switch checks,
+backup/restore and PostgreSQL operation-security tests passed. Both normal
+teardown and an injected exit 42 after readiness removed only their isolated
+containers, networks and temporary volumes; the failure exit was preserved.
+The runtime source/test hashes in the validation snapshot matched the working
+tree. A bounded tracked-secret/artifact scan and `git diff --check` passed;
+pattern scanning is not exhaustive secret detection. Exact-commit GitHub CI
+results are supplied after the normal branch push, without merge or deployment.

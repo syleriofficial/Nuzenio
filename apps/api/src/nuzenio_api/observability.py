@@ -10,7 +10,7 @@ import threading
 from collections import Counter
 from datetime import UTC, datetime
 from time import monotonic
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import unquote
 
 import redis
@@ -80,9 +80,6 @@ _MAX_LOG_CONTAINER_DEPTH = 8
 _MAX_LOG_CONTAINER_ITEMS = 128
 _MAX_LOG_FORMAT_CONVERSIONS = 128
 _OMITTED_LOG_COMPOSITION = "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
-_EXPLICIT_LOG_FIELD = re.compile(
-    r"^(?:[ \t]*[;\r\n][ \t\r\n]*|[ \t]+)[A-Za-z][A-Za-z0-9_.-]*[ \t]*[:=]"
-)
 
 
 def _split_identifier(value: str) -> tuple[str, ...] | None:
@@ -410,53 +407,132 @@ def _sensitive_match_splits_argument(value: str, spans: list[tuple[int, int]]) -
     return False
 
 
-def _compose_log_message(template: Any, arguments: Any) -> str:
-    """Compose before redaction without unrestricted percent interpolation.
+class _LogConversion(NamedTuple):
+    key: str | None
+    token: str
+    star_count: int
 
-    Parse a bounded template once, render at most 128 conversions, and bound
-    each primitive, field width, precision and the aggregate scan buffer before
-    rendering. No caller-defined __str__, __repr__ or mapping hooks execute.
-    Invalid/oversized layouts yield only a constant; never their raw arguments
-    or a formatting exception. A valid mapping may contain unused values, but
-    none are retained on the replacement record.
+
+def _parse_log_template(template: str) -> list[str | _LogConversion]:
+    """Validate/classify the entire bounded template without accessing arguments.
+
+    A sensitive named reference rejects the whole composition. Literal fields
+    cannot establish independence from an erased header or assignment, so no
+    prefix/suffix boundary heuristic is used. Finish parsing before rendering
+    anything: an early large value must not conceal a later sensitive reference.
+    """
+
+    if len(template) > _MAX_LOG_SCAN_LENGTH:
+        raise ValueError("oversized log template")
+    pieces: list[str | _LogConversion] = []
+    index = 0
+    conversions = 0
+
+    def field_size() -> tuple[str, int]:
+        nonlocal index
+        if index < len(template) and template[index] == "*":
+            index += 1
+            return "*", 1
+        start = index
+        while index < len(template) and template[index] in string.digits:
+            index += 1
+        digits = template[start:index]
+        if len(digits) > 5 or (digits and int(digits) > _MAX_LOG_SCAN_LENGTH):
+            raise ValueError("oversized log field")
+        return digits, 0
+
+    while index < len(template):
+        if template[index] != "%":
+            start = index
+            while index < len(template) and template[index] != "%":
+                index += 1
+            pieces.append(template[start:index])
+            continue
+        index += 1
+        if index < len(template) and template[index] == "%":
+            pieces.append("%")
+            index += 1
+            continue
+        conversions += 1
+        if conversions > _MAX_LOG_FORMAT_CONVERSIONS:
+            raise ValueError("too many log conversions")
+
+        key: str | None = None
+        if index < len(template) and template[index] == "(":
+            index += 1
+            start = index
+            depth = 1
+            while index < len(template) and depth:
+                if template[index] == "(":
+                    depth += 1
+                elif template[index] == ")":
+                    depth -= 1
+                index += 1
+            if depth:
+                raise ValueError("invalid log mapping")
+            key = template[start : index - 1]
+            if _is_sensitive_key(key, include_cookie=True):
+                raise ValueError("sensitive named log placeholder")
+
+        flags_start = index
+        while index < len(template) and template[index] in "#0- +":
+            index += 1
+        flags = template[flags_start:index]
+        if len(flags) > 8:
+            raise ValueError("oversized log flags")
+        width, star_count = field_size()
+        precision = ""
+        if index < len(template) and template[index] == ".":
+            index += 1
+            digits, precision_stars = field_size()
+            precision = "." + digits
+            star_count += precision_stars
+        modifier = ""
+        if index < len(template) and template[index] in "hlL":
+            modifier = template[index]
+            index += 1
+        if index >= len(template) or template[index] not in "diouxXeEfFgGcrsa":
+            raise ValueError("invalid log conversion")
+        conversion = template[index]
+        index += 1
+        pieces.append(
+            _LogConversion(key, "%" + flags + width + precision + modifier + conversion, star_count)
+        )
+    return pieces
+
+
+def _compose_log_message(template: Any, arguments: Any) -> str:
+    """Classify before bounded interpolation, then sanitize dynamic identifiers.
+
+    Named sensitive placeholders omit the whole event before argument access.
+    Other templates retain bounded primitive formatting and post-composition
+    sanitization. No caller-defined renderers or mapping hooks execute; invalid
+    layouts yield only a constant, never partial text or a formatting exception.
     """
 
     if type(template) is not str or type(arguments) not in {tuple, dict}:
         return _OMITTED_LOG_COMPOSITION
-    if not arguments:
-        return sanitize_log_message(template)
     if len(template) > _MAX_LOG_SCAN_LENGTH:
         return _OMITTED_LOG_COMPOSITION
-    # Exact builtin string keys prevent a colliding custom key's __eq__
-    # from running during lookup. Bound validation of unused mapping fields
-    # too, rather than copying or walking arbitrarily large mappings.
+    # Plain diagnostics without interpolation retain their existing bounded
+    # sanitizer behavior, including ordinary literal percent signs.
+    if not arguments and "%(" not in template:
+        return sanitize_log_message(template)
+    # Exact builtin keys prevent custom comparison hooks during lookups.
     if type(arguments) is dict and (
         len(arguments) > _MAX_LOG_CONTAINER_ITEMS
         or any(type(key) is not str or len(key) > _MAX_LOG_SCAN_LENGTH for key in arguments)
     ):
         return _OMITTED_LOG_COMPOSITION
 
-    index = 0
     argument_index = 0
-    conversions = 0
     remaining = _MAX_LOG_SCAN_LENGTH
     output: list[str] = []
     argument_spans: list[tuple[int, int]] = []
-    erased_prefix_pending = False
 
     def append(value: str, *, interpolated: bool = False) -> None:
-        nonlocal remaining, erased_prefix_pending
+        nonlocal remaining
         bounded = value[:remaining]
-        # Only a literal field boundary establishes that the next value is
-        # independent of a hidden prefix (which could have been a key/header).
-        if not interpolated and erased_prefix_pending:
-            if _EXPLICIT_LOG_FIELD.match(bounded):
-                erased_prefix_pending = False
-            elif bounded.strip(" \t"):
-                # Punctuation can itself be a token/password, not just syntax.
-                # Without a subsequent explicit field, retain only spacing and
-                # keep ambiguity; never guess that literal content is harmless.
-                raise ValueError("ambiguous literal after redacted mapping prefix")
         if interpolated and bounded:
             start = _MAX_LOG_SCAN_LENGTH - remaining
             argument_spans.append((start, start + len(bounded)))
@@ -471,97 +547,31 @@ def _compose_log_message(template: Any, arguments: Any) -> str:
         argument_index += 1
         return value
 
-    def field_size() -> tuple[str, list[int]]:
-        nonlocal index
-        if index < len(template) and template[index] == "*":
-            index += 1
-            size = next_argument()
-            if type(size) is not int or abs(size) > _MAX_LOG_SCAN_LENGTH:
-                raise ValueError("oversized log field")
-            return "*", [size]
-        start = index
-        while index < len(template) and template[index] in string.digits:
-            index += 1
-        digits = template[start:index]
-        if len(digits) > 5 or (digits and int(digits) > _MAX_LOG_SCAN_LENGTH):
-            raise ValueError("oversized log field")
-        return digits, []
-
     try:
-        while index < len(template) and remaining:
-            if template[index] != "%":
-                start = index
-                while index < len(template) and template[index] != "%":
-                    index += 1
-                append(template[start:index])
+        pieces = _parse_log_template(template)
+        if not arguments:
+            return sanitize_log_message(template)
+        for piece in pieces:
+            if not remaining:
+                break
+            if isinstance(piece, str):
+                append(piece)
                 continue
-            index += 1
-            if index < len(template) and template[index] == "%":
-                append("%")
-                index += 1
-                continue
-            conversions += 1
-            if conversions > _MAX_LOG_FORMAT_CONVERSIONS:
-                raise ValueError("too many log conversions")
-
-            key: str | None = None
-            if index < len(template) and template[index] == "(":
-                index += 1
-                start = index
-                depth = 1
-                while index < len(template) and depth:
-                    if template[index] == "(":
-                        depth += 1
-                    elif template[index] == ")":
-                        depth -= 1
-                    index += 1
-                if depth or type(arguments) is not dict:
+            render_arguments = []
+            for _ in range(piece.star_count):
+                size = next_argument()
+                if type(size) is not int or abs(size) > _MAX_LOG_SCAN_LENGTH:
+                    raise ValueError("oversized log field")
+                render_arguments.append(size)
+            if piece.key is not None:
+                if type(arguments) is not dict:
                     raise ValueError("invalid log mapping")
-                key = template[start : index - 1]
-
-            flags_start = index
-            while index < len(template) and template[index] in "#0- +":
-                index += 1
-            flags = template[flags_start:index]
-            if len(flags) > 8:
-                raise ValueError("oversized log flags")
-            width, render_arguments = field_size()
-            precision = ""
-            if index < len(template) and template[index] == ".":
-                index += 1
-                digits, precision_arguments = field_size()
-                precision = "." + digits
-                render_arguments.extend(precision_arguments)
-            modifier = ""
-            if index < len(template) and template[index] in "hlL":
-                modifier = template[index]
-                index += 1
-            if index >= len(template) or template[index] not in "diouxXeEfFgGcrsa":
-                raise ValueError("invalid log conversion")
-            conversion = template[index]
-            index += 1
-            if key is not None and key not in arguments:
-                raise KeyError(key)
-            if key is not None and _is_sensitive_key(key, include_cookie=True):
-                # Preserve mapping metadata even when the visible message omits
-                # the sensitive identifier. Never render/read its original value;
-                # flags and precision cannot truncate or transform this marker.
-                append("[REDACTED]", interpolated=True)
-                # No preceding context can prove what this erased value supplied.
-                # Keep ambiguity until a literal, explicitly named field boundary
-                # AFTER it establishes independence. Bare punctuation cannot do so.
-                erased_prefix_pending = True
-                continue
-            if erased_prefix_pending:
-                # The erased value may have supplied an assignment/header name.
-                # Do not expose following unclassified data after losing that
-                # syntax. No original value is rendered for this determination.
-                return _OMITTED_LOG_COMPOSITION
-            argument = arguments[key] if key is not None else next_argument()
+                argument = arguments[piece.key]
+            else:
+                argument = next_argument()
             render_arguments.append(_bounded_format_argument(argument))
-            token = "%" + flags + width + precision + modifier + conversion
             # This token and every input it can expand have already been bounded.
-            append(token % tuple(render_arguments), interpolated=True)
+            append(piece.token % tuple(render_arguments), interpolated=True)
         if remaining and type(arguments) is tuple and argument_index != len(arguments):
             raise ValueError("unused positional log arguments")
     except (KeyError, TypeError, ValueError, OverflowError):

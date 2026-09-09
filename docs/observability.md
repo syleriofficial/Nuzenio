@@ -63,27 +63,26 @@ including embedded whitespace/delimiters. Final output retains the existing 8,19
 and bounded single/double-encoding protections. Safe ordinary primitive interpolation, handler
 levels/filters/formatters/destinations and original application objects remain unchanged.
 
-Named mapping placeholders also retain the shared sensitive-key classification (including cookies).
-A sensitive placeholder emits the fixed `[REDACTED]` marker without reading or rendering its value;
-valid conversion flags, width and precision do not transform that marker. Format syntax and size
-limits still apply. Post-composition scanning remains enabled for dynamically assembled identifiers.
-Every removed sensitive placeholder leaves its following content ambiguous, regardless of any
-preceding label or context. A following unclassified interpolation or ambiguous literal suffix
-causes the whole composed message to become the fixed
-`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]` event; original arguments are never consulted to
-guess whether that content was safe. Only an explicitly named literal field **after** the placeholder
-can establish independence: whitespace, or a semicolon/newline with optional whitespace, followed
-by an ASCII identifier and `=` or `:` (for example `; count=` or ` count=`). Bare whitespace or
-punctuation does not clear ambiguity, and a later boundary cannot rescue earlier ambiguous content.
-Punctuation-only literal values are also potential credentials: without an explicit subsequent
-field, only spaces/tabs are retained (without clearing ambiguity); any other literal text is omitted.
-Thus `header=%(authorization)s %(value)s` is omitted; `credential=%(password)s; count=%(count)d`
-retains its redaction and safe count. A literal suffix such as the `s` in `%(password)hds` is now
-omitted rather than guessed safe. Multiple sensitive placeholders are safe, but punctuation between
-them may cause omission; use explicitly named subsequent fields to preserve their layout. Their
-values are never read. Safe structured event metadata survives whole-message omission, and unambiguous
-ordinary primitive formatting remains readable. This rule does not reconstruct a secret-bearing
-shadow message.
+Named mapping placeholders retain the shared sensitive-key classification (including cookies).
+If a template references **any** classified named placeholder, the **entire composed message** is
+replaced with `[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]`. This is unconditional: preceding or
+subsequent labels, delimiters, cookie names, suffixes, other placeholders, width/precision and the
+sensitive value cannot make any message fragment eligible for output. Parsing/classification of the
+whole bounded template finishes before any interpolation value is accessed or rendered, so an early
+large argument cannot fill the output buffer and conceal a later sensitive placeholder. The sensitive
+value is never read, and neither a partial composition nor raw arguments are retained on the
+replacement record. Templates outside the formatting bounds also produce safe omission.
+
+This intentionally replaces formerly readable messages such as
+`credential=%(password)s; count=%(count)d` with whole-message omission. Text resembling a separate
+field can be part of an erased Cookie header, so no textual independence exception or cookie-name
+denylist remains. Supply safe operational details such as counts through structured metadata; they
+are sanitized independently and survive message omission along with ordinary record metadata.
+Escaped `%%` is literal text, not a named reference; an unused sensitive mapping entry does not
+classify an otherwise safe template and is not retained. Messages without sensitive named references
+keep ordinary bounded primitive formatting and post-composition sanitization for dynamically
+assembled sensitive keys. The existing encoding, output-size, handler and original-object protections
+remain unchanged.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the

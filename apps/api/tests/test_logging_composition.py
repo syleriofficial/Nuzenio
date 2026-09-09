@@ -13,7 +13,11 @@ from urllib.parse import quote
 import pytest
 
 from nuzenio_api.config import Settings
-from nuzenio_api.observability import _sanitized_log_record, configure_logging
+from nuzenio_api.observability import (
+    _OMITTED_LOG_COMPOSITION,
+    _sanitized_log_record,
+    configure_logging,
+)
 
 
 class _RawSink(logging.Handler):
@@ -146,7 +150,9 @@ def test_composed_assignment_is_safe_before_every_existing_sink(production_sinks
     ],
 )
 @pytest.mark.parametrize("origin", ["root", "descendant"])
-def test_named_sensitive_mapping_is_redacted_before_every_sink(production_sinks, key, origin):
+def test_named_sensitive_mapping_omits_whole_message_before_every_sink(
+    production_sinks, key, origin
+):
     logger, plain, structured, root_sink, descendant_sink, filter_ = production_sinks
     # Pytest installs additional capture sinks between fixture setup and call.
     # Include those sinks in initialization too, without dropping their handlers.
@@ -184,7 +190,7 @@ def test_named_sensitive_mapping_is_redacted_before_every_sink(production_sinks,
     assert len(plain.getvalue().splitlines()) == len(structured.getvalue().splitlines()) == 1
     for sink in (root_sink, descendant_sink, filter_):
         for replacement in sink.records:
-            assert replacement["msg"] == "authentication rejected credential=[REDACTED]; count=7"
+            assert replacement["msg"] == _OMITTED_LOG_COMPOSITION
             assert replacement["args"] == ()
             assert replacement["diagnostic"] == {"safe": [42]}
     assert original.__dict__ == before
@@ -194,38 +200,24 @@ def test_named_sensitive_mapping_is_redacted_before_every_sink(production_sinks,
 
 
 @pytest.mark.parametrize(
-    ("template", "expected"),
+    "template",
     [
-        ("received %(api_token)s", "received [REDACTED]"),
-        ("%(authorization)s", "[REDACTED]"),
-        ("received %(cookie)r", "received [REDACTED]"),
-        ("%(password)20s count=%(count)04d", "[REDACTED] count=0007"),
-        ("%(password)-20.2s safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("%(password).0r safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("%(password)08.3r safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("%(password)#08x safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("%(password)+.2f safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("%(password)c safe=%(safe)s", "[REDACTED] safe=queue"),
-        # The literal 's' follows the erased placeholder without an independent
-        # field boundary. A preceding credential= label cannot prove it safe.
-        (
-            "credential=%(password)hds; count=%(count)d",
-            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
-        ),
-        # Punctuation after the removed value may itself be credential content.
-        (
-            "%% %(db_password)s %% safe=%(safe)s",
-            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
-        ),
-        (
-            "%(password)s / %(api_token)r / %(password)s; count=%(count)d",
-            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
-        ),
+        "received %(api_token)s",
+        "%(authorization)s",
+        "received %(cookie)r",
+        "%(password)20s count=%(count)04d",
+        "%(password)-20.2s safe=%(safe)s",
+        "%(password).0r safe=%(safe)s",
+        "%(password)08.3r safe=%(safe)s",
+        "%(password)#08x safe=%(safe)s",
+        "%(password)+.2f safe=%(safe)s",
+        "%(password)c safe=%(safe)s",
+        "credential=%(password)hds; count=%(count)d",
+        "%% %(db_password)s %% safe=%(safe)s",
+        "%(password)s / %(api_token)r / %(password)s; count=%(count)d",
     ],
 )
-def test_named_sensitive_formats_use_fixed_marker_and_preserve_safe_fields(
-    production_sinks, template, expected
-):
+def test_named_sensitive_formats_omit_whole_message(production_sinks, template):
     logger, plain, structured, root_sink, descendant_sink, filter_ = production_sinks
     with redirect_stdout(structured):
         configure_logging("composition-regression", _production_settings())
@@ -248,7 +240,7 @@ def test_named_sensitive_formats_use_fixed_marker_and_preserve_safe_fields(
     assert canary not in output
     for sink in (root_sink, descendant_sink, filter_):
         assert len(sink.records) == 1
-        assert sink.records[0]["msg"] == expected
+        assert sink.records[0]["msg"] == _OMITTED_LOG_COMPOSITION
         assert sink.records[0]["args"] == ()
     assert len(plain.getvalue().splitlines()) == len(structured.getvalue().splitlines()) == 1
     assert arguments == before
@@ -309,7 +301,7 @@ def test_sensitive_mapping_value_never_reaches_argument_renderer(monkeypatch):
     )
     original.args = arguments
     replacement = _sanitized_log_record(original)
-    assert replacement.msg == "[REDACTED] count=7"
+    assert replacement.msg == _OMITTED_LOG_COMPOSITION
     assert replacement.args == ()
     assert original.args is arguments
     assert arguments["password"] is value
@@ -375,6 +367,10 @@ def _assert_context_transformation_is_safe(
         None,
         extra={"diagnostic": diagnostic},
     )
+    # LogRecord leaves an empty mapping wrapped; exercise both empty argument
+    # shapes explicitly as they can also be supplied on third-party records.
+    if not arguments:
+        original.args = arguments
     before = copy.deepcopy(original.__dict__)
     emitter.handle(original)
     snapshots = {
@@ -391,18 +387,185 @@ def _assert_context_transformation_is_safe(
     ]
     assert len(root_sink.records) == len(filter_.records) == 1
     assert len(descendant_sink.records) == int(origin == "descendant")
+    assert len(plain.getvalue().splitlines()) == 1
     assert len(structured.getvalue().splitlines()) == 1
+    assert plain.getvalue().rstrip("\n") == "existing ERROR: " + _OMITTED_LOG_COMPOSITION
+    payload = json.loads(structured.getvalue())
+    assert payload["event"] == _OMITTED_LOG_COMPOSITION
+    assert payload["context"]["diagnostic"] == diagnostic
     for sink in (root_sink, descendant_sink, filter_):
         for replacement in sink.records:
+            assert replacement["msg"] == _OMITTED_LOG_COMPOSITION
             assert replacement["args"] == ()
             assert replacement["diagnostic"] == diagnostic
+            assert replacement["diagnostic"] is not diagnostic
+            assert replacement["diagnostic"]["safe"] is not diagnostic["safe"]
             assert replacement["levelno"] == logging.ERROR
             assert replacement["name"] == emitter.name
             assert len(replacement["msg"]) <= 8192
     assert original.__dict__ == before
+    assert original.msg is template
     assert original.args is arguments
     assert original.diagnostic is diagnostic
     return root_sink.records[0]["msg"]
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("literal_value", [False, True])
+@pytest.mark.parametrize("preceding_pair", [False, True])
+@pytest.mark.parametrize(
+    "cookie_name", ["sid", "id", "auth", "reader_choice", "X-Reader-Preference", "count"]
+)
+def test_cookie_pair_field_syntax_requires_whole_composition_omission(
+    production_sinks, origin, literal_value, preceding_pair, cookie_name
+):
+    canary = f"cookie-pair-{secrets.token_hex(12)}"
+    template = "rejected header=%(cookie)s"
+    template += ("; " if preceding_pair else " ") + cookie_name + "="
+    template += canary if literal_value else "%(value)s"
+    arguments = {"cookie": "Cookie: locale=en" if preceding_pair else "Cookie:"}
+    if not literal_value:
+        arguments["value"] = canary
+    message = _assert_context_transformation_is_safe(
+        production_sinks, origin, template, arguments, canary
+    )
+    assert message == _OMITTED_LOG_COMPOSITION
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("prefix", _HARMLESS_PREFIXES)
+@pytest.mark.parametrize("encoding_passes", [0, 1, 2])
+@pytest.mark.parametrize("literal_values", [False, True])
+def test_multiple_cookie_pairs_are_omitted_with_context_and_encoded_values(
+    production_sinks, origin, prefix, encoding_passes, literal_values
+):
+    canaries = [f"cookie-{name}-{secrets.token_hex(12)}" for name in ("first", "second")]
+    values = canaries.copy()
+    representations = canaries.copy()
+    header = "Cookie: locale=en"
+    for _ in range(encoding_passes):
+        values = ["".join(f"%{byte:02X}" for byte in value.encode()) for value in values]
+        representations.extend(values)
+        header = quote(header, safe="")
+    assert len(set(representations)) == 2 * (encoding_passes + 1)
+    template = prefix + "%(cookie)s; reader_choice="
+    arguments = {"cookie": header, "count": 7}
+    if literal_values:
+        template += values[0].replace("%", "%%")
+        template += "; X-Reader-Preference=" + values[1].replace("%", "%%")
+    else:
+        template += "%(first)s; X-Reader-Preference=%(second)s"
+        arguments.update(first=values[0], second=values[1])
+    template += "; count=%(count)d"
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        template,
+        arguments,
+        canaries[0],
+        sensitive_representations=representations,
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("key", ["cookie", "Set-Cookie", "authorization", "API.Token"])
+@pytest.mark.parametrize("position", ["before", "between", "after"])
+def test_sensitive_placeholder_omits_content_on_both_sides(production_sinks, origin, key, position):
+    canary = f"surrounding-content-{secrets.token_hex(12)}"
+    literal_canary = f"literal-content-{secrets.token_hex(12)}"
+    placeholder = f"%({key})s"
+    content = "reader_choice=%(value)s; X-Reader-Preference=" + literal_canary
+    template = {
+        "before": placeholder + "; " + content,
+        "between": "reader_choice=%(value)s; " + placeholder + "; " + literal_canary,
+        "after": content + "; " + placeholder,
+    }[position]
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        template,
+        {key: "Cookie:", "value": canary},
+        canary,
+        sensitive_representations=(literal_canary,),
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("padding", [8100, 8170, 8192, 16_350, 16_384, 40_000])
+@pytest.mark.parametrize("literal_padding", [False, True])
+def test_trailing_sensitive_placeholder_omits_even_after_output_would_be_full(
+    production_sinks, origin, padding, literal_padding
+):
+    canary = f"preceding-content-{secrets.token_hex(12)}"
+    content = canary + "x" * padding
+    arguments = {"cookie": "Cookie:"}
+    if literal_padding:
+        template = content + "; %(cookie)s"
+    else:
+        template = "%(preceding)s; %(cookie)s"
+        arguments["preceding"] = content
+    _assert_context_transformation_is_safe(production_sinks, origin, template, arguments, canary)
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize(
+    ("template", "value"),
+    [
+        ("%(cookie)s; value=%(value)s", "unclassified-data"),
+        ("value=%(value)s; %(cookie)s", "unclassified-data"),
+        ("%(value)s%(cookie)s", "x" * 40_000),
+        ("%(value)16384s%(cookie)s", "x"),
+        ("%(value)016384d%(cookie)s", 7),
+        ("%(value)1000000000s%(cookie)s", "x"),
+        ("%% %(value)s %% %(cookie)s", "unclassified-data"),
+        ("%(value)s" * 128 + "%(cookie)s", "x"),
+    ],
+)
+def test_sensitive_template_does_not_render_any_interpolation(
+    production_sinks, monkeypatch, origin, template, value
+):
+    from nuzenio_api import observability
+
+    def forbid_render(argument):
+        raise AssertionError("sensitive template must be classified before rendering arguments")
+
+    monkeypatch.setattr(observability, "_bounded_format_argument", forbid_render)
+    canary = f"unread-sensitive-value-{secrets.token_hex(12)}"
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        template,
+        {"cookie": canary, "value": value},
+        canary,
+    )
+
+
+@pytest.mark.parametrize("arguments", [(), {}])
+@pytest.mark.parametrize("template", ["%(cookie)s", "safe %(password)20.2s; count=7"])
+def test_sensitive_placeholder_without_arguments_still_omits_whole_message(template, arguments):
+    original = logging.LogRecord("fixture", logging.ERROR, __file__, 1, template, (), None)
+    original.args = arguments
+    before = original.__dict__.copy()
+    replacement = _sanitized_log_record(original)
+    assert replacement.msg == _OMITTED_LOG_COMPOSITION
+    assert replacement.args == ()
+    assert original.__dict__ == before
+    assert original.args is arguments
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("arguments", [(), {}, {"cookie": "Cookie:"}])
+@pytest.mark.parametrize("padding", [16_385, 40_000])
+@pytest.mark.parametrize("trailing_sensitive", [False, True])
+def test_oversized_template_is_omitted_even_with_empty_arguments(
+    production_sinks, origin, arguments, padding, trailing_sensitive
+):
+    canary = f"oversized-literal-{secrets.token_hex(12)}"
+    template = canary + "x" * padding
+    if trailing_sensitive:
+        # The classified reference is beyond the complete bounded scan window.
+        template += " %(cookie)s"
+    _assert_context_transformation_is_safe(production_sinks, origin, template, arguments, canary)
 
 
 @pytest.mark.parametrize("origin", ["root", "descendant"])
@@ -571,7 +734,7 @@ def test_punctuation_after_erased_prefix_does_not_prove_next_value_independent(
 
 @pytest.mark.parametrize("origin", ["root", "descendant"])
 @pytest.mark.parametrize("delimiter", [" ", "; ", "\n", "\t", ";\n"])
-def test_only_subsequent_explicit_literal_field_preserves_safe_content(
+def test_subsequent_explicit_literal_field_still_requires_whole_omission(
     production_sinks, origin, delimiter
 ):
     canary = f"independent-field-{secrets.token_hex(12)}"
@@ -582,7 +745,7 @@ def test_only_subsequent_explicit_literal_field_preserves_safe_content(
         {"authorization": canary, "count": 7},
         canary,
     )
-    assert message == "header=[REDACTED]" + delimiter + "count=7"
+    assert message == _OMITTED_LOG_COMPOSITION
 
 
 @pytest.mark.parametrize(
@@ -664,6 +827,14 @@ def test_sensitive_interpolation_is_one_value_even_with_delimiters(production_si
         ("safe %s", ("queue",), "safe queue"),
         ("queue %d / %.2f", (3, 1.25), "queue 3 / 1.25"),
         ("%(name)s: %(count)04d", {"name": "queue", "count": 3}, "queue: 0003"),
+        (
+            "literal=%%(cookie)s %(safe)s",
+            {"safe": "queue", "cookie": "unused-sensitive-canary"},
+            "literal=%(cookie)s queue",
+        ),
+        ("%%(cookie)s", (), "%%(cookie)s"),
+        ("%%(password)s", {}, "%%(password)s"),
+        ("100% complete", (), "100% complete"),
         ("[%*.*s]", (7, 3, "fixture"), "[    fix]"),
         ("[%*s]", (-7, "safe"), "[safe   ]"),
         ("%#x %% %c", (16, 65), "0x10 % A"),
