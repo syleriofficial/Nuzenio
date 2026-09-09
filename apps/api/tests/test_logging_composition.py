@@ -212,10 +212,14 @@ def test_named_sensitive_mapping_is_redacted_before_every_sink(production_sinks,
             "credential=%(password)hds; count=%(count)d",
             "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
         ),
-        ("%% %(db_password)s %% safe=%(safe)s", "% [REDACTED] % safe=queue"),
+        # Punctuation after the removed value may itself be credential content.
+        (
+            "%% %(db_password)s %% safe=%(safe)s",
+            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
+        ),
         (
             "%(password)s / %(api_token)r / %(password)s; count=%(count)d",
-            "[REDACTED] / [REDACTED] / [REDACTED]; count=7",
+            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
         ),
     ],
 )
@@ -456,6 +460,27 @@ def test_harmless_context_preserves_literal_suffix_confidentiality(
         {"password": "api_token", "count": 7},
         canary,
     )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("prefix", _HARMLESS_PREFIXES)
+@pytest.mark.parametrize(
+    ("template", "key", "label"),
+    [
+        ("%(authorization)s ", "authorization", "Bearer"),
+        ("%(cookie)s: ", "cookie", "Cookie"),
+        ("%(password)s=", "password", "api_token"),
+    ],
+)
+def test_punctuation_only_literal_credentials_remain_ambiguous(
+    production_sinks, origin, prefix, template, key, label
+):
+    # Punctuation is valid token/password material, not proof of safe syntax.
+    canary = "_-./-_/-.__-/._--"
+    message = _assert_context_transformation_is_safe(
+        production_sinks, origin, prefix + template + canary, {key: label}, canary
+    )
+    assert message == "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
 
 
 @pytest.mark.parametrize("origin", ["root", "descendant"])

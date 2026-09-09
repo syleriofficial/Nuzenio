@@ -494,3 +494,22 @@ passed. The original external 20-case reproduction suite and an additional 4,234
 encoding/boundary matrix passed. Bounded composition timings scaled from about 0.16 ms at 1 KiB to
 2.37 ms at 16 KiB on the local host. These are implementation-validation results, not independent
 merge certification; matching GitHub results are supplied in the delivery after the normal push.
+
+A further literal-suffix probe before delivery found that punctuation-only credential text could
+survive the old punctuation allowlist even though it never cleared ambiguity. Forty-two new
+cross-sink/context regressions reproduced that disclosure. The same conservative rule now rejects
+all non-spacing literal content unless a subsequent explicit named field establishes independence.
+Spaces/tabs alone do not clear ambiguity. This also changes two safe-output expectations involving
+`%` or `/` between classified placeholders to fixed omission; their confidentiality assertions
+remain intact. The final composition suite has 380 cases (266 added since `1a4b318`). No database,
+migration, reader or dependency code changed. Final-state validation is reported in the delivery.
+
+After that refinement, final-state Linux validation passed **818 API/security tests**, 48 web
+unit tests, the production build, and all 26 production Playwright tests with two projects and
+effective retries zero. Clean/legacy migrations, Alembic check, seed idempotency, runtime-role and
+database-fetch regressions remain covered by the complete API run. Compose readiness, backup/
+restore/security and both normal and intentional-exit-42 teardown were rerun successfully.
+Formatting/lint and npm/Python audits passed again. The 380 composition tests, original 20 external
+reproductions and a fresh 3,580-case punctuation/context/encoding/boundary matrix passed; bounded
+stress probes averaged 0.64–2.36 ms/message. Existing test-client warnings and previously reviewed
+stream-cancellation diagnostics were not silenced or reclassified as new failures.

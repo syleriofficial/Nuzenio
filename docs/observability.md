@@ -75,10 +75,13 @@ guess whether that content was safe. Only an explicitly named literal field **af
 can establish independence: whitespace, or a semicolon/newline with optional whitespace, followed
 by an ASCII identifier and `=` or `:` (for example `; count=` or ` count=`). Bare whitespace or
 punctuation does not clear ambiguity, and a later boundary cannot rescue earlier ambiguous content.
+Punctuation-only literal values are also potential credentials: without an explicit subsequent
+field, only spaces/tabs are retained (without clearing ambiguity); any other literal text is omitted.
 Thus `header=%(authorization)s %(value)s` is omitted; `credential=%(password)s; count=%(count)d`
 retains its redaction and safe count. A literal suffix such as the `s` in `%(password)hds` is now
-omitted rather than guessed safe. Multiple sensitive placeholders remain redacted without reading
-their values. Safe structured event metadata survives whole-message omission, and unambiguous
+omitted rather than guessed safe. Multiple sensitive placeholders are safe, but punctuation between
+them may cause omission; use explicitly named subsequent fields to preserve their layout. Their
+values are never read. Safe structured event metadata survives whole-message omission, and unambiguous
 ordinary primitive formatting remains readable. This rule does not reconstruct a secret-bearing
 shadow message.
 

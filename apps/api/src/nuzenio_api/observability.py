@@ -452,9 +452,10 @@ def _compose_log_message(template: Any, arguments: Any) -> str:
         if not interpolated and erased_prefix_pending:
             if _EXPLICIT_LOG_FIELD.match(bounded):
                 erased_prefix_pending = False
-            elif any(character not in " \t=:_./\\'\"%-," for character in bounded):
-                # A later boundary cannot retroactively make an earlier literal
-                # suffix safe after erasing its possible credential label.
+            elif bounded.strip(" \t"):
+                # Punctuation can itself be a token/password, not just syntax.
+                # Without a subsequent explicit field, retain only spacing and
+                # keep ambiguity; never guess that literal content is harmless.
                 raise ValueError("ambiguous literal after redacted mapping prefix")
         if interpolated and bounded:
             start = _MAX_LOG_SCAN_LENGTH - remaining
