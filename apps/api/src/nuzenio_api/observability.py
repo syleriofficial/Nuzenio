@@ -80,7 +80,9 @@ _MAX_LOG_CONTAINER_DEPTH = 8
 _MAX_LOG_CONTAINER_ITEMS = 128
 _MAX_LOG_FORMAT_CONVERSIONS = 128
 _OMITTED_LOG_COMPOSITION = "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
-_EXPLICIT_LOG_FIELD = re.compile(r"^[ \t]+[A-Za-z][A-Za-z0-9_.-]*[ \t]*[:=]")
+_EXPLICIT_LOG_FIELD = re.compile(
+    r"^(?:[ \t]*[;\r\n][ \t\r\n]*|[ \t]+)[A-Za-z][A-Za-z0-9_.-]*[ \t]*[:=]"
+)
 
 
 def _split_identifier(value: str) -> tuple[str, ...] | None:
@@ -441,23 +443,19 @@ def _compose_log_message(template: Any, arguments: Any) -> str:
     output: list[str] = []
     argument_spans: list[tuple[int, int]] = []
     erased_prefix_pending = False
-    last_literal = ""
 
     def append(value: str, *, interpolated: bool = False) -> None:
-        nonlocal remaining, erased_prefix_pending, last_literal
+        nonlocal remaining, erased_prefix_pending
         bounded = value[:remaining]
         # Only a literal field boundary establishes that the next value is
         # independent of a hidden prefix (which could have been a key/header).
         if not interpolated and erased_prefix_pending:
-            if bounded.lstrip(" \t").startswith((";", "\r", "\n")) or _EXPLICIT_LOG_FIELD.match(
-                bounded
-            ):
+            if _EXPLICIT_LOG_FIELD.match(bounded):
                 erased_prefix_pending = False
             elif any(character not in " \t=:_./\\'\"%-," for character in bounded):
                 # A later boundary cannot retroactively make an earlier literal
                 # suffix safe after erasing its possible credential label.
                 raise ValueError("ambiguous literal after redacted mapping prefix")
-        last_literal = "" if interpolated else bounded
         if interpolated and bounded:
             start = _MAX_LOG_SCAN_LENGTH - remaining
             argument_spans.append((start, start + len(bounded)))
@@ -547,23 +545,17 @@ def _compose_log_message(template: Any, arguments: Any) -> str:
                 # Preserve mapping metadata even when the visible message omits
                 # the sensitive identifier. Never render/read its original value;
                 # flags and precision cannot truncate or transform this marker.
-                # A statically labelled value (credential=%(password)s) cannot
-                # itself be the missing label. Preserve its safe literal suffix.
-                literal = last_literal.rstrip(" \t")
-                field = literal[:-1].rstrip(" \t").rsplit(None, 1)
-                labelled_value = (
-                    literal.endswith(("=", ":"))
-                    and bool(field)
-                    and _split_identifier(field[-1]) is not None
-                )
                 append("[REDACTED]", interpolated=True)
-                erased_prefix_pending = not labelled_value
+                # No preceding context can prove what this erased value supplied.
+                # Keep ambiguity until a literal, explicitly named field boundary
+                # AFTER it establishes independence. Bare punctuation cannot do so.
+                erased_prefix_pending = True
                 continue
             if erased_prefix_pending:
                 # The erased value may have supplied an assignment/header name.
                 # Do not expose following unclassified data after losing that
                 # syntax. No original value is rendered for this determination.
-                return "[REDACTED]"
+                return _OMITTED_LOG_COMPOSITION
             argument = arguments[key] if key is not None else next_argument()
             render_arguments.append(_bounded_format_argument(argument))
             token = "%" + flags + width + precision + modifier + conversion

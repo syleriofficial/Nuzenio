@@ -67,13 +67,20 @@ Named mapping placeholders also retain the shared sensitive-key classification (
 A sensitive placeholder emits the fixed `[REDACTED]` marker without reading or rendering its value;
 valid conversion flags, width and precision do not transform that marker. Format syntax and size
 limits still apply. Post-composition scanning remains enabled for dynamically assembled identifiers.
-If a removed placeholder could have supplied the key/header for a following unclassified
-interpolation, the ambiguous message is conservatively redacted. Literal field boundaries (`;`,
-newline, or an explicit field such as ` count=`) at the start of the suffix establish independent
-subsequent fields; a later boundary cannot rescue an earlier ambiguous literal suffix. A statically
-labelled value such as `credential=%(password)s` retains ordinary safe literal suffixes. Prefer
-`credential=%(password)s; count=%(count)d` over adjacent, unlabelled interpolations. This preserves
-readable safe fields without reconstructing a secret-bearing shadow message.
+Every removed sensitive placeholder leaves its following content ambiguous, regardless of any
+preceding label or context. A following unclassified interpolation or ambiguous literal suffix
+causes the whole composed message to become the fixed
+`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]` event; original arguments are never consulted to
+guess whether that content was safe. Only an explicitly named literal field **after** the placeholder
+can establish independence: whitespace, or a semicolon/newline with optional whitespace, followed
+by an ASCII identifier and `=` or `:` (for example `; count=` or ` count=`). Bare whitespace or
+punctuation does not clear ambiguity, and a later boundary cannot rescue earlier ambiguous content.
+Thus `header=%(authorization)s %(value)s` is omitted; `credential=%(password)s; count=%(count)d`
+retains its redaction and safe count. A literal suffix such as the `s` in `%(password)hds` is now
+omitted rather than guessed safe. Multiple sensitive placeholders remain redacted without reading
+their values. Safe structured event metadata survives whole-message omission, and unambiguous
+ordinary primitive formatting remains readable. This rule does not reconstruct a secret-bearing
+shadow message.
 
 `X-Request-ID` may be supplied by an upstream proxy when it contains only alphanumeric characters,
 hyphen, underscore or dot and is at most 80 characters; otherwise the API creates a UUID. Return the

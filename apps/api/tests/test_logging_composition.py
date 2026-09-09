@@ -206,7 +206,12 @@ def test_named_sensitive_mapping_is_redacted_before_every_sink(production_sinks,
         ("%(password)#08x safe=%(safe)s", "[REDACTED] safe=queue"),
         ("%(password)+.2f safe=%(safe)s", "[REDACTED] safe=queue"),
         ("%(password)c safe=%(safe)s", "[REDACTED] safe=queue"),
-        ("credential=%(password)hds; count=%(count)d", "credential=[REDACTED]s; count=7"),
+        # The literal 's' follows the erased placeholder without an independent
+        # field boundary. A preceding credential= label cannot prove it safe.
+        (
+            "credential=%(password)hds; count=%(count)d",
+            "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]",
+        ),
         ("%% %(db_password)s %% safe=%(safe)s", "% [REDACTED] % safe=queue"),
         (
             "%(password)s / %(api_token)r / %(password)s; count=%(count)d",
@@ -276,7 +281,7 @@ def test_erased_mapping_prefix_cannot_expose_following_interpolation(
     )
     for sink in (root_sink, descendant_sink, filter_):
         for record in sink.records:
-            assert record["msg"] == "[REDACTED]"
+            assert record["msg"] == "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
             assert record["args"] == ()
     assert len(root_sink.records) == len(filter_.records) == 1
     assert len(descendant_sink.records) == int(origin == "descendant")
@@ -333,6 +338,226 @@ def test_erased_prefix_does_not_expose_literal_suffix_before_a_later_boundary(
         for record in sink.records:
             assert record["args"] == ()
     assert arguments == {"password": "api_token", "count": 7}
+
+
+_HARMLESS_PREFIXES = [
+    "",
+    "rejected ",
+    "header=",
+    "context=login header=",
+    '"header"="',
+    "[header=",
+    "context=login\nheader=",
+]
+
+
+def _assert_context_transformation_is_safe(
+    production_sinks, origin, template, arguments, canary, *, sensitive_representations=()
+):
+    """Check every pre-existing sink, not merely the owned JSON formatter."""
+    logger, plain, structured, root_sink, descendant_sink, filter_ = production_sinks
+    with redirect_stdout(structured):
+        for _ in range(3):
+            configure_logging("composition-regression", _production_settings())
+    emitter = logging.getLogger() if origin == "root" else logger
+    diagnostic = {"event": "authentication_rejected", "safe": {"attempt": 7}}
+    original = emitter.makeRecord(
+        emitter.name,
+        logging.ERROR,
+        __file__,
+        1,
+        template,
+        (arguments,),
+        None,
+        extra={"diagnostic": diagnostic},
+    )
+    before = copy.deepcopy(original.__dict__)
+    emitter.handle(original)
+    snapshots = {
+        "root_raw": root_sink.records,
+        "descendant_raw": descendant_sink.records,
+        "existing_filter": filter_.records,
+        "plain": plain.getvalue(),
+        "nuzenio_json": structured.getvalue(),
+    }
+    assert not [
+        name
+        for name, value in snapshots.items()
+        if any(secret in repr(value) for secret in (canary, *sensitive_representations))
+    ]
+    assert len(root_sink.records) == len(filter_.records) == 1
+    assert len(descendant_sink.records) == int(origin == "descendant")
+    assert len(structured.getvalue().splitlines()) == 1
+    for sink in (root_sink, descendant_sink, filter_):
+        for replacement in sink.records:
+            assert replacement["args"] == ()
+            assert replacement["diagnostic"] == diagnostic
+            assert replacement["levelno"] == logging.ERROR
+            assert replacement["name"] == emitter.name
+            assert len(replacement["msg"]) <= 8192
+    assert original.__dict__ == before
+    assert original.args is arguments
+    assert original.diagnostic is diagnostic
+    return root_sink.records[0]["msg"]
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+def test_static_label_before_erased_bearer_prefix_cannot_authorize_following_token(
+    production_sinks, origin
+):
+    canary = f"labelled-bearer-{secrets.token_hex(12)}"
+    message = _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        "rejected header=%(authorization)s %(value)s",
+        {"authorization": "Bearer", "value": canary},
+        canary,
+    )
+    assert message == "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("prefix", _HARMLESS_PREFIXES)
+@pytest.mark.parametrize(
+    ("template", "key", "label"),
+    [
+        ("%(password)s=%(value)s", "password", "api_token"),
+        ("db_%(password)s=%(value)s", "password", "password"),
+        ("%(secret)s %(value)s", "secret", "Bearer"),
+        ("%(authorization)s: %(value)s", "authorization", "Cookie"),
+        ("%(authorization)s %(value)s", "authorization", "Bearer"),
+        ("%(cookie)s: %(value)s", "cookie", "Cookie"),
+    ],
+)
+def test_harmless_context_preserves_erased_prefix_confidentiality(
+    production_sinks, origin, prefix, template, key, label
+):
+    canary = f"context-prefix-{secrets.token_hex(12)}"
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        prefix + template,
+        {key: label, "value": canary},
+        canary,
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("prefix", _HARMLESS_PREFIXES)
+@pytest.mark.parametrize("tail", ["", "; count=%(count)d"])
+def test_harmless_context_preserves_literal_suffix_confidentiality(
+    production_sinks, origin, prefix, tail
+):
+    canary = f"context-literal-{secrets.token_hex(12)}"
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        prefix + "%(password)s=" + canary + tail,
+        {"password": "api_token", "count": 7},
+        canary,
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("encoding_passes", [0, 1, 2])
+@pytest.mark.parametrize("literal_suffix", [False, True])
+@pytest.mark.parametrize("prefix", ["header=", 'context="login" header=', "[context]\nheader="])
+def test_erased_prefix_protection_survives_encoding_and_multiple_sensitive_fields(
+    production_sinks, origin, encoding_passes, literal_suffix, prefix
+):
+    canary = f"multiple-encoded-{secrets.token_hex(12)}"
+    value = canary
+    representations = [canary]
+    label = "Authorization: Bearer"
+    for _ in range(encoding_passes):
+        # quote() deliberately preserves unreserved letters/hyphens. Encode all
+        # bytes so these cases actually exercise different secret representations.
+        value = "".join(f"%{byte:02X}" for byte in value.encode("utf-8"))
+        representations.append(value)
+        label = quote(label, safe="")
+    assert len(set(representations)) == encoding_passes + 1
+    template = prefix + "%(cookie)s / %(authorization)s "
+    arguments = {"cookie": "Cookie", "authorization": label}
+    if literal_suffix:
+        # Literal percent escapes must survive ordinary logging's format parser.
+        template += value.replace("%", "%%") + "; safe=%(count)d"
+        arguments["count"] = 7
+    else:
+        template += "%(value)s"
+        arguments["value"] = value
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        template,
+        arguments,
+        canary,
+        sensitive_representations=representations,
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("padding", [8100, 8170, 8190, 16_350, 16_390, 40_000])
+@pytest.mark.parametrize("literal_suffix", [False, True])
+def test_erased_prefix_protection_is_safe_at_output_and_scan_boundaries(
+    production_sinks, origin, padding, literal_suffix
+):
+    canary = f"truncation-context-{secrets.token_hex(12)}"
+    template = "x" * padding + " header=%(authorization)s "
+    arguments = {"authorization": "Bearer"}
+    if literal_suffix:
+        template += canary
+    else:
+        template += "%(value)s"
+        arguments["value"] = canary
+    _assert_context_transformation_is_safe(production_sinks, origin, template, arguments, canary)
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("template", ["header=%(authorization)s %s", "header=%s %(value)s"])
+def test_ambiguous_mapping_and_positional_mix_never_exposes_erased_prefix_value(
+    production_sinks, origin, template
+):
+    canary = f"mixed-style-{secrets.token_hex(12)}"
+    _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        template,
+        {"authorization": "Bearer", "value": canary},
+        canary,
+    )
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("prefix", ["", "header=", "context=login header="])
+@pytest.mark.parametrize("delimiter", [" ", "; ", "\n", "\t", ": ", " | "])
+def test_punctuation_after_erased_prefix_does_not_prove_next_value_independent(
+    production_sinks, origin, prefix, delimiter
+):
+    canary = f"ambiguous-delimiter-{secrets.token_hex(12)}"
+    message = _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        prefix + "%(authorization)s" + delimiter + "%(value)s",
+        {"authorization": "Bearer", "value": canary},
+        canary,
+    )
+    assert message == "[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]"
+
+
+@pytest.mark.parametrize("origin", ["root", "descendant"])
+@pytest.mark.parametrize("delimiter", [" ", "; ", "\n", "\t", ";\n"])
+def test_only_subsequent_explicit_literal_field_preserves_safe_content(
+    production_sinks, origin, delimiter
+):
+    canary = f"independent-field-{secrets.token_hex(12)}"
+    message = _assert_context_transformation_is_safe(
+        production_sinks,
+        origin,
+        "header=%(authorization)s" + delimiter + "count=%(count)d",
+        {"authorization": canary, "count": 7},
+        canary,
+    )
+    assert message == "header=[REDACTED]" + delimiter + "count=7"
 
 
 @pytest.mark.parametrize(

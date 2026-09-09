@@ -439,3 +439,58 @@ Playwright passed **26 tests**, two projects, effective retries zero, on an outb
 fixture network. Isolated Compose build/readiness/backup/restore/security checks passed. A separate
 intentional exit 42 after readiness preserved the failure exit and still removed all project
 containers, networks and volumes. No existing developer service or volume was removed.
+
+## PR #2 preceding-context ambiguity closure
+
+Starting head `1a4b31816f7e9b655a53b3de939b545df5b0c3ac` disclosed a following credential in
+`rejected header=%(authorization)s %(value)s` when the mapping contained `authorization=Bearer`.
+The preceding literal `header=` incorrectly cleared ambiguity after removing the sensitive
+placeholder. Raw root/descendant collectors, existing filters, plain output and JSON all received
+the unclassified following value. The original named-mapping fix did not by itself preserve the
+erased value's possible role as a credential prefix.
+
+The shared composition rule now treats **every erased sensitive placeholder as ambiguous for
+following content**, without inspecting its original value. No preceding label or surrounding
+context can clear that state. Bare whitespace/punctuation cannot authorize another value. Only a
+subsequent literal explicit field (whitespace, or semicolon/newline with optional whitespace,
+followed by an ASCII identifier and `=`/`:`) establishes a new independent field. Otherwise an
+unclassified interpolation or ambiguous literal suffix produces the fixed whole-message
+`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]` marker. A later boundary cannot rescue earlier
+ambiguous content. Sensitive-key classification, dynamic-key post-composition scanning, empty
+replacement arguments, original-object preservation and bounded parsing are retained.
+
+The 224 added cases transform every prior erased-prefix/literal-suffix safety case with harmless
+context, including preceding labels, quoted/bracketed text and multiline prefixes. They cover
+Bearer/Cookie/assignment prefixes, multiple sensitive placeholders, mapping and unsupported mixed
+positional layouts, literal suffixes, actual single/double percent-encoded secret representations,
+scan/output boundaries, bare-punctuation rejection and explicit subsequent safe fields. All
+configured sinks and existing filters are checked for every tested secret representation; tests
+also preserve safe metadata and assert original objects, empty arguments and one event per sink.
+
+The new tests were reproduced against the committed starting implementation in a separate Python
+process without resetting the worktree: 44 of the 114 selected context cases failed, including
+both exact Bearer reproductions. With the fix, all 338 composition cases and all 20 previously
+independent labelled-prefix reproductions pass. No confidentiality assertion was relaxed. The
+eight older ambiguous-prefix expected strings change from `[REDACTED]` to fixed omission, and the
+formerly preserved `s` suffix in `%(password)hds` now requires omission. This is a documented
+compatibility change: ambiguous log text may be lost, but stable structured metadata remains.
+
+Only `observability.py`, `test_logging_composition.py` and observability/remediation documentation
+change. Database-fetch integration, its regression tests, migrations and dependencies are unchanged;
+Alembic head remains `6d0a4f2b8c91`. Earlier interrupted validation logs were not counted as complete
+API, E2E or Compose results. Completed validation and exact-head CI results are recorded separately.
+No publisher is contacted, live feeds stay disabled, and independent closure review remains required.
+
+Completed local validation: Linux Node 22.13.0/Python 3.12.14 clean npm installation, npm/Python
+audits, web format/lint, 48 web unit tests and the production build passed. The full disposable
+PostgreSQL/Redis API suite passed **776 tests**, including the unchanged database-fetch, role,
+migration and concurrency regressions. The two existing warnings concern test-client deprecations.
+Production Playwright passed **26 tests**, two projects, effective retries zero, on an internal
+fixture network. Its previously documented stream-cancellation diagnostics were not changed.
+Compose build/readiness/backup/restore/security checks passed; an intentional failure after health
+checks returned exit 42 and still removed its isolated containers, networks and temporary volumes.
+The normal run also proved complete teardown. Ruff, diff and bounded tracked-secret/artifact scans
+passed. The original external 20-case reproduction suite and an additional 4,234-case context/
+encoding/boundary matrix passed. Bounded composition timings scaled from about 0.16 ms at 1 KiB to
+2.37 ms at 16 KiB on the local host. These are implementation-validation results, not independent
+merge certification; matching GitHub results are supplied in the delivery after the normal push.
