@@ -1,5 +1,33 @@
 # Nuzenio architecture
 
+## Milestone 2C production-hardening boundaries
+
+FastAPI and the worker emit structured stdout JSON. Request IDs flow through a context variable into
+request events and are returned in `X-Request-ID`; raw bodies, query strings and credentials are never
+log fields. API liveness is process-only, while readiness performs bounded PostgreSQL and Redis
+checks. The worker exposes an internal-only health server whose readiness depends on a recent
+successful scheduler/recovery iteration. OpenMetrics gauges combine durable feed/review state with
+Redis delivery depth; process counters are explicitly restart-scoped.
+
+The migration owner, application runtime and read-only audit identities are provisioned separately.
+Only the migration job receives the owner URL. Authentication events now have the same row- and
+statement-level append-only database enforcement as audit/contributor history. Production settings
+reject weak/default secrets, non-TLS Redis, insecure cookies, wildcard Host/CORS/proxy configuration,
+demo mode and a disabled environment feed kill switch. One strict shared environment enum is used by
+the API, worker, feed runner, seed, bootstrap, E2E setup and role provisioning; malformed values do not
+fall back to development behavior.
+
+The Compose CI project name includes the GitHub run/attempt. It builds images, starts and health-checks
+PostgreSQL, Redis, API and worker, probes both application readiness surfaces, explicitly seeds only
+fictional fixtures and restores a `pg_dump` into a second tmpfs PostgreSQL service. Its unconditional
+teardown removes only resources bearing that run-scoped Compose label and verifies none remain.
+
+Backup scripts refuse overwrite, symlink/race destinations and non-empty/unconfirmed restore targets.
+PostgreSQL URIs are validated before execution and credentials are isolated in ephemeral `PGPASSFILE`
+files rather than process arguments. They are a portable foundation, not a scheduler, WAL archive or
+encrypted object store; the documented RPO/RTO therefore remain unmet until infrastructure controls
+and measured drills exist.
+
 ## PR #1 remediation invariants
 
 Runtime containers do not migrate or seed. A one-shot owner-credential migration/provisioning
@@ -37,7 +65,7 @@ Brief JSON membership now contains immutable cluster UUIDs (not slugs), preservi
 The original slugs are archived by the forward migration; unresolved memberships hold the brief.
 Merge/split atomically rewrites memberships and holds all results pending derived-content review.
 
-## Milestone 2B topology
+## Application topology
 
 ```text
 Next.js PWA
@@ -62,6 +90,8 @@ PostgreSQL is authoritative. Redis provides delivery and retry timing, but a wor
 - `nuzenio_api.onboarding` owns publisher/domain/rights/feed states and approval gates.
 - `nuzenio_api.feed_security` is the outbound-network and XML trust boundary.
 - `nuzenio_api.feed_operations` owns Redis delivery, due scheduling, retries, dead letters, run metrics and idempotent article creation.
+- `nuzenio_api.observability` owns structured logs and the API operational metric snapshot.
+- `nuzenio_api.worker_health` owns the internal worker lifecycle/readiness surface.
 - deterministic pipeline adapters remain credential-free. OpenSearch and paid providers are not active.
 
 ## Transactions and concurrency
@@ -103,11 +133,15 @@ Before every run, the worker reevaluates publisher, verified-domain, rights date
 
 ## Security boundaries
 
-- Production settings fail closed for cookie, pepper, demo, CORS and HTTPS misconfiguration.
+- Production settings fail closed for cookie, secret, runtime database, Redis TLS, demo, CORS, Host,
+  proxy, metrics and HTTPS/kill-switch misconfiguration.
 - Session and CSRF tokens exist in plaintext only in the browser cookie/session response and are stored as keyed hashes.
 - API permissions and CSRF checks precede every mutation; UI hiding is convenience only.
 - Feed requests connect to a validated public IP while retaining the original hostname for Host routing and TLS SNI, then recheck DNS before accepting the response.
 - Detailed worker failures remain staff-only. Public errors use stable envelopes and audit payloads redact sensitive field names.
 - No application route can edit or delete audit history; PostgreSQL independently enforces append-only behavior.
 
-See the focused [authentication](authentication-authorization.md), [feed threat model](feed-security-threat-model.md), [rights workflow](publisher-rights-workflow.md) and [recovery](backup-recovery.md) documents.
+See the focused [authentication](authentication-authorization.md),
+[observability](observability.md), [secret rotation](secret-rotation.md),
+[feed threat model](feed-security-threat-model.md), [rights workflow](publisher-rights-workflow.md),
+[pilot checklist](publisher-pilot-checklist.md) and [recovery](backup-recovery.md) documents.

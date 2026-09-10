@@ -9,12 +9,18 @@ from alembic.config import Config
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.engine import make_url
 
+from nuzenio_api.environment import Environment, environment_from_os
+
 DEFAULT_E2E_DATABASE_URL = "postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_e2e"
 E2E_PASSWORD = "Local-E2E-Staff-Password-42!"
 
 
 def main() -> None:
-    if os.environ.get("NUZENIO_ENVIRONMENT") != "test":
+    try:
+        environment = environment_from_os()
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
+    if environment is not Environment.TEST:
         raise SystemExit("Refusing to create E2E fixtures unless NUZENIO_ENVIRONMENT=test.")
     database_url = os.environ.get(
         "NUZENIO_E2E_DATABASE_URL", os.environ.get("NUZENIO_DATABASE_URL", DEFAULT_E2E_DATABASE_URL)

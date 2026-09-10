@@ -98,6 +98,17 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
     try:
         with runtime.connect() as connection:
             assert connection.scalar(text("SELECT current_user")) == role
+        authentication_event_id = uuid.uuid4()
+        with runtime.begin() as connection:
+            connection.execute(
+                text(
+                    """INSERT INTO authentication_events(
+                    id,username_hash,action,successful,reason,request_id)
+                    VALUES (:id,:username_hash,'LOGIN_FAILED',false,
+                    'fixture','runtime-auth-test')"""
+                ),
+                {"id": authentication_event_id, "username_hash": "a" * 64},
+            )
         with Session(runtime) as session:
             append_audit(
                 session,
@@ -112,6 +123,9 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             "UPDATE audit_logs SET action='altered'",
             "DELETE FROM audit_logs",
             "TRUNCATE audit_logs",
+            "UPDATE authentication_events SET reason='altered'",
+            "DELETE FROM authentication_events",
+            "TRUNCATE authentication_events",
             "UPDATE material_contributors SET first_material_revision=0",
             "DELETE FROM material_contributors",
             "TRUNCATE material_contributors",
@@ -122,6 +136,7 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             "correction_contributors_append_only",
             "ALTER TABLE material_contributors DISABLE TRIGGER material_contributors_append_only",
             "ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_append_only",
+            "ALTER TABLE authentication_events DISABLE TRIGGER authentication_events_append_only",
             "CREATE TABLE forbidden_runtime_table(id int)",
             "DROP FUNCTION prevent_audit_log_mutation() CASCADE",
         ]:
@@ -133,6 +148,11 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             connection.execute(text("TRUNCATE audit_logs"))
         with engine.begin() as connection, pytest.raises(DBAPIError):
             connection.execute(text("TRUNCATE correction_contributors"))
+        with engine.begin() as connection, pytest.raises(DBAPIError):
+            connection.execute(text("TRUNCATE authentication_events"))
+        with engine.begin() as connection:
+            connection.execute(text("CREATE TABLE migration_owner_fixture(id integer)"))
+            connection.execute(text("DROP TABLE migration_owner_fixture"))
     finally:
         runtime.dispose()
         with engine.begin() as connection:
@@ -148,6 +168,48 @@ def test_f12_actual_runtime_login_cannot_mutate_audit_or_ddl():
             )
             connection.execute(text(f'DROP OWNED BY "{role}"'))
             connection.execute(text(f'DROP ROLE "{role}"'))
+
+
+def test_authentication_event_upgrade_preserves_existing_identity_and_rows(monkeypatch):
+    name = "nuzenio_auth_event_upgrade_test_" + uuid.uuid4().hex
+    url = make_url(get_settings().database_url).set(database=name)
+    admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    target = create_engine(url)
+    monkeypatch.setattr(get_settings(), "database_url", url.render_as_string(hide_password=False))
+    event_id = uuid.uuid4()
+    try:
+        config = migration_config()
+        command.upgrade(config, "c96a1d2273eb")
+        with target.begin() as connection:
+            connection.execute(
+                text(
+                    """INSERT INTO authentication_events(
+                    id,username_hash,action,successful,reason,request_id)
+                    VALUES (:id,:username_hash,'LOGIN_FAILED',false,
+                    'legacy fixture','legacy-auth')"""
+                ),
+                {"id": event_id, "username_hash": "b" * 64},
+            )
+        command.upgrade(config, "head")
+        command.check(config)
+        with target.connect() as connection:
+            row = connection.execute(
+                text("SELECT id,reason FROM authentication_events WHERE id=:id"),
+                {"id": event_id},
+            ).one()
+            assert row == (event_id, "legacy fixture")
+        with target.begin() as connection, pytest.raises(DBAPIError):
+            connection.execute(
+                text("UPDATE authentication_events SET reason='changed' WHERE id=:id"),
+                {"id": event_id},
+            )
+    finally:
+        target.dispose()
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
+        admin.dispose()
 
 
 def test_r1_r3_upgrade_from_reviewed_head_preserves_history_without_inventing_authors(monkeypatch):

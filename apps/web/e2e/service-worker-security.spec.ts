@@ -2,14 +2,17 @@ import { createServer, request as proxyRequest, type Server } from 'node:http';
 import { test, expect, type Page } from '@playwright/test';
 
 let proxy: Server;
-const origin = 'http://127.0.0.1:3101';
+const apiPort = Number(process.env.NUZENIO_E2E_API_PORT ?? '8001');
+const webPort = Number(process.env.NUZENIO_E2E_WEB_PORT ?? '3100');
+const proxyPort = Number(process.env.NUZENIO_E2E_PROXY_PORT ?? '3101');
+const origin = `http://127.0.0.1:${proxyPort}`;
 
 test.beforeAll(async () => {
   proxy = createServer((req, res) => {
     const upstream = proxyRequest(
       {
         hostname: '127.0.0.1',
-        port: req.url?.startsWith('/v1/') ? 8001 : 3100,
+        port: req.url?.startsWith('/v1/') ? apiPort : webPort,
         path: req.url,
         method: req.method,
         headers: req.headers,
@@ -23,7 +26,7 @@ test.beforeAll(async () => {
     req.pipe(upstream);
   });
   await new Promise<void>((resolve) =>
-    proxy.listen(3101, '127.0.0.1', resolve),
+    proxy.listen(proxyPort, '127.0.0.1', resolve),
   );
 });
 test.afterAll(async () => {

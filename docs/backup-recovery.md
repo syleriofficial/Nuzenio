@@ -3,7 +3,8 @@
 ## Remediation migration/recovery procedure
 
 R1–R6 adds forward revision `b85f0e1162da` after `a74e9b0216cd`; the correction-authorship closure
-adds `c96a1d2273eb`. Together they create append-only cluster and correction contributor records,
+adds `c96a1d2273eb`; production hardening adds `6d0a4f2b8c91`. Together they create append-only cluster,
+correction-contributor and authentication-event records,
 retire legacy potentially stale summaries, and hold corrected/high-risk content with unknown
 provenance. The correction migration recovers only persisted creator and applying-editor identities
 at their verifiable workflow versions; it does not infer intermediate editors or fabricate an
@@ -14,7 +15,7 @@ Contributor history is conservatively retained even if a later rewrite removes a
 Re-run runtime-role provisioning after migration so the new table receives SELECT/INSERT only.
 Runtime UPDATE/DELETE/TRUNCATE/trigger alteration are denied, just as for audit history.
 
-Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd -> b85f0e1162da -> c96a1d2273eb`.
+Forward chain: `8ca634735948 -> b31f72a9c4de -> d4f8c2a71e90 -> e52ba4d9013c -> f61c2d0387ab -> a74e9b0216cd -> b85f0e1162da -> c96a1d2273eb -> 6d0a4f2b8c91`.
 Do not edit the applied 2A/2B migrations. Back up and stop runtime writers/workers before upgrading.
 The new revisions hold legacy high-risk content, mark unmapped summaries pending, fence legacy runs,
 convert/retain legacy brief slugs, remove redundant uniqueness constraints and block audit TRUNCATE.
@@ -31,13 +32,63 @@ requires restoring a tested pre-upgrade database backup and matching code while 
 Owners/superusers can still change triggers/grants: protect and audit their credentials separately.
 Never delete application volumes as a migration or test shortcut.
 
-This repository contains local foundations, not a production deployment or automated backup service. The following is the required production design baseline.
+This repository contains local foundations, not a production deployment or automated backup service.
+The following is the required production design baseline.
+
+## Guarded backup and restore commands
+
+`scripts/backup-postgres.sh` creates a new custom-format `pg_dump` with owner/ACL metadata removed.
+It uses an exclusively created random mode-0600 partial in the destination directory, then publishes
+with a same-filesystem hard link that cannot overwrite a destination created concurrently. Existing
+files, destination symlinks and symlinks anywhere in the existing output-directory chain are refused.
+Supply the connection URI
+through the environment; restore verification validates both source and target before its first
+database command, and each operation writes the password only to a temporary mode-0600
+`PGPASSFILE`, removes the original variable from child environments and gives PostgreSQL tools only a
+passwordless explicit `--dbname=...` argument:
+
+```bash
+NUZENIO_BACKUP_DATABASE_URL="$DATABASE_URL_FROM_SECRET_MANAGER" \
+NUZENIO_BACKUP_OUTPUT=/secure/new/nuzenio-2026-09-07.dump \
+scripts/backup-postgres.sh
+```
+
+`scripts/restore-postgres.sh` accepts only a readable custom backup, an exact confirmation matching
+the connected database, a target name containing `restore` or `recovery`, and a database with zero
+user tables. It never uses `--clean`, never drops a database and restores in one transaction:
+
+```bash
+NUZENIO_RESTORE_DATABASE_URL="$ISOLATED_EMPTY_RESTORE_URL" \
+NUZENIO_RESTORE_CONFIRM_DATABASE=nuzenio_restore_drill \
+NUZENIO_RESTORE_INPUT=/secure/nuzenio-2026-09-07.dump \
+scripts/restore-postgres.sh
+```
+
+`scripts/verify-postgres-restore.sh` runs both and compares the Alembic head plus cluster/audit row
+counts. The CI Compose job executes it against a second tmpfs PostgreSQL instance, never a developer
+volume. A production drill must additionally perform foreign-key, trigger/role, rights/expiry,
+session-revocation and reader acceptance checks listed below. Encrypt and checksum backup artifacts
+with infrastructure controls outside this repository.
+
+Only canonical `postgres://` or `postgresql://` URIs with a user, host and database are accepted;
+option-shaped inputs, control characters, malformed authorities, unsafe components and unapproved
+connection parameters fail before any PostgreSQL command runs. Query percent escapes must be
+syntactically valid before parsing and after each bounded decode stage. Every allowed query key and
+value is also checked for raw, percent-encoded and double-percent-encoded ASCII or Unicode controls,
+so malformed escapes and controls cannot reach `psql`, `pg_dump` or `pg_restore`. Repeated
+allowlisted parameters remain supported. These scripts require Python 3 and PostgreSQL client tools.
+The CI `postgres-ops-test` runs real dump/restore tooling and exercises URI injection,
+argv/environment credential absence, symlinks, races, concurrent writers and interruption.
 
 ## PostgreSQL
 
 PostgreSQL is authoritative for staff accounts, hashed sessions, publisher rights, editorial versions, audit history, feed-run state and reader content. Use encrypted continuous WAL archiving plus scheduled full backups, with separate credentials and immutable retention for audit-bearing backups. Protect encryption keys outside the database environment.
 
-Set recovery objectives before launch. A reasonable starting proposal is an RPO under 15 minutes and RTO under 2 hours, subject to legal/editorial review. Run restore drills into an isolated environment at least quarterly. A restore is complete only after:
+Provisional launch assumptions are an RPO of 15 minutes and RTO of 2 hours. They require continuous
+encrypted WAL archival, at least daily encrypted full backups, an independent retention location and
+measured quarterly restore drills; without those deployed controls the targets are not met. Legal,
+editorial and infrastructure owners must approve the final objectives. A restore is complete only
+after:
 
 1. the expected Alembic revision is present;
 2. row counts and foreign-key checks pass;
@@ -47,6 +98,10 @@ Set recovery objectives before launch. A reasonable starting proposal is an RPO 
 6. a reader/API smoke test passes before traffic resumes.
 
 Do not restore by running the demonstration seed over production.
+
+Record backup start/end, encrypted object identifier, checksum, PostgreSQL/Alembic version, operator
+and retention class without recording connection URLs. Alert on a missed daily backup, WAL archival
+lag beyond 10 minutes, verification failure or a quarterly drill exceeding the RTO.
 
 ## Redis
 

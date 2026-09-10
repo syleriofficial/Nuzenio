@@ -99,8 +99,8 @@ def test_worker_ingestion_is_idempotent_and_records_metrics() -> None:
     with SessionLocal() as session:
         completed = executor.execute(session, first_id)
         assert completed.state == FeedRunState.SUCCEEDED
-        assert completed.parsed_items == 1
-        assert completed.new_articles == 1
+        assert completed.run.parsed_items == 1
+        assert completed.run.new_articles == 1
 
     with SessionLocal.begin() as session:
         feed = session.get(SourceFeed, feed.id)
@@ -109,7 +109,7 @@ def test_worker_ingestion_is_idempotent_and_records_metrics() -> None:
     with SessionLocal() as session:
         completed = executor.execute(session, second_id)
         assert completed.state == FeedRunState.SUCCEEDED
-        assert completed.new_articles == 0
+        assert completed.run.new_articles == 0
         assert session.scalar(
             select(Article).where(Article.canonical_url.endswith("/fixture-worker-item"))
         )

@@ -2,10 +2,11 @@
 
 ## Remediation settings
 
-`NUZENIO_DATABASE_URL` is now the unprivileged runtime identity. Migrations receive an owner URL
-only in the separate migration process/service. `NUZENIO_RUNTIME_PASSWORD` provisions the runtime
-role; its checked-in default is explicitly local-only and rejected by production provisioning.
-Production secrets must be injected, never committed or passed as CLI password arguments.
+`NUZENIO_DATABASE_URL` is the unprivileged runtime identity. Migrations receive
+`NUZENIO_MIGRATION_DATABASE_URL` only in the separate migration process/service.
+`NUZENIO_RUNTIME_PASSWORD` and `NUZENIO_AUDIT_PASSWORD` provision distinct runtime and restricted
+audit-reader roles; checked-in defaults are explicitly local-only and rejected by production
+provisioning. Production secrets must be injected, never committed or passed as CLI arguments.
 
 Login defaults: `NUZENIO_LOGIN_GLOBAL_LIMIT=120`, `NUZENIO_LOGIN_IP_LIMIT=30`,
 `NUZENIO_LOGIN_ATTEMPT_LIMIT=5`, `NUZENIO_LOGIN_WINDOW_SECONDS=60`,
@@ -23,6 +24,13 @@ See [ownership/recovery and resource limits](authentication-authorization.md#pas
 `NUZENIO_TRUSTED_PROXY_CIDRS=[]` trusts no forwarding headers. Uvicorn is started with
 `--no-proxy-headers`; explicitly configured proxy CIDRs are processed by the application right-to-left.
 Do not use broad trusted ranges or expose an origin that assumes all clients are trusted proxies.
+`NUZENIO_ALLOWED_HOSTS` independently constrains HTTP Host values. Production rejects wildcards,
+suffix wildcards and local development hosts. Empty trusted-proxy CIDRs are safe for a direct origin;
+configured CIDRs must be explicit and can never be a `/0` network.
+
+Production requires structured JSON logs and a unique 32+ character `NUZENIO_METRICS_TOKEN`.
+The metrics bearer value is never accepted through a query parameter. Client IP logging remains off
+unless `NUZENIO_LOG_CLIENT_IP=true` is deliberately enabled with a retention/legal basis.
 
 `NUZENIO_FEED_TIMEOUT_SECONDS` is the complete DNS/TLS/redirect/body deadline, not just idle time.
 Production network work is in a killable subprocess. Compressed content is rejected and
@@ -52,14 +60,20 @@ Production code disables reader fixture fallback regardless of its configured va
 
 | Variable | Local default | Purpose |
 | --- | --- | --- |
-| `NUZENIO_ENVIRONMENT` | `development` | Use `production` to enable fail-closed checks. |
+| `NUZENIO_ENVIRONMENT` | Required | Exact enum: `development`, `test`, or `production`; casing, whitespace, empty, unset and unknown values are rejected. Local Compose declares `development` explicitly. |
 | `NUZENIO_DATABASE_URL` | local `nuzenio` PostgreSQL | SQLAlchemy/psycopg URL. |
 | `NUZENIO_TEST_DATABASE_URL` | local `nuzenio_test` | Disposable API-test database; name must contain `test`. |
 | `NUZENIO_REDIS_URL` | `redis://localhost:6379/0` | Ready/delayed feed queue. |
 | `NUZENIO_CORS_ORIGINS` | `["http://localhost:3000"]` | Exact JSON origin allow-list; production entries must be HTTPS. |
+| `NUZENIO_ALLOWED_HOSTS` | local/test hosts | Host-header allow-list. Production requires explicit non-local names. |
 | `NUZENIO_MAX_PAGE_SIZE` | `50` | Maximum public reader page size. |
-| `NUZENIO_SQL_ECHO` | `false` | Local SQL diagnostics. |
+| `NUZENIO_SQL_ECHO` | `false` | Explicit development/test SQL diagnostics only. Every truthy value is rejected in production. |
 | `NUZENIO_DEMO_MODE` | `true` | Enables explicitly fictional `.example` dry-run handling. Must be false in production. |
+| `NUZENIO_LOG_LEVEL` | `INFO` | Minimum structured application log severity. |
+| `NUZENIO_LOG_JSON` | `true` | JSON stdout logs; required in production. |
+| `NUZENIO_LOG_CLIENT_IP` | `false` | Opt-in request IP field; avoid unless retention is approved. |
+| `NUZENIO_METRICS_TOKEN` | empty | Bearer token for `/metrics`; unique 32+ characters and required in production. |
+| `NUZENIO_READINESS_TIMEOUT_SECONDS` | `2` | Bounded Redis connection/read timeout for readiness. |
 
 ## Staff security
 
@@ -80,19 +94,51 @@ Changing the session pepper invalidates every existing cookie. Plan that rotatio
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NUZENIO_FEED_USER_AGENT` | `NuzenioFeedFetcher/0.3 ...` | Controlled outbound identity. |
+| `NUZENIO_FEED_USER_AGENT` | `NuzenioFeedFetcher/0.4 ...` | Controlled outbound identity. |
 | `NUZENIO_FEED_TIMEOUT_SECONDS` | `10` | Absolute complete-fetch deadline, including DNS and redirects. |
 | `NUZENIO_FEED_MAX_BYTES` | `2000000` | Maximum streamed response size. |
 | `NUZENIO_FEED_REDIRECT_LIMIT` | `3` | Maximum revalidated redirects. |
 | `NUZENIO_FEED_HTTPS_REQUIRED` | `true` | Production must remain true. |
 | `NUZENIO_FEED_KILL_SWITCH` | `false` | Globally prevents scheduling/execution when true. Compose overrides it to true for fictional seed feeds. |
+| `NUZENIO_WORKER_HEALTH_HOST` | `0.0.0.0` | Internal worker health listener; do not publish externally. |
+| `NUZENIO_WORKER_HEALTH_PORT` | `8001` | Worker liveness/readiness/metrics port inside its service network. |
+| `NUZENIO_WORKER_POLL_SECONDS` | `2` | Maximum blocking queue poll before shutdown is observed. |
+| `NUZENIO_WORKER_STALE_AFTER_SECONDS` | `30` | Maximum age of a successful loop for readiness. |
 
 Per-feed polling interval, rate limit and kill switch are persisted and versioned rather than environment variables.
 
 ## Compose-only PostgreSQL
 
-`POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` default to `nuzenio` for isolated local Compose use. They are not production credentials. Use secret injection and a managed backup policy for any approved deployment.
+`POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` default to `nuzenio` for isolated local Compose
+use. `NUZENIO_RUNTIME_ROLE`, `NUZENIO_RUNTIME_PASSWORD`, `NUZENIO_AUDIT_ROLE`,
+`NUZENIO_AUDIT_PASSWORD` and `NUZENIO_MIGRATION_DATABASE_URL` belong only to the separate role-
+provisioning step. Local placeholder values are not production credentials. Use secret injection and
+a managed backup policy for any approved deployment.
 
 ## Production validation
 
-When `NUZENIO_ENVIRONMENT=production`, settings construction fails if the session pepper is the placeholder/too short, secure cookies are off, demo mode is on, feed HTTPS is off, or any CORS origin is not HTTPS. This is configuration validation, not a deployment manifest.
+When `NUZENIO_ENVIRONMENT=production`, settings construction fails for SQL echo, an unsafe session pepper,
+metrics token, runtime database identity/password, Redis TLS/password, cookie mode, CORS origin,
+Host allow-list, proxy CIDR, log format, demo mode or feed transport/kill-switch state. The global feed
+kill switch is deliberately required while the publisher pilot remains unapproved. These checks are
+a startup boundary, not a deployment manifest. See [observability](observability.md) and
+[secret rotation](secret-rotation.md).
+
+Production allowed hosts are round-trip canonical lowercase ASCII/IDNA DNS names only. Wildcards,
+trailing dots, malformed A-labels, schemes, ports, paths, userinfo, whitespace, IP literals, legacy
+numeric IPv4 forms, localhost/`.local`/`home.arpa` equivalents and single-label names are rejected
+before `TrustedHostMiddleware` is built.
+
+Every application-owned production SQLAlchemy engine—including API/worker runtime, Alembic online
+migrations and database-role provisioning—forces statement and pool echo off and enables
+`hide_parameters`. The engine policy reparses the exact canonical environment at its own boundary,
+suppresses SQLAlchemy DEBUG result-row logging, normalizes direct SQLAlchemy namespace handlers and
+sanitizes driver exception details. Role passwords execute through a quoted raw-driver transaction
+boundary rather than SQLAlchemy statement logging. This remains true if a caller bypasses settings-
+model validation. Application SQL must use bound parameters; values intentionally embedded as SQL
+literals are outside this protection
+and are prohibited for private data.
+Every executable entry point uses the same environment enum and predicate; missing or malformed
+configuration cannot fall through to development behavior. API and worker images deliberately do
+not carry an environment default. Local Compose and test commands declare their non-production
+environment explicitly.

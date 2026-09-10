@@ -17,6 +17,6 @@ COPY migrations ./migrations
 RUN useradd --create-home --uid 10001 nuzenio
 USER nuzenio
 
-EXPOSE 8000
+EXPOSE 8000 8001
 
 CMD ["uvicorn", "nuzenio_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

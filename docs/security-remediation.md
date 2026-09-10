@@ -254,3 +254,334 @@ navigation separately. Passing E2E assertions alone are not the diagnosis.
 
 Independent re-review is required. This remediation record does not declare SAFE TO MERGE or
 production readiness and does not resolve any PR review finding automatically.
+
+## PR #2 independent-review remediation
+
+Reviewed starting head: `0052b0f2342de711b379f562d590658e18668c98`. This targeted round preserves
+the prior F01–F15 and R1–R6 controls and addresses the eight independently reported production-
+hardening findings. It does not enable a feed, contact a publisher, deploy, merge or claim merge
+suitability.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P1 environment classification | Environment checks used independently normalized strings, and an omitted value silently selected development behavior | A required typed setting and single enum/parser accept only exact `development`, `test` or `production`; API, worker, feed runner, seed, staff bootstrap, E2E setup and role provisioning share it and reject absent or malformed values | Production, case/whitespace variants, empty/unknown/unset values and subprocess entry-point tests; local Compose and CI set their environments explicitly | A deployment can still deliberately choose the development profile; deployment policy must constrain the value to exact `production` outside isolated local/test systems |
+| P1 authentication-event mutation | The runtime role retained ordinary table mutation grants and the table lacked append-only triggers | Forward migration `c96a1d2273eb → 6d0a4f2b8c91` preserves rows/IDs, adds row and statement triggers and revokes runtime UPDATE/DELETE/TRUNCATE; provisioning and identity assertions enforce the same boundary | Clean/legacy migrations and actual provisioned-login INSERT success plus UPDATE/DELETE/TRUNCATE/trigger/DDL failures; audit reader remains read-only | Migration owners/superusers remain outside application guarantees and require infrastructure audit/access controls |
+| P1 restore option injection | A positional database argument could be parsed as a PostgreSQL command-line option; independent closure testing also found restore verification backed up the source before validating its target URI | A shared URI parser accepts only canonical PostgreSQL URIs, emits a passwordless URI and every PostgreSQL tool uses explicit `--dbname=...` plus argument boundaries; backup, restore and verification preflight every relevant URI before temporary files or database commands | Real-tool tests reject `--command`, `-c`, whitespace/control, malformed IDNA, multi-host/socket, malformed and wrong-scheme values; a verifier regression proves an invalid target cannot invoke `pg_dump` | PostgreSQL client behavior and URI query options must be reassessed when client versions or the explicit option allowlist change |
+| P2 credentials in argv | Password-bearing URLs were inherited and passed to PostgreSQL tools | `umask 077`, exclusively created mode-0600 `PGPASSFILE`, passwordless argv, removed child URL environments and signal/failure cleanup | A unique marker is inspected in live `/proc` argv/environment and is absent from output/diagnostics; success/failure/interruption cleanup is asserted | A privileged observer of the parent environment or secret file can still read the credential; operational isolation remains required |
+| P2 backup symlink/race | Predictable partial paths and final rename could be redirected or clobber a concurrent destination; closure testing found an intermediate parent symlink was still followed | A random destination-directory `mktemp` is restrictive; every existing parent component must resolve without a symlink; same-filesystem hard-link publication is atomic and no-clobber; traps clean partials | Real `pg_dump` tests cover legacy partial symlink, destination and parent-chain symlinks, destination race, two writers, interruption and successful custom archive publication | A privileged destination-parent writer can still race directory replacement; protected directory ownership and permissions remain an infrastructure requirement |
+| P2 allowed hosts | Production host validation allowed canonical-equivalent local or malformed values, including malformed ASCII A-labels and local special-use suffixes | Production permits only exact lower-case, round-trip canonical ASCII/IDNA fully qualified DNS names; every wildcard, IP form, local/trailing-dot equivalent, local special-use suffix, authority/path/port and malformed label is rejected before middleware construction | Case, wildcard, localhost/subdomain, `.local`, `home.arpa`, legacy/normal IPv4, IPv6, link-local/private examples, whitespace, scheme, userinfo, port, path and malformed/valid IDNA variants | DNS ownership/resolution is an external control; host validation is not certificate or DNS-rebinding validation |
+| P2 lost-lease visibility | Feed execution returned only a run row, so worker status counted fenced work as completed | A typed execution outcome explicitly distinguishes success, skip, retry, dead letter, cancellation, failure, active/terminal no-op and lost lease; worker metrics increment success only for true success | Real PostgreSQL/Redis competing-worker fencing test asserts lost-lease=1 and completion=0; unit tests cover every terminal counter | Metrics counters reset per process; durable database state and external aggregation remain authoritative |
+| P3 free-form log redaction | Key-based redaction did not protect credentials embedded in third-party free-form text; closure canaries found mixed percent-encoding and multiline userinfo gaps | Stable structured event names remain preferred; bounded URI-userinfo, bearer/cookie and assignment sanitizers cover nested/free-form strings, common mixed encodings and multiline values without treating a passwordless database URL followed by an email address as credentials | JSON formatter tests place unique canaries in plain, encoded, mixed, multiline and nested diagnostics and assert the marker never appears while representative safe messages remain byte-for-byte intact | Pattern redaction is defense in depth and cannot recognize every novel encoding; secret-bearing free-form input must still be excluded by design |
+
+The authentication-event revision is forward-only and performs no content rewrite. Upgrade through the
+migration owner, re-run role provisioning, then assert both restricted identities before starting the
+API/worker. Backup/restore tests use disposable PostgreSQL and fictional data only. The operational
+scripts require a protected destination directory and PostgreSQL/Python tools; they are not an
+encrypted retention service or substitute for WAL archival. Independent re-review remains mandatory.
+
+## PR #2 closure follow-up
+
+Starting head `119b1c576a1ecf51dbe664563db3092328c0b819` was independently reported to
+retain one P2 release-gate issue and two P3 defense-in-depth gaps. This implementation preserves the
+previous migration head and all editorial, ingestion, audit and offline-cache controls.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 Playwright retry forwarding | `npm run test:e2e -- --retries=0` consumed the option at the outer npm layer; the first fix then made enforcement conditional on an optional environment flag | CI now invokes the dedicated `test:e2e:release` command. Its release-only Playwright configuration fixes retries at zero and installs an unconditional reporter that rejects any resolved nonzero retry | The release command exits nonzero when `--retries=1` overrides the config, regardless of missing, empty, true, false or malformed legacy flag values. The normal release command reports two projects and effective retries zero | Local developer runs retain their existing retry default; the release command/configuration is the sole release-gate source of truth |
+| P2/P3 bounded log redaction | Double-percent-encoded secrets and credentials whose terminating `@host` fell beyond the old output cutoff survived visible-string matching | Sanitization now operates on a bounded 16,384-character scan window before the final 8,192-character output truncation, applies at most two detection-only decode passes and conservatively redacts an unfinished credential authority | Raw/single/double-encoded URI, bearer, cookie and assignment canaries at and across the cutoff are absent from full formatted JSON, nested fields and diagnostics; million-character safe/malformed inputs remain bounded and safe text truncates predictably | Pattern redaction cannot recognize every transform or novel encoding, so stable non-secret event names and avoiding secret-bearing exceptions remain the primary controls |
+| P3 PostgreSQL query strictness | Allowed query values were reconstructed without rejecting malformed percent escapes; earlier control checks also needed to cover nested encodings | Before normal parsing, the shared connection parser rejects every `%` not followed by two hexadecimal digits. It repeats strict syntax and control validation after each of its bounded decode stages, before any operation can create temporary output or invoke a PostgreSQL tool | Helper and all three operation-script regressions cover malformed/trailing/repeated percent signs, mixed valid-invalid input, encoded malformed escapes, invalid UTF-8, raw/single/double-encoded controls and repeated key/value parameters; valid repeated allowlisted parameters still reach real `pg_dump` | The explicit PostgreSQL option allowlist must be reassessed with client upgrades; this parser is intentionally stricter than general libpq URI parsing |
+
+No schema or data migration is required; Alembic head remains `6d0a4f2b8c91`. This work does not
+enable feeds, contact publishers, deploy, merge or claim independent closure.
+
+## PR #2 SQL/logging closure follow-up
+
+Starting head `5d81b608f49552f5ed1b7967f689e93c36a8cfb7` was independently reported to
+retain one P2 SQL-logging disclosure and one P3 qualified-assignment redaction gap. This focused
+implementation leaves the database schema, editorial controls, ingestion controls and feed kill
+switch unchanged.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 production SQL logging | Production accepted `NUZENIO_SQL_ECHO=true`, and the runtime engine forwarded it to SQLAlchemy, which emitted bound values through a plain echo handler and the root logger | Production settings reject every Pydantic truthy spelling. A shared engine policy forces SQL/pool echo off and `hide_parameters=true` for runtime, migrations and role provisioning; SQLAlchemy handlers are normalized into Nuzenio logging | A real PostgreSQL regression executes parameterized `SELECT` and `INSERT` statements with independent canaries while capturing stdout, stderr, JSON/root and an intentionally verbose SQLAlchemy handler. Both values stay absent while safe statement diagnostics remain present; a validation matrix covers `true`, `TRUE`, `1`, `yes` and `on` | Parameter hiding does not protect private values deliberately interpolated into SQL literals; application queries must bind private values. Database/platform logs remain separately governed infrastructure |
+| P3 qualified assignments | The free-form matcher recognized only standalone keys, so values assigned to names such as `db_password`, `api.token` and `client-secret` could survive | One case-insensitive bounded key grammar recognizes standalone and `_`/`.`/`-` qualified password, token, secret, session/CSRF and pepper forms at both free-form and structured-field boundaries | Raw, quoted, colon/equal, mixed-case, multiline, nested, single/double-encoded, truncation-crossing and million-character cases assert the original canary is absent from complete JSON output; `secretary`, `tokenizer` and `passwordless` controls remain readable | Pattern redaction is defense in depth and intentionally bounded to two decoding passes and a 16,384-character scan; stable non-secret event names remain the primary control |
+
+No forward migration is needed; Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted,
+and independent read-only closure review remains required before merge.
+
+## PR #2 SQL namespace and linear-sanitizer closure
+
+Starting head `ff7d156dffc21628dc0fb602049c754698a53d18` was independently reported to
+retain two P2 SQL/logging findings and two related P3 defense-in-depth gaps. This focused round does
+not alter database schema, editorial policy, ingestion behavior or the live-feed kill switch.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 SQLAlchemy result/credential logging | A top-level verbose SQLAlchemy handler could receive DEBUG result rows; the policy helper trusted a typed caller; password-bearing role DDL crossed SQLAlchemy statement logging | The engine policy reparses the canonical environment, forces production echo/pool echo off and parameter hiding, installs bounded driver-error sanitization, and owns the complete SQLAlchemy namespace at logging initialization and engine construction. Password-bearing role DDL executes with Psycopg quoting below SQLAlchemy logging in the same transaction | Real PostgreSQL SELECT/INSERT/UPDATE/failure and role-password canaries are absent from stdout, stderr, JSON, plain handlers and exceptions under DEBUG root/SQLAlchemy configuration; malformed environment calls fail closed and safe statement diagnostics remain | SQL literals deliberately containing private values and independently configured database/platform logs remain outside this boundary; repository queries carrying private data must remain parameterized |
+| P2 quadratic qualified-key matching | A repeated-prefix regular expression rescanned dotted/hyphenated near misses from successive positions, taking multiple seconds at 16 KiB | A bounded single-pass tokenizer recognizes identifier boundaries, key separators, assignment syntax and value spans without ambiguous quantifiers or suffix backtracking | Adversarial 1/2/4/8/12/16 KiB near misses remain approximately linear and bounded; the 16 KiB local sample completes in milliseconds rather than seconds | Redaction remains defense in depth over a bounded 16,384-character scan; application code must not intentionally submit secret-bearing free-form diagnostics |
+| P3 escaped/block assignments | Escaped JSON keys and YAML `|`/`>` diagnostic values were outside the old assignment grammar | The same state machine recognizes literal or escaped quoted keys/values and conservatively redacts bounded YAML-block tails, including qualified and encoded variants | Raw/single/double-encoded, nested, exception and truncation-boundary canaries are absent; `secretary`, `tokenizer` and `passwordless` remain readable | This is intentionally not a complete JSON/YAML parser; uncommon serialization transforms remain a reason to use stable structured events |
+| P3 logging ownership | Logging initialization cleared unrelated root telemetry and did not own the top SQLAlchemy namespace, allowing loss and duplicate unsafe records | Nuzenio handlers carry an ownership marker; repeated initialization replaces only those handlers, preserves unrelated root handlers, and removes direct handlers across `sqlalchemy`, engine and pool descendants before safe root propagation | Repeated initialization emits one Nuzenio JSON record, preserves one external telemetry record, removes pre-existing SQLAlchemy handlers and blocks DEBUG result routing | A privileged runtime actor can reconfigure Python logging after initialization; deployment code must not install unreviewed SQLAlchemy handlers |
+
+The SQLAlchemy error boundary exposes only the exception type and a validated five-character SQLSTATE
+while retaining the parameterized statement text and hidden-parameter marker. Application and
+migration code must continue to avoid private SQL literals. No forward migration is required;
+Alembic head remains `6d0a4f2b8c91`. No feed was enabled or contacted, and a fresh independent
+read-only closure review remains required before merge.
+
+## PR #2 detached database errors and sink-boundary logging
+
+Starting head `94af173af833637c2631e06a2518776139d3ce2b` was independently reported to
+retain two P2 disclosure paths. This focused round changes no schema, editorial decision, ingestion
+policy or feed state.
+
+| Finding | Reproduction/root cause | Invariant and fix | Regression evidence | Residual risk |
+| --- | --- | --- | --- | --- |
+| P2 reachable Psycopg diagnostics | SQLAlchemy's rendered message hid parameters, but `.orig`, `__cause__` and Psycopg `.diag` still retained server text containing private bound values | Every application-owned production engine translates the already-processed failure at its connection boundary into a metadata-only `DetachedDatabaseError` after SQLAlchemy transaction/pool bookkeeping. The outward graph carries only a bounded category, validated SQLSTATE and invalidation flag; role-provisioning driver failures are likewise raised only after leaving the Psycopg exception context | Real PostgreSQL invalid integer/date/UUID casts, unique/foreign-key/check failures, parameterized updates and connection failures traverse cause/context/orig/diag/args/statement/params/exception-group edges plus full rendered tracebacks. Independent canaries and URL passwords remain absent; explicit session rollback permits a subsequent query. Role-password failures are detached and their transaction is rolled back | Python tracebacks inherently describe application control flow, so production error collection must keep local-variable capture disabled. Direct infrastructure/driver use outside the shared engine is a separate boundary. SQLAlchemy's connection factory is pinned by the current dependency range and must be revalidated on upgrades |
+| P2 original records reaching external sinks | Nuzenio sanitized inside its own formatter, leaving pre-existing plain or telemetry handlers able to inspect the original message arguments, nested extras and exception object | Production initialization installs a Python 3.12 replacement-record filter first on every configured handler. Each sink receives its own recursively sanitized clone; the original record and referenced application objects are not mutated. Initialization remains ownership-aware and idempotent, and SQLAlchemy direct handlers remain removed | Plain, JSON-like, descendant and object-inspecting handlers receive exactly one record per applicable event after repeated initialization. Positional/mapping arguments, nested fields, encoded/boundary values, stack text and diagnostic-bearing exceptions contain no canary, while safe queue-depth and message fields survive | Privileged code can deliberately install an unsafe handler after secure initialization; deployment code must not reconfigure logging after startup. Custom handlers that bypass the standard Python `Handler.handle()` contract are unsupported |
+
+No forward migration is required; Alembic head remains `6d0a4f2b8c91`. The production API, worker,
+Alembic and database-role provisioning all construct engines through the shared hardened boundary.
+No feed was enabled or contacted, and a fresh independent read-only closure review remains required
+before merge.
+
+## PR #2 result-consumption closure
+
+Starting head `20ef5111ce4a160d858d0b1926acf7c3607d2000` detached execution failures but returned
+before buffered Psycopg timestamp decoding. The exact `12087-04-23 11:37:42.123456` reproduction
+retained a driver `DataError` through SQLAlchemy's exception context. The first four newly added
+Core regressions failed before the implementation changed.
+
+| Finding | Fix | Regression | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 buffered result diagnostic disclosure | A production-only delegating fetch strategy translates failures after native SQLAlchemy error handling exits. It wraps fetchone/fetchmany/fetchall and re-protects strategies replaced by yield_per/close without replacing public result objects | `test_result_consumption.py`: 20 consumers each for Core and ORM, native result/scalar/mapping/row types, freeze/iteration/partitions, RETURNING, cached metadata, buffered/streaming strategy changes, normal application exceptions/cancellation, PostgreSQL query cancellation/backend termination, deferred commit and session recovery. Recursive outward-graph/traceback checks reject driver objects and canaries | SQLAlchemy private connection/fetch interfaces must be revalidated on upgrades. Supported PostgreSQL/Psycopg integrations are covered, not arbitrary third-party dialects or application-defined result processors; traceback-local telemetry remains excluded |
+
+This adds no migration or schema change; head remains `6d0a4f2b8c91`. Existing role-password,
+execution/constraint, audit/contributor, authentication and worker regressions remain required.
+Source changes are confined to `database_security.py`, its new result-consumption tests and these
+operational notes. Independent read-only closure review is still required before merge.
+
+## PR #2 composed-message logging closure and validation
+
+The same starting head leaked each of `db_%s=%s`, `%s=%s` and
+`%(field_name)s=%(field_value)s` to pre-existing external filters/plain/raw-record handlers when
+arguments assembled a sensitive key. All three initial regressions failed before the fix: separate
+template/argument sanitation could not recognize the eventual assignment, although Nuzenio's JSON
+formatter redacted it later.
+
+| Finding | Fix | Regression | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 deferred-format external-sink disclosure | Bound and compose builtin positional/mapping values before sink filters, sanitize the composed message, and clear replacement args. Bound token count, field widths/precision, template and output before rendering; use a constant fallback for invalid formats. Whole-argument spans prevent delimiter-containing secret tails escaping redaction | 41 new tests cover all three reproductions on root/descendant loggers, raw collectors, existing filters/plain/JSON formatters, original-object preservation, encoded/boundary/nested secrets, excessive widths, malformed/missing keys, hostile renderers, repeated initialization and concurrent output. Supplemental adversarial split-key matrix: 1,740 cases without a canary leak | Application-defined renderers/nonprimitive percent arguments are deliberately omitted. Redaction remains bounded defense in depth; privileged post-initialization logging reconfiguration and nonstandard dispatch are not protected |
+
+Source changes are `observability.py`, `test_logging_composition.py` and the existing handler test's
+assertion that a safe message is composed and replacement args are empty. No controls or retries were
+weakened, no migration changed, and no real feeds were enabled.
+
+Validation before push:
+
+- macOS/Python 3.14: initial full API run 478 passed; final expanded result suite 52 passed.
+- Linux/Python 3.12, real PostgreSQL 17/Redis: final full API run **479 passed** (including
+  existing SQL/role, F01–F15/R1–R6, concurrency, clean/legacy migration and schema-drift regressions).
+- Linux Node 22.13: clean `npm ci`, formatting/lint, **48 web tests**, production Next.js build and
+  **26 Playwright tests**, two projects, effective retries zero. Browser API uses the repository's
+  explicit test-fixture configuration on an outbound-disabled Docker network; no worker/live feed
+  runs there. Production/Compose kill switches remain on.
+- Ruff format/lint, npm/Python audits, diff and tracked-artifact checks passed.
+- Unique Compose projects built/started PostgreSQL, Redis, API and worker, verified readiness,
+  restored a backup through `6d0a4f2b8c91`, and passed PostgreSQL operation security checks. Normal
+  teardown removed project resources; a separate deliberate exit 42 after health checks also
+  removed all project containers, networks and volumes while preserving the failure exit code.
+
+Initial Linux harness failures were investigated, not retried blindly: the old test image copied
+pre-existing ignored web `dist` output and omitted root `scripts`/`.github` files needed by tests.
+Validation used a clean tracked-plus-new-file snapshot and read-only support-file mounts without
+removing developer artifacts. A runner-wide kill-switch override also correctly invalidated the
+fixture dry run; the final browser run used standard test semantics with outbound networking blocked.
+The native metadata compatibility probe was corrected to respect SQLAlchemy cursor cleanup after
+unsupported `lastrowid`, and the error hook now leaves non-driver exceptions unclassified.
+Existing bounded stream-cancellation diagnostics were not changed. Exact-head GitHub results are
+reported separately after pushing; independent read-only closure review remains mandatory.
+
+## PR #2 named-mapping classification closure
+
+Starting head `6f43ecd98ffcbd00c2eee8b58d298597b20eee92` was independently reported to
+lose a named mapping argument's sensitive classification during composition. The regression
+`authentication rejected credential=%(password)s` exposed its value to configured raw-record sinks,
+existing filters, plain formatters and Nuzenio JSON. Newly added sink-level tests failed before the
+implementation changed (the reproduction run stopped after its first two failures).
+
+| Finding | Fix | Regression evidence | Remaining limitation |
+| --- | --- | --- | --- |
+| P2 sensitive named placeholders | Use the existing shared key classifier, including cookies, after bounded format validation and before argument access/rendering. Emit a fixed marker for classified values, retain post-composition scanning and empty replacement arguments | 73 new cases cover 20 qualified/case variants across root/descendant sinks; repeated/mixed placeholders; `%s`/`%r`, numeric conversions, width/precision and escaped percent; no invocation of the original value renderer; malformed omission; original record/mapping/extra preservation. The complete composition suite has 114 cases | Classified values deliberately do not honor padding/precision on the marker. Unsupported objects and oversized/malformed formats retain their safe omission behavior |
+| Overlapping classified placeholder and dynamic label | A classified value could itself have supplied an erased assignment/header prefix. Keep a bounded ambiguity flag and redact an unclassified interpolation or ambiguous literal suffix following that hidden prefix unless a literal field boundary establishes independence | Twelve overlap cases are included in the 73 regressions: assignment, qualified assignment, Bearer and Cookie layouts, each at root/descendant sinks, plus literal suffixes before later boundaries. Supplemental outside-repository adversarial suites plus the composition suite total 695 passing cases | Ambiguous adjacent unlabelled interpolations may redact the entire event. Explicitly label/separate safe fields; do not reconstruct original secret-bearing shadow messages |
+
+The tests initialize production logging after pytest installs its call-phase capture handlers as well
+as after the explicitly configured sinks. No handler or assertion is removed: this makes original
+record-preservation assertions cover every sink present at initialization, rather than allowing a
+later pytest formatter to mutate the original record.
+
+Changes are confined to `observability.py`, `test_logging_composition.py`, this evidence and
+`docs/observability.md`. The independently closed database-fetch implementation and its 52
+regressions are unchanged. No migration or dependency change is required; Alembic head remains
+`6d0a4f2b8c91`. Full validation and exact-head CI results are reported with the delivery. No real
+feeds are enabled, no publisher is contacted, and independent read-only closure review remains
+required before merge.
+
+Pre-push validation: 695 combined composition/adversarial cases passed locally; the full Linux
+PostgreSQL/Redis API suite passed **552 tests** after the final literal-suffix refinement, including
+the unchanged 52 database-consumption
+tests, clean/legacy migrations, runtime-role and security/concurrency suites. Alembic upgrade/check
+and two explicit fictional seed runs passed. The two existing warnings concern Starlette's httpx
+test-client integration and AnyIO's deprecated BlockingPortal alias, not this change.
+
+Linux clean `npm ci`, web formatting/lint, **48 web tests**, production Next.js build, npm/Python
+audits, Ruff formatting/lint, diff and bounded tracked-secret/artifact scans passed. Production
+Playwright passed **26 tests**, two projects, effective retries zero, on an outbound-disabled
+fixture network. Isolated Compose build/readiness/backup/restore/security checks passed. A separate
+intentional exit 42 after readiness preserved the failure exit and still removed all project
+containers, networks and volumes. No existing developer service or volume was removed.
+
+## PR #2 preceding-context ambiguity closure
+
+Starting head `1a4b31816f7e9b655a53b3de939b545df5b0c3ac` disclosed a following credential in
+`rejected header=%(authorization)s %(value)s` when the mapping contained `authorization=Bearer`.
+The preceding literal `header=` incorrectly cleared ambiguity after removing the sensitive
+placeholder. Raw root/descendant collectors, existing filters, plain output and JSON all received
+the unclassified following value. The original named-mapping fix did not by itself preserve the
+erased value's possible role as a credential prefix.
+
+The shared composition rule now treats **every erased sensitive placeholder as ambiguous for
+following content**, without inspecting its original value. No preceding label or surrounding
+context can clear that state. Bare whitespace/punctuation cannot authorize another value. Only a
+subsequent literal explicit field (whitespace, or semicolon/newline with optional whitespace,
+followed by an ASCII identifier and `=`/`:`) establishes a new independent field. Otherwise an
+unclassified interpolation or ambiguous literal suffix produces the fixed whole-message
+`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]` marker. A later boundary cannot rescue earlier
+ambiguous content. Sensitive-key classification, dynamic-key post-composition scanning, empty
+replacement arguments, original-object preservation and bounded parsing are retained.
+
+The 224 added cases transform every prior erased-prefix/literal-suffix safety case with harmless
+context, including preceding labels, quoted/bracketed text and multiline prefixes. They cover
+Bearer/Cookie/assignment prefixes, multiple sensitive placeholders, mapping and unsupported mixed
+positional layouts, literal suffixes, actual single/double percent-encoded secret representations,
+scan/output boundaries, bare-punctuation rejection and explicit subsequent safe fields. All
+configured sinks and existing filters are checked for every tested secret representation; tests
+also preserve safe metadata and assert original objects, empty arguments and one event per sink.
+
+The new tests were reproduced against the committed starting implementation in a separate Python
+process without resetting the worktree: 44 of the 114 selected context cases failed, including
+both exact Bearer reproductions. With the fix, all 338 composition cases and all 20 previously
+independent labelled-prefix reproductions pass. No confidentiality assertion was relaxed. The
+eight older ambiguous-prefix expected strings change from `[REDACTED]` to fixed omission, and the
+formerly preserved `s` suffix in `%(password)hds` now requires omission. This is a documented
+compatibility change: ambiguous log text may be lost, but stable structured metadata remains.
+
+Only `observability.py`, `test_logging_composition.py` and observability/remediation documentation
+change. Database-fetch integration, its regression tests, migrations and dependencies are unchanged;
+Alembic head remains `6d0a4f2b8c91`. Earlier interrupted validation logs were not counted as complete
+API, E2E or Compose results. Completed validation and exact-head CI results are recorded separately.
+No publisher is contacted, live feeds stay disabled, and independent closure review remains required.
+
+Completed local validation: Linux Node 22.13.0/Python 3.12.14 clean npm installation, npm/Python
+audits, web format/lint, 48 web unit tests and the production build passed. The full disposable
+PostgreSQL/Redis API suite passed **776 tests**, including the unchanged database-fetch, role,
+migration and concurrency regressions. The two existing warnings concern test-client deprecations.
+Production Playwright passed **26 tests**, two projects, effective retries zero, on an internal
+fixture network. Its previously documented stream-cancellation diagnostics were not changed.
+Compose build/readiness/backup/restore/security checks passed; an intentional failure after health
+checks returned exit 42 and still removed its isolated containers, networks and temporary volumes.
+The normal run also proved complete teardown. Ruff, diff and bounded tracked-secret/artifact scans
+passed. The original external 20-case reproduction suite and an additional 4,234-case context/
+encoding/boundary matrix passed. Bounded composition timings scaled from about 0.16 ms at 1 KiB to
+2.37 ms at 16 KiB on the local host. These are implementation-validation results, not independent
+merge certification; matching GitHub results are supplied in the delivery after the normal push.
+
+A further literal-suffix probe before delivery found that punctuation-only credential text could
+survive the old punctuation allowlist even though it never cleared ambiguity. Forty-two new
+cross-sink/context regressions reproduced that disclosure. The same conservative rule now rejects
+all non-spacing literal content unless a subsequent explicit named field establishes independence.
+Spaces/tabs alone do not clear ambiguity. This also changes two safe-output expectations involving
+`%` or `/` between classified placeholders to fixed omission; their confidentiality assertions
+remain intact. The final composition suite has 380 cases (266 added since `1a4b318`). No database,
+migration, reader or dependency code changed. Final-state validation is reported in the delivery.
+
+After that refinement, final-state Linux validation passed **818 API/security tests**, 48 web
+unit tests, the production build, and all 26 production Playwright tests with two projects and
+effective retries zero. Clean/legacy migrations, Alembic check, seed idempotency, runtime-role and
+database-fetch regressions remain covered by the complete API run. Compose readiness, backup/
+restore/security and both normal and intentional-exit-42 teardown were rerun successfully.
+Formatting/lint and npm/Python audits passed again. The 380 composition tests, original 20 external
+reproductions and a fresh 3,580-case punctuation/context/encoding/boundary matrix passed; bounded
+stress probes averaged 0.64–2.36 ms/message. Existing test-client warnings and previously reviewed
+stream-cancellation diagnostics were not silenced or reclassified as new failures.
+
+## PR #2 unconditional sensitive-template omission
+
+The independent review of `2ccf1adaf9a62bee85114b9d5902c150996e5c5b` found that
+`rejected header=%(cookie)s; sid=%(value)s`, with `cookie="Cookie: locale=en"`,
+still exposed the second cookie value. A literal `; sid=` matched the generic
+subsequent-field exception even though it belonged to the same erased header.
+The original independent eight-case reproduction failed again before this fix;
+new tracked regressions also failed at the confidentiality assertions across
+root/descendant raw records, existing filters, plain output and Nuzenio JSON.
+
+The policy is now intentionally simpler: **any sensitive named placeholder
+causes the entire composed message to become the same constant omission**.
+The shared classifier includes cookies and qualified/case variants. A bounded
+template-only parser validates and classifies before any interpolation value is
+accessed or rendered. Only after that succeeds are safe conversions rendered.
+Thus a large early value or width cannot fill the output buffer and hide a
+later sensitive reference. Oversized templates are omitted even when arguments
+are empty. The original value is never inspected to infer whether subsequent
+text is independent, and no prefix/suffix text is returned on rejection.
+
+The old erased-prefix state and generic subsequent-field regex are removed;
+there is no cookie-name denylist or substitute textual-boundary heuristic.
+Safe counts and other operational details belong in independently sanitized
+structured metadata, not in a partially recovered message. This deliberately
+changes even formerly readable `credential=%(password)s; count=%(count)d` to
+`[OMITTED UNSAFE OR OVERSIZED LOG COMPOSITION]`. Output-shape assertions are
+updated for this policy; every confidentiality assertion is retained. Original
+records/mappings remain unchanged, replacement arguments stay empty, and
+normal record metadata survives. Non-sensitive named templates, positional
+formatting and dynamic-key post-composition scanning remain supported.
+
+Regression coverage includes arbitrary first/subsequent cookie names, multiple
+pairs, literal/interpolated values, quoted/bracketed/multiline context, raw and
+single/double-encoded forms, sensitive placeholders before/between/after other
+content, and scan/output boundaries. Guards prohibit any call to the argument
+renderer for a sensitive template, including large preceding conversions and
+missing/empty arguments. Escaped literal percent signs and unused sensitive
+mapping entries do not classify an otherwise safe template. Existing handler,
+concurrency, formatting-bound and linear-sanitizer regressions are preserved.
+
+Only logging, its composition tests and observability/remediation documentation
+change. Database-fetch integration, its tests, migrations, dependencies and CI
+are unchanged; Alembic head remains `6d0a4f2b8c91`. Final local and exact-head CI
+results are reported with delivery. No publisher is contacted or live feed
+enabled. This implementation does not substitute for independent closure review.
+
+Completed local validation for this policy: **608 composition tests** (228 added),
+73 selected logging/sanitizer regressions and the original eight cookie-field
+reproductions pass. A supplemental 5,685-case format/classification matrix
+verified zero value-rendering calls for sensitive templates. Native 1–16 KiB
+near-miss probes scaled from about 0.12 to 1.84 ms; formatting/output limits,
+original-object preservation and one event per sink remain enforced.
+
+A fresh Linux Node 22.13.0/Python 3.12.14 environment passed clean `npm ci`,
+npm/Python audits, web formatting/lint, **48 web tests**, production build and
+Ruff checks. The disposable PostgreSQL/Redis suite passed **1,046 tests**,
+including unchanged database-fetch, authentication, runtime-role, migration,
+concurrency and earlier security regressions. Clean migration, schema-drift
+check and seed idempotency passed. Production Playwright passed **26 tests**,
+two projects, effective retries zero, with outbound access disabled during
+API/E2E tests. The two existing test-client deprecation warnings and bounded
+stream-cancellation diagnostics were not silenced.
+
+Isolated Compose build, four-service health, fixture/kill-switch checks,
+backup/restore and PostgreSQL operation-security tests passed. Both normal
+teardown and an injected exit 42 after readiness removed only their isolated
+containers, networks and temporary volumes; the failure exit was preserved.
+The runtime source/test hashes in the validation snapshot matched the working
+tree. A bounded tracked-secret/artifact scan and `git diff --check` passed;
+pattern scanning is not exhaustive secret detection. Exact-commit GitHub CI
+results are supplied after the normal branch push, without merge or deployment.

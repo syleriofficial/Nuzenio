@@ -4,8 +4,11 @@ services:
       context: ./apps/api
     command: ["/bin/sh", "-c", "alembic -c alembic.ini upgrade head && python -m nuzenio_api.db_roles"]
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_MIGRATION_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_RUNTIME_PASSWORD: ${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}
+      NUZENIO_AUDIT_PASSWORD: ${NUZENIO_AUDIT_PASSWORD:-local-audit-only-password}
     depends_on:
       postgres:
         condition: service_healthy
@@ -16,8 +19,8 @@ services:
       context: ./apps/api
     command: ["python", "-m", "nuzenio_api.seed"]
     environment:
-      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_ENVIRONMENT: development
+      NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_DEMO_MODE: "true"
     depends_on:
       migrate:
@@ -28,12 +31,14 @@ services:
     build:
       context: ./apps/api
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_CORS_ORIGINS: '["http://localhost:3000"]'
       NUZENIO_DEMO_MODE: "true"
       NUZENIO_COOKIE_SECURE: "false"
       NUZENIO_FEED_KILL_SWITCH: "true"
+      NUZENIO_ALLOWED_HOSTS: '["localhost","127.0.0.1","api","testserver"]'
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -49,7 +54,7 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)",
         ]
       interval: 5s
       timeout: 3s
@@ -61,9 +66,12 @@ services:
       context: ./apps/api
     command: ["python", "-m", "nuzenio_api.feed_operations"]
     environment:
+      NUZENIO_ENVIRONMENT: development
       NUZENIO_DATABASE_URL: postgresql+psycopg://nuzenio_runtime:${NUZENIO_RUNTIME_PASSWORD:-local-runtime-only-password}@postgres:5432/${POSTGRES_DB:-nuzenio}
       NUZENIO_REDIS_URL: redis://redis:6379/0
       NUZENIO_DEMO_MODE: "true"
+      NUZENIO_WORKER_HEALTH_HOST: "0.0.0.0"
+      NUZENIO_WORKER_HEALTH_PORT: "8001"
       # Fixture data uses reserved .example URLs; keep all network polling off.
       NUZENIO_FEED_KILL_SWITCH: "true"
     depends_on:
@@ -77,12 +85,13 @@ services:
           "CMD",
           "python",
           "-c",
-          "import os, redis; assert redis.Redis.from_url(os.environ['NUZENIO_REDIS_URL']).ping()",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready', timeout=2)",
         ]
       interval: 5s
       timeout: 3s
       retries: 12
     restart: unless-stopped
+    stop_grace_period: 20s
 
   postgres:
     image: pgvector/pgvector:pg17
@@ -113,6 +122,60 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+
+  postgres-restore:
+    profiles: ["ci"]
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: nuzenio_restore_verify
+      POSTGRES_USER: ${POSTGRES_USER:-nuzenio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuzenio}
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-nuzenio} -d nuzenio_restore_verify",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  restore-verify:
+    profiles: ["ci"]
+    build:
+      context: .
+      dockerfile: infra/postgres-tools/Dockerfile
+    environment:
+      NUZENIO_BACKUP_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+      NUZENIO_RESTORE_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres-restore:5432/nuzenio_restore_verify
+      NUZENIO_RESTORE_CONFIRM_DATABASE: nuzenio_restore_verify
+    volumes:
+      - ./scripts:/workspace/scripts:ro
+    command: ["/workspace/scripts/verify-postgres-restore.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-restore:
+        condition: service_healthy
+
+  postgres-ops-test:
+    profiles: ["ci"]
+    build:
+      context: .
+      dockerfile: infra/postgres-tools/Dockerfile
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nuzenio}
+      POSTGRES_USER: ${POSTGRES_USER:-nuzenio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuzenio}
+      NUZENIO_BACKUP_DATABASE_URL: postgresql://${POSTGRES_USER:-nuzenio}:${POSTGRES_PASSWORD:-nuzenio}@postgres:5432/${POSTGRES_DB:-nuzenio}
+    volumes:
+      - ./scripts:/workspace/scripts:ro
+    command: ["/workspace/scripts/test-postgres-operations.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres-data:

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import signal
 import threading
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Protocol
@@ -15,6 +17,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from nuzenio_api.config import get_settings
+from nuzenio_api.environment import is_production
 from nuzenio_api.feed_locks import approval_versions, control_lock, locked_feed
 from nuzenio_api.feed_security import FeedSecurityError, SafeFeedFetcher, parse_feed_xml
 from nuzenio_api.models import (
@@ -30,19 +33,36 @@ from nuzenio_api.models import (
     RightsPolicy,
     SourceFeed,
 )
+from nuzenio_api.observability import configure_logging, log_event
 from nuzenio_api.pipeline.demo import DeterministicCanonicalizer
 from nuzenio_api.services import ApplicationError
+from nuzenio_api.worker_health import WorkerRunOutcome, WorkerStatus, start_worker_health_server
 
 QUEUE_KEY = "nuzenio:feed-runs:ready"
 SCHEDULED_KEY = "nuzenio:feed-runs:scheduled"
 ENQUEUED_KEY = "nuzenio:feed-runs:enqueued"
 MAX_ATTEMPTS = 4
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class FeedExecutionOutcome:
+    run: FeedRun
+    kind: WorkerRunOutcome
+
+    @property
+    def state(self) -> FeedRunState:
+        return self.run.state
 
 
 class Queue(Protocol):
     def enqueue(self, run_id: str) -> None: ...
 
     def schedule(self, run_id: str, at: datetime) -> None: ...
+
+    def release_due(self, now: datetime | None = None) -> int: ...
+
+    def dequeue(self, timeout: int = 5) -> str | None: ...
 
 
 class RedisFeedQueue:
@@ -304,13 +324,13 @@ def dispatch(queue, run):
         else:
             queue.enqueue(str(run.id))
     except redis.RedisError:
-        logging.getLogger(__name__).warning("Feed dispatch deferred; durable recovery will retry")
+        log_event(logger, logging.WARNING, "feed_dispatch_deferred", run_id=str(run.id))
 
 
 def heartbeat(factory, run_id, token):
     with factory.begin() as session:
         now = datetime.now(UTC)
-        return (
+        retained = (
             session.execute(
                 update(FeedRun)
                 .where(
@@ -323,6 +343,14 @@ def heartbeat(factory, run_id, token):
             ).rowcount
             == 1
         )
+        log_event(
+            logger,
+            logging.DEBUG if retained else logging.WARNING,
+            "feed_lease_heartbeat",
+            run_id=str(run_id),
+            lease_retained=retained,
+        )
+        return retained
 
 
 def _published(value: str | None) -> datetime:
@@ -344,7 +372,7 @@ class FeedRunExecutor:
         self.queue = queue or RedisFeedQueue()
         self.canonicalizer = DeterministicCanonicalizer()
 
-    def execute(self, session: Session, run_id: uuid.UUID) -> FeedRun:
+    def execute(self, session: Session, run_id: uuid.UUID) -> FeedExecutionOutcome:
         run = session.get(FeedRun, run_id)
         if run is None:
             raise ApplicationError(
@@ -360,14 +388,14 @@ class FeedRunExecutor:
             FeedRunState.DEAD_LETTERED,
         }:
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.ALREADY_TERMINAL)
         if (
             run.state == FeedRunState.RUNNING
             and run.lease_expires_at
             and run.lease_expires_at > now
         ) or (run.state == FeedRunState.RETRYING and run.next_retry_at and run.next_retry_at > now):
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.ACTIVE_ELSEWHERE)
         if feed is None:
             raise ApplicationError(code="feed_not_found", message="Feed not found.", status=404)
         issues = rights_issues(session, feed)
@@ -377,7 +405,7 @@ class FeedRunExecutor:
             run.internal_error = ",".join(issues)
             run.completed_at = datetime.now(UTC)
             session.commit()
-            return run
+            return FeedExecutionOutcome(run, WorkerRunOutcome.SKIPPED)
         started = time.monotonic()
         versions = approval_versions(session, feed)
         fetch_arguments = (feed.url, feed.etag, feed.last_modified)
@@ -417,8 +445,17 @@ class FeedRunExecutor:
                 or run.state != FeedRunState.RUNNING
                 or run.lease_expires_at <= datetime.now(UTC)
             ):
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "feed_run_fenced",
+                    run_id=str(run_id),
+                    stage="persist",
+                )
                 session.rollback()
-                return session.get(FeedRun, run_id)
+                return FeedExecutionOutcome(
+                    session.get(FeedRun, run_id), WorkerRunOutcome.LOST_LEASE
+                )
             issues = rights_issues(session, feed)
             if issues or versions != approval_versions(session, feed):
                 run.state = FeedRunState.SKIPPED
@@ -426,7 +463,7 @@ class FeedRunExecutor:
                 run.completed_at = datetime.now(UTC)
                 run.lease_token = None
                 session.commit()
-                return run
+                return FeedExecutionOutcome(run, WorkerRunOutcome.SKIPPED)
             allowed_domains = {
                 domain.domain.casefold()
                 for domain in session.scalars(
@@ -490,7 +527,18 @@ class FeedRunExecutor:
             run.completed_at = datetime.now(UTC)
             run.duration_ms = int((time.monotonic() - started) * 1000)
             session.commit()
-            return run
+            log_event(
+                logger,
+                logging.INFO,
+                "feed_run_succeeded",
+                run_id=str(run.id),
+                feed_id=str(run.feed_id),
+                fetched_bytes=run.fetched_bytes,
+                parsed_items=run.parsed_items,
+                new_articles=run.new_articles,
+                duration_ms=run.duration_ms,
+            )
+            return FeedExecutionOutcome(run, WorkerRunOutcome.SUCCEEDED)
         except Exception as error:
             session.rollback()
             locked_feed(session, feed_id)
@@ -503,7 +551,9 @@ class FeedRunExecutor:
                 or run.lease_expires_at <= datetime.now(UTC)
             ):
                 session.rollback()
-                return session.get(FeedRun, run_id)
+                return FeedExecutionOutcome(
+                    session.get(FeedRun, run_id), WorkerRunOutcome.LOST_LEASE
+                )
             run.lease_token = None
             run.lease_expires_at = None
             run.attempt += 1
@@ -528,35 +578,106 @@ class FeedRunExecutor:
             session.commit()
             if run.state == FeedRunState.RETRYING:
                 dispatch(self.queue, run)
-            return run
+            log_event(
+                logger,
+                logging.WARNING,
+                "feed_run_failed",
+                run_id=str(run.id),
+                feed_id=str(run.feed_id),
+                state=run.state.value,
+                attempt=run.attempt,
+                error_code=run.error_code,
+            )
+            kind = (
+                WorkerRunOutcome.RETRYING
+                if run.state == FeedRunState.RETRYING
+                else WorkerRunOutcome.DEAD_LETTERED
+            )
+            return FeedExecutionOutcome(run, kind)
 
 
-def worker_main() -> None:
+def worker_main(stop_event: threading.Event | None = None) -> None:
     from nuzenio_api.db import SessionLocal
 
-    if get_settings().environment == "production":
+    settings = get_settings()
+    configure_logging("nuzenio-worker", settings)
+    if is_production(settings.environment):
         from nuzenio_api.db import engine
         from nuzenio_api.db_roles import assert_runtime_identity
 
         assert_runtime_identity(engine)
 
+    stop = stop_event or threading.Event()
+    status = WorkerStatus(stale_after_seconds=settings.worker_stale_after_seconds)
+    health_server, health_thread = start_worker_health_server(status, settings)
+
+    def request_shutdown(signum, _frame) -> None:
+        log_event(logger, logging.INFO, "worker_shutdown_requested", signal=signum)
+        status.stopping()
+        stop.set()
+
+    if stop_event is None and threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGTERM, request_shutdown)
+        signal.signal(signal.SIGINT, request_shutdown)
+
     queue = RedisFeedQueue()
     executor = FeedRunExecutor(queue=queue)
-    while True:
-        try:
-            queue.release_due()
-            with SessionLocal() as session:
-                recover_queued_runs(session, queue)
-                schedule_due_feeds(session, queue)
-            run_id = queue.dequeue()
-            if run_id:
+    log_event(
+        logger,
+        logging.INFO,
+        "worker_started",
+        health_port=settings.worker_health_port,
+        feed_kill_switch=settings.feed_kill_switch,
+    )
+    try:
+        while not stop.is_set():
+            try:
+                released = queue.release_due()
+                if not queue.client.ping():
+                    raise redis.RedisError("Redis ping returned a false value")
                 with SessionLocal() as session:
-                    executor.execute(session, uuid.UUID(run_id))
-        except Exception:
-            logging.getLogger(__name__).exception(
-                "Worker iteration failed; durable recovery retained"
-            )
-            time.sleep(2)
+                    recovered = recover_queued_runs(session, queue)
+                    scheduled = schedule_due_feeds(session, queue)
+                status.iteration(
+                    dependencies_ready=True,
+                    recovered=recovered,
+                    scheduled=scheduled,
+                )
+                log_event(
+                    logger,
+                    logging.DEBUG,
+                    "worker_iteration",
+                    released=released,
+                    recovered=recovered,
+                    scheduled=scheduled,
+                )
+                run_id = queue.dequeue(timeout=settings.worker_poll_seconds)
+                if run_id:
+                    status.started_run(run_id)
+                    try:
+                        with SessionLocal() as session:
+                            outcome = executor.execute(session, uuid.UUID(run_id))
+                    except Exception:
+                        status.finished_run(WorkerRunOutcome.FAILED)
+                        raise
+                    else:
+                        status.finished_run(outcome.kind)
+            except Exception as error:
+                status.iteration_failed()
+                log_event(
+                    logger,
+                    logging.ERROR,
+                    "worker_iteration_failed",
+                    error_type=type(error).__name__,
+                    durable_recovery_retained=True,
+                )
+                stop.wait(2)
+    finally:
+        status.stopping()
+        health_server.shutdown()
+        health_server.server_close()
+        health_thread.join(timeout=2)
+        log_event(logger, logging.INFO, "worker_stopped")
 
 
 if __name__ == "__main__":

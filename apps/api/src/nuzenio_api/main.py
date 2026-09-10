@@ -1,17 +1,31 @@
+import hmac
+import logging
 import uuid
 from contextlib import asynccontextmanager
+from time import monotonic
 from typing import Annotated, Literal
 
+import redis
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from nuzenio_api.admin_routes import router as admin_router
 from nuzenio_api.auth import AuthenticatedStaff, require_permission
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import get_db
+from nuzenio_api.environment import is_production
 from nuzenio_api.errors import register_error_handlers
+from nuzenio_api.observability import (
+    configure_logging,
+    correlation_id_context,
+    log_event,
+    observe_request,
+    render_metrics,
+)
 from nuzenio_api.permissions import Permission
 from nuzenio_api.pipeline.demo import (
     DeterministicCanonicalizer,
@@ -34,9 +48,10 @@ from nuzenio_api.schemas import (
     PipelinePreviewResponse,
     SourceProfileRead,
 )
-from nuzenio_api.services import ReaderService
+from nuzenio_api.services import ApplicationError, ReaderService
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 LanguageParam = Annotated[Literal["en", "hi"], Query(description="Response language")]
 PageParam = Annotated[int, Query(ge=1, description="One-based result page")]
 PageSizeParam = Annotated[
@@ -57,18 +72,21 @@ ERROR_RESPONSES = {
 
 @asynccontextmanager
 async def lifespan(app):
-    if settings.environment == "production":
+    configure_logging("nuzenio-api", settings)
+    if is_production(settings.environment):
         from nuzenio_api.db import engine
         from nuzenio_api.db_roles import assert_runtime_identity
 
         assert_runtime_identity(engine)
+    log_event(logger, logging.INFO, "api_started", environment=settings.environment)
     yield
+    log_event(logger, logging.INFO, "api_stopped")
 
 
 app = FastAPI(
     lifespan=lifespan,
     title="Nuzenio Reader API",
-    version="0.3.0",
+    version="0.4.0",
     description=(
         "Persistent reader contracts for approved-feed, evidence-backed fictional "
         "story clusters. Nuzenio does not publish original news."
@@ -81,39 +99,119 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Accept", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 register_error_handlers(app)
 app.include_router(admin_router)
 
 
 @app.middleware("http")
 async def correlation_id(request: Request, call_next):
+    started = monotonic()
     candidate = request.headers.get("x-request-id", "")
     request.state.request_id = (
         candidate[:80]
         if candidate and all(character.isalnum() or character in "-_." for character in candidate)
         else str(uuid.uuid4())
     )
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = request.state.request_id
-    if request.url.path.startswith("/v1/"):
-        # Reader content is live/revocable; authenticated responses are private
-        # even on errors and must never be stored by browser/proxy caches.
-        response.headers["Cache-Control"] = (
-            "private, no-store" if request.url.path.startswith("/v1/admin") else "no-store"
+    context_token = correlation_id_context.set(request.state.request_id)
+    try:
+        response = await call_next(request)
+        route_object = request.scope.get("route")
+        route = getattr(route_object, "path", "unmatched")
+        observe_request(request.method, route, response.status_code, started)
+        log_fields = {
+            "method": request.method,
+            "route": route,
+            "status": response.status_code,
+            "duration_ms": round((monotonic() - started) * 1000, 2),
+        }
+        if settings.log_client_ip:
+            log_fields["client_ip"] = request.client.host if request.client else None
+        log_event(logger, logging.INFO, "http_request_completed", **log_fields)
+        response.headers["X-Request-ID"] = request.state.request_id
+        if request.url.path.startswith(("/v1/", "/health", "/metrics")):
+            # Reader content is live/revocable; authenticated responses are private
+            # even on errors and must never be stored by browser/proxy caches.
+            response.headers["Cache-Control"] = (
+                "private, no-store" if request.url.path.startswith("/v1/admin") else "no-store"
+            )
+            response.headers["Pragma"] = "no-cache"
+        return response
+    except Exception:
+        route_object = request.scope.get("route")
+        route = getattr(route_object, "path", "unmatched")
+        observe_request(request.method, route, 500, started)
+        log_event(
+            logger,
+            logging.ERROR,
+            "http_request_failed",
+            method=request.method,
+            route=route,
+            duration_ms=round((monotonic() - started) * 1000, 2),
         )
-        response.headers["Pragma"] = "no-cache"
-    return response
+        raise
+    finally:
+        correlation_id_context.reset(context_token)
 
 
-@app.get("/health", response_model=HealthResponse, tags=["system"])
-def health(session: SessionDep) -> HealthResponse:
+def _redis_client() -> redis.Redis:
+    return redis.Redis.from_url(
+        settings.redis_url,
+        decode_responses=True,
+        socket_connect_timeout=settings.readiness_timeout_seconds,
+        socket_timeout=settings.readiness_timeout_seconds,
+    )
+
+
+def _readiness(session: Session) -> HealthResponse:
     session.execute(text("SELECT 1"))
+    try:
+        if not _redis_client().ping():
+            raise redis.RedisError("Redis ping returned a false value")
+    except redis.RedisError as error:
+        raise ApplicationError(
+            code="cache_unavailable",
+            message="The cache and job service is temporarily unavailable.",
+            status=503,
+        ) from error
     return HealthResponse(
         status="ok",
         service="nuzenio-api",
         version=app.version,
         persistence="postgresql",
         cache="redis-ready",
+    )
+
+
+@app.get("/health", response_model=HealthResponse, tags=["system"])
+def health(session: SessionDep) -> HealthResponse:
+    return _readiness(session)
+
+
+@app.get("/health/live", tags=["system"])
+def liveness() -> dict[str, str]:
+    return {"status": "ok", "service": "nuzenio-api", "version": app.version}
+
+
+@app.get("/health/ready", response_model=HealthResponse, tags=["system"])
+def readiness(session: SessionDep) -> HealthResponse:
+    return _readiness(session)
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics(request: Request, session: SessionDep) -> Response:
+    expected = settings.metrics_token.get_secret_value() if settings.metrics_token else ""
+    if expected:
+        scheme, _, presented = request.headers.get("authorization", "").partition(" ")
+        if scheme.casefold() != "bearer" or not hmac.compare_digest(presented, expected):
+            raise ApplicationError(
+                code="metrics_authentication_required",
+                message="Metrics authentication is required.",
+                status=401,
+            )
+    return Response(
+        render_metrics(session, _redis_client()),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
     )
 
 

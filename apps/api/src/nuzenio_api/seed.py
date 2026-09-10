@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import SessionLocal
 from nuzenio_api.demo_data import BRIEFS, CLUSTERS, PUBLISHERS
+from nuzenio_api.environment import Environment
 from nuzenio_api.evidence import fixture_evidence
 from nuzenio_api.models import (
     Article,
@@ -406,7 +407,10 @@ def _seed_cluster(
 
 def seed_database(session_factory: SessionFactory = SessionLocal) -> dict[str, int | bool]:
     settings = get_settings()
-    if settings.environment not in {"development", "test"} or not settings.demo_mode:
+    if (
+        settings.environment not in {Environment.DEVELOPMENT, Environment.TEST}
+        or not settings.demo_mode
+    ):
         raise RuntimeError("Fixture seeding is allowed only in explicit development/test demo mode")
     with session_factory.begin() as session:
         organizations = _publisher_records(session)

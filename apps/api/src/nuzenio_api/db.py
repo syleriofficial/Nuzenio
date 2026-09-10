@@ -3,15 +3,19 @@ from collections.abc import Generator
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from nuzenio_api.config import get_settings
+from nuzenio_api.config import Settings, get_settings
+from nuzenio_api.database_security import engine_logging_options, harden_database_engine
 
 
-def build_engine(database_url: str | None = None) -> Engine:
-    settings = get_settings()
-    return create_engine(
-        database_url or settings.database_url,
-        pool_pre_ping=True,
-        echo=settings.sql_echo,
+def build_engine(database_url: str | None = None, *, settings: Settings | None = None) -> Engine:
+    configured = settings or get_settings()
+    return harden_database_engine(
+        create_engine(
+            database_url or configured.database_url,
+            pool_pre_ping=True,
+            **engine_logging_options(configured.environment, sql_echo=configured.sql_echo),
+        ),
+        configured.environment,
     )
 
 
