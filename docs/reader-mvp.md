@@ -58,7 +58,8 @@ Following operate on the current public edition supplied by `getTopFeed`
 
 ## Verification
 
-- 75 web unit tests passed, including 27 new storage/ranking/route checks.
+- 77 web unit tests passed, including 27 new storage/ranking/route checks and
+  two release-suite ordering/coverage checks.
 - Production Next.js webpack build and TypeScript passed; lint/format passed.
 - 16 new production-browser checks passed with effective retries zero across
   1440×900 desktop and 390×844 mobile Chromium. Covers same-document/other-tab
@@ -69,6 +70,11 @@ Following operate on the current public edition supplied by `getTopFeed`
   preview; explicit browser route mocks exercise 404/503 recovery. Browser
   tests do not bootstrap staff, mutate editorial data or contact publishers.
 - New specs participate in the existing release E2E config on both viewports.
+  Explicit project dependencies run desktop reader and read-only mobile checks
+  before the existing desktop editorial suite mutates their shared seed data.
+  All 42 checks remain selected once (three projects, two viewports), with
+  effective retries zero. Config/listing regressions preserve that ordering
+  and coverage. The standalone reader config remains two read-only projects.
   A standalone, local-only config can verify an already-running preview:
 
   `NUZENIO_READER_TEST_URL=http://127.0.0.1:33273 npm --workspace apps/web run test:e2e -- --config=playwright.reader.config.ts`
@@ -81,6 +87,11 @@ retries enabled. The local file-watching development server hit host EMFILE;
 verification and the delivered preview use the successful production build.
 
 The unchanged full Python/security/Compose/editorial E2E suites were not rerun
-for this frontend milestone. No matching GitHub CI is claimed until these local
-changes are pushed and CI runs. This implementation is not an independent
-security closure review or production approval.
+locally for this frontend milestone. The first PR CI run (34657105206) passed
+Web, API and Compose but exposed a fixture-ordering defect: editorial tests had
+already split the national cluster and corrected the technology headline before
+the new reader assertions ran (30 passed, 12 failed). The explicit project
+dependencies above correct that test boundary; no product behavior, editorial
+assertions, fixture data or retry policy was weakened. A new exact-head CI run
+must verify the complete 42-check suite. This implementation is not an
+independent security closure review or production approval.

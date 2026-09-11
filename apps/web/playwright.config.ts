@@ -23,7 +23,19 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'reader-chromium',
+      testMatch: /reader-mvp\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
+    {
       name: 'chromium',
+      // Reader assertions need the unchanged seed. The editorial suite below
+      // deliberately splits those clusters and publishes corrected headlines.
+      dependencies: ['reader-chromium', 'mobile-chromium'],
+      testIgnore: /reader-mvp\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1440, height: 900 },

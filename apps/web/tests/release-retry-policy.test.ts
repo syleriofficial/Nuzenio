@@ -7,11 +7,59 @@ import { describe, expect, it } from 'vitest';
 import ReleaseRetryPolicyReporter, {
   assertReleaseRetriesDisabled,
 } from '../e2e-support/retry-policy-reporter';
+import releaseConfig from '../playwright.release.config';
 
 const repositoryRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 describe('release Playwright retry policy', () => {
+  it('finishes both read-only viewports before shared editorial fixture mutations', () => {
+    const projects = releaseConfig.projects ?? [];
+    const editorial = projects.find((project) => project.name === 'chromium');
+    const reader = projects.find(
+      (project) => project.name === 'reader-chromium',
+    );
+    const mobile = projects.find(
+      (project) => project.name === 'mobile-chromium',
+    );
+    expect(editorial?.dependencies).toEqual([
+      'reader-chromium',
+      'mobile-chromium',
+    ]);
+    expect(reader?.testMatch).toEqual(/reader-mvp\.spec\.ts/);
+    expect(editorial?.testIgnore).toEqual(/reader-mvp\.spec\.ts/);
+    expect(mobile?.testMatch).toEqual(
+      /(?:accessibility|founder-acceptance|reader-mvp)\.spec\.ts/,
+    );
+    expect(reader?.dependencies ?? []).toEqual([]);
+    expect(mobile?.dependencies ?? []).toEqual([]);
+    expect(releaseConfig.retries).toBe(0);
+  });
+
+  it('still selects every release check exactly once at its intended viewport', () => {
+    const result = spawnSync(
+      npmCommand,
+      ['--workspace', 'apps/web', 'run', 'test:e2e:release', '--', '--list'],
+      { cwd: repositoryRoot, env: process.env, encoding: 'utf8' },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    const listed = result.stdout
+      .split('\n')
+      .filter((line) => /^\s*\[[^\]]+\] › /.test(line));
+    expect(listed).toHaveLength(42);
+    expect(new Set(listed).size).toBe(42);
+    expect(
+      listed.filter((line) => line.includes('[reader-chromium]')),
+    ).toHaveLength(8);
+    expect(
+      listed.filter((line) => line.includes('[mobile-chromium]')),
+    ).toHaveLength(13);
+    expect(listed.filter((line) => line.includes('[chromium]'))).toHaveLength(
+      21,
+    );
+    expect(result.stdout).toContain('effective retries=0 for 3 projects');
+  });
+
   it('accepts only effective zero-retry projects', () => {
     expect(() =>
       assertReleaseRetriesDisabled([
