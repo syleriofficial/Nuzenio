@@ -4,9 +4,17 @@ import { StoryCard } from '@/components/story-card';
 import Link from 'next/link';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { visibleStories } from '@/lib/reader-state';
 
-export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
+export function TopNewsPage({
+  stories: inputStories,
+}: {
+  stories: StoryCluster[];
+}) {
   const { language, t } = usePreferences();
+  const reader = useReaderPreferences();
+  const stories = visibleStories(inputStories, reader);
   const sourceCount = new Set(
     stories.flatMap((story) =>
       story.sources.map((source) => source.organization),
@@ -67,6 +75,9 @@ export function TopNewsPage({ stories }: { stories: StoryCluster[] }) {
                   'स्वीकृत और साक्ष्य-समर्थित स्टोरी प्रकाशन के बाद यहां दिखेंगी।',
                 )}
               </p>
+              <Link href={`/settings?lang=${language}`}>
+                {t('Manage hidden sources', 'छिपे स्रोत बदलें')}
+              </Link>
             </section>
           )}
         </div>

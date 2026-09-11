@@ -163,6 +163,32 @@
   align-items: center;
   gap: 0.15rem;
 }
+.header-actions .saved-nav-link {
+  display: none;
+}
+.reader-list-toolbar,
+.reader-source-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+.reader-source-choice {
+  overflow-wrap: anywhere;
+}
+.reader-hidden-sources {
+  margin-top: 1.5rem;
+}
+.saved-bookmark-id {
+  overflow-wrap: anywhere;
+}
+@media (min-width: 980px) {
+  .header-actions .saved-nav-link {
+    display: inline-flex;
+  }
+}
 .language-button {
   min-width: 3.8rem;
 }

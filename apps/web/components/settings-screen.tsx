@@ -5,13 +5,15 @@ import { Check, Languages, MapPin, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import Link from 'next/link';
 
 export function SettingsScreen() {
   const { language, theme, setLanguage, setTheme, t } = usePreferences();
-  const [personalization, setPersonalization] = useState(true);
+  const reader = useReaderPreferences();
   const [breaking, setBreaking] = useState(false);
   return (
-    <>
+    <main>
       <section className="page-heading">
         <div>
           <p className="eyebrow">
@@ -118,14 +120,15 @@ export function SettingsScreen() {
               </strong>
               <small>
                 {t(
-                  'Use followed topics and hidden sources.',
-                  'फॉलो किए विषय और छिपे स्रोत इस्तेमाल करें।',
+                  'Prioritise followed topics and sources. Hidden sources stay excluded even when this is off.',
+                  'फॉलो किए विषय और स्रोत पहले दिखाएं। बंद करने पर भी छिपे स्रोत बाहर रहेंगे।',
                 )}
               </small>
             </span>
             <Switch
-              checked={personalization}
-              onCheckedChange={setPersonalization}
+              checked={reader.personalized}
+              onCheckedChange={reader.setPersonalized}
+              disabled={!reader.ready}
               aria-labelledby="personalisation-label"
             />
           </div>
@@ -149,6 +152,38 @@ export function SettingsScreen() {
           </div>
         </section>
       </div>
-    </>
+      <section className="settings-card reader-hidden-sources">
+        <h2>{t('Hidden sources', 'छिपे स्रोत')}</h2>
+        <p>
+          {t(
+            'Stories containing a hidden source are excluded from feed lists. Direct links and the full evidence remain accessible.',
+            'छिपे स्रोत वाली स्टोरी फीड सूची से हटती हैं। सीधे लिंक और पूरे साक्ष्य उपलब्ध रहते हैं।',
+          )}
+        </p>
+        {reader.hidden.length ? (
+          <ul>
+            {reader.hidden.map((slug) => (
+              <li key={slug} className="reader-source-choice">
+                <Link href={`/source/${slug}?lang=${language}`}>
+                  {slug.replaceAll('-', ' ')}
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={() => reader.toggle('hidden', slug)}
+                  aria-label={t(`Unhide ${slug}`, `${slug} फिर दिखाएं`)}
+                >
+                  {t('Unhide source', 'स्रोत फिर दिखाएं')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t('No sources hidden.', 'कोई स्रोत छिपा नहीं है।')}</p>
+        )}
+        <Link href={`/saved?lang=${language}`}>
+          {t('Open saved stories', 'सेव की गई स्टोरी खोलें')}
+        </Link>
+      </section>
+    </main>
   );
 }

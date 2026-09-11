@@ -35,7 +35,7 @@ export default defineConfig({
         ...devices['Pixel 7'],
         viewport: { width: 390, height: 844 },
       },
-      testMatch: /(?:accessibility|founder-acceptance)\.spec\.ts/,
+      testMatch: /(?:accessibility|founder-acceptance|reader-mvp)\.spec\.ts/,
     },
   ],
   webServer: [

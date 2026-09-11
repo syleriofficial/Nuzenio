@@ -16,12 +16,30 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { StoryCard } from '@/components/story-card';
 import type { ReaderSourceProfile } from '@/lib/api-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { visibleStories } from '@/lib/reader-state';
 
 export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
   const { language, t } = usePreferences();
-  const [followed, setFollowed] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  const stories = source.recentClusters;
+  const reader = useReaderPreferences();
+  const [message, setMessage] = useState('');
+  const followed = reader.sources.includes(source.slug);
+  const hidden = reader.hidden.includes(source.slug);
+  const stories = visibleStories(source.recentClusters, reader);
+  const toggle = (key: 'sources' | 'hidden') => {
+    const ok = reader.toggle(key, source.slug);
+    setMessage(
+      ok
+        ? t(
+            'Preference updated on this browser.',
+            'इस ब्राउज़र पर प्राथमिकता अपडेट हुई।',
+          )
+        : t(
+            'Could not save this preference. Check browser storage or remove older items.',
+            'प्राथमिकता सेव नहीं हुई। ब्राउज़र स्टोरेज जांचें या पुराने आइटम हटाएं।',
+          ),
+    );
+  };
   return (
     <>
       <Link className="back-link" href={`/?lang=${language}`}>
@@ -57,7 +75,9 @@ export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
       <div className="detail-actions">
         <Button
           variant={followed ? 'secondary' : 'default'}
-          onClick={() => setFollowed(!followed)}
+          onClick={() => toggle('sources')}
+          aria-pressed={followed}
+          disabled={!reader.ready}
         >
           {followed ? <Check /> : <BellPlus />}{' '}
           {followed
@@ -66,11 +86,13 @@ export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
         </Button>
         <Button
           variant={hidden ? 'destructive' : 'outline'}
-          onClick={() => setHidden(!hidden)}
+          onClick={() => toggle('hidden')}
+          aria-pressed={hidden}
+          disabled={!reader.ready}
         >
           <Ban />{' '}
           {hidden
-            ? t('Source hidden', 'स्रोत छिपा')
+            ? t('Unhide source', 'स्रोत फिर दिखाएं')
             : t('Hide source', 'स्रोत छिपाएं')}
         </Button>
         <a
@@ -82,6 +104,13 @@ export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
           {t('Visit publisher', 'प्रकाशक पर जाएं')} <ExternalLink />
         </a>
       </div>
+      <p className="lede">
+        {t(
+          'Hiding removes stories containing this source from feed lists. Direct story links and evidence stay available.',
+          'छिपाने पर इस स्रोत वाली स्टोरी फीड सूची से हटेंगी। सीधे स्टोरी लिंक और साक्ष्य उपलब्ध रहेंगे।',
+        )}
+      </p>
+      <output aria-live="polite">{message}</output>
       <section className="source-facts">
         <div>
           <span>{t('Publisher organisation', 'प्रकाशक संगठन')}</span>
@@ -137,7 +166,11 @@ export function SourceDetail({ source }: { source: ReaderSourceProfile }) {
         ) : (
           <div className="empty-state">
             <Globe2 />
-            <h2>{t('No recent clusters', 'हाल के क्लस्टर नहीं')}</h2>
+            <h2>
+              {hidden
+                ? t('This source is hidden', 'यह स्रोत छिपा है')
+                : t('No recent visible clusters', 'हाल के दृश्यमान क्लस्टर नहीं')}
+            </h2>
             <p>
               {t(
                 'Approved feed items will appear after clustering.',

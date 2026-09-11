@@ -24,7 +24,8 @@ All checked-in stories, publishers, documents and links are fictional demonstrat
 
 ### Reader
 
-- Top, For You, Delhi NCR Local, Briefs, Following, story, source, search and settings routes remain responsive, accessible, bilingual and installable.
+- Top, For You, Delhi NCR Local, Briefs, Following, Saved stories, story, source, search and settings routes remain responsive, accessible, bilingual and installable.
+- Milestone 3A unifies browser-local Save, topic/source follow, source hiding and the personalisation switch. Saved bookmarks revalidate against the public API instead of storing article text. See [reader MVP scope and validation](docs/reader-mvp.md).
 - Public data comes from the PostgreSQL-backed FastAPI reader API. Demo fallback is opt-in for development and is always disabled in production.
 - Public clusters show organization-level source diversity, evidence-backed claims, source comparisons, primary documents and correction history.
 - Held, suppressed and unapproved high-risk clusters are excluded from public reader queries.

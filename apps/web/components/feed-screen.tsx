@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { StoryCard } from '@/components/story-card';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { personalizeStories, visibleStories } from '@/lib/reader-state';
 
 export function FeedScreen({
   title,
@@ -27,9 +29,13 @@ export function FeedScreen({
   showWhy?: boolean;
   local?: boolean;
 }) {
-  const { t } = usePreferences();
+  const { t, language } = usePreferences();
+  const reader = useReaderPreferences();
+  const visible = showWhy
+    ? personalizeStories(stories, reader)
+    : visibleStories(stories, reader);
   return (
-    <>
+    <main>
       <section className="page-heading">
         <div>
           <p className="eyebrow">{t(eyebrow, eyebrowHi)}</p>
@@ -58,12 +64,12 @@ export function FeedScreen({
           <Link href="/settings">{t('Change area', 'क्षेत्र बदलें')}</Link>
         </div>
       )}
-      <main
+      <section
         className="story-feed narrow-feed"
         aria-label={t(`${title} story clusters`, `${titleHi} स्टोरी क्लस्टर`)}
       >
-        {stories.length ? (
-          stories.map((story, index) => (
+        {visible.length ? (
+          visible.map((story, index) => (
             <StoryCard
               key={story.slug}
               story={story}
@@ -75,17 +81,30 @@ export function FeedScreen({
           <section className="empty-state">
             <MapPin />
             <h2>
-              {t('No published clusters yet', 'अभी कोई प्रकाशित क्लस्टर नहीं')}
+              {stories.length
+                ? t(
+                    'No visible clusters in this edition',
+                    'इस संस्करण में कोई दृश्यमान क्लस्टर नहीं',
+                  )
+                : t('No published clusters yet', 'अभी कोई प्रकाशित क्लस्टर नहीं')}
             </h2>
             <p>
-              {t(
-                'Approved, evidence-backed reporting will appear here when available.',
-                'स्वीकृत और साक्ष्य-समर्थित रिपोर्टिंग उपलब्ध होने पर यहां दिखेगी।',
-              )}
+              {stories.length
+                ? t(
+                    'No published stories match this view. Check hidden sources in Settings.',
+                    'इस सूची में कोई प्रकाशित स्टोरी नहीं है। सेटिंग्स में छिपे स्रोत जांचें।',
+                  )
+                : t(
+                    'Approved, evidence-backed reporting will appear here when available.',
+                    'स्वीकृत और साक्ष्य-समर्थित रिपोर्टिंग उपलब्ध होने पर यहां दिखेगी।',
+                  )}
             </p>
+            <Link href={`/settings?lang=${language}`}>
+              {t('Manage preferences', 'प्राथमिकताएं बदलें')}
+            </Link>
           </section>
         )}
-      </main>
-    </>
+      </section>
+    </main>
   );
 }

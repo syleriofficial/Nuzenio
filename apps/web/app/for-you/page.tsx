@@ -24,13 +24,9 @@ export default async function ForYouPage({
         titleHi="आपके लिए"
         eyebrow="Explainable personalisation"
         eyebrowHi="समझने योग्य निजीकरण"
-        description="Based on followed topics, selected local edition and sources you have not hidden."
-        descriptionHi="फॉलो किए विषयों, चुने स्थानीय संस्करण और आपके न छिपाए स्रोतों पर आधारित।"
-        stories={stories.filter((story) =>
-          ['Business', 'Technology', 'Delhi NCR', 'Sports'].includes(
-            story.category,
-          ),
-        )}
+        description="Followed topics and sources first, then other recent stories. Hidden sources stay out."
+        descriptionHi="पहले फॉलो किए विषय और स्रोत, फिर अन्य हाल की स्टोरी। छिपे स्रोत बाहर रहेंगे।"
+        stories={stories}
         showWhy
       />
     </AppShell>
