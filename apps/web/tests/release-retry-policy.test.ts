@@ -46,14 +46,14 @@ describe('release Playwright retry policy', () => {
     const listed = result.stdout
       .split('\n')
       .filter((line) => /^\s*\[[^\]]+\] › /.test(line));
-    expect(listed).toHaveLength(42);
-    expect(new Set(listed).size).toBe(42);
+    expect(listed).toHaveLength(50);
+    expect(new Set(listed).size).toBe(50);
     expect(
       listed.filter((line) => line.includes('[reader-chromium]')),
-    ).toHaveLength(8);
+    ).toHaveLength(12);
     expect(
       listed.filter((line) => line.includes('[mobile-chromium]')),
-    ).toHaveLength(13);
+    ).toHaveLength(17);
     expect(listed.filter((line) => line.includes('[chromium]'))).toHaveLength(
       21,
     );

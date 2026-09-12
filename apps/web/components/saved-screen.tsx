@@ -7,13 +7,9 @@ import { Button } from '@/components/ui/button';
 import { StoryCard } from '@/components/story-card';
 import { usePreferences } from '@/lib/preferences';
 import { useReaderPreferences } from '@/lib/reader-preferences';
-import type { StoryCluster } from '@/lib/story-types';
+import { fetchSavedStory, type SavedResult } from '@/lib/fetch-saved-story';
 import { visibleStories } from '@/lib/reader-state';
 
-type SavedResult = { slug: string } & (
-  | { status: 'ready'; story: StoryCluster }
-  | { status: 'unavailable' | 'error' }
-);
 const PAGE_SIZE = 10;
 
 export function SavedScreen() {
@@ -60,34 +56,11 @@ export function SavedScreen() {
   useEffect(() => {
     const controller = new AbortController();
     if (!reader.ready || !slugs) return () => controller.abort();
-    const load = async (slug: string): Promise<SavedResult> => {
-      try {
-        const response = await fetch(
-          `/api/reader/story?slug=${encodeURIComponent(slug)}&language=${language}`,
-          {
-            cache: 'no-store',
-            credentials: 'omit',
-            signal: AbortSignal.any([
-              controller.signal,
-              AbortSignal.timeout(8000),
-            ]),
-          },
-        );
-        if (response.status === 404) return { slug, status: 'unavailable' };
-        if (!response.ok) return { slug, status: 'error' };
-        const payload = await response.json();
-        if (
-          !payload.story ||
-          payload.story.slug !== slug ||
-          !Array.isArray(payload.story.sources)
-        )
-          return { slug, status: 'error' };
-        return { slug, status: 'ready', story: payload.story };
-      } catch {
-        return { slug, status: 'error' };
-      }
-    };
-    void Promise.all(slugs.split(',').map(load)).then((results) => {
+    void Promise.all(
+      slugs
+        .split(',')
+        .map((slug) => fetchSavedStory(slug, language, controller.signal)),
+    ).then((results) => {
       if (!controller.signal.aborted) setLoaded({ key, results });
     });
     return () => controller.abort();

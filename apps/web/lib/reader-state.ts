@@ -43,7 +43,11 @@ export const INITIAL_READER_STATE: ReaderState = {
 
 function readList(storage: StoragePort, key: ListKey): string[] {
   const raw = storage.getItem(READER_KEYS[key]);
-  if (!raw || raw.length > 131072) return [];
+  if (!raw) return [];
+  // A legacy list can exceed the new-addition limit. Never overwrite a
+  // truncated/omitted view of it. Oversized data stays untouched and read-only.
+  if (raw.length > 131072)
+    throw new Error('Reader preferences exceed the safe parsing budget.');
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -59,7 +63,7 @@ function readList(storage: StoragePort, key: ListKey): string[] {
           : validSlug(value),
       ),
     ),
-  ].slice(0, MAX_PREFERENCES);
+  ];
 }
 
 // Only IDs/preferences are retained. Never persist article text or API payloads.

@@ -8,6 +8,95 @@ const nationalTitle =
 const technologyTitle =
   'Research consortium releases open language model for 12 Indian languages';
 
+test('legacy bookmarks beyond 200 survive detail removal and Saved reloads', async ({
+  page,
+}) => {
+  const ids = [
+    national,
+    ...Array.from({ length: 199 }, (_, i) => 'old-bookmark-' + i),
+    technology,
+  ];
+  await page.addInitScript((saved) => {
+    if (localStorage.getItem('nuzenio-saved') === null)
+      localStorage.setItem('nuzenio-saved', JSON.stringify(saved));
+  }, ids);
+  await page.goto('/saved?lang=en');
+  await expect(
+    page.getByText('201 bookmarks · Page 1/21', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: technologyTitle, exact: true }),
+  ).toBeVisible();
+  await page.goto('/story/' + national + '?lang=en');
+  await page.getByRole('button', { name: 'Saved', exact: true }).click();
+  await page.goto('/saved?lang=en');
+  await page.reload();
+  await expect(
+    page.getByText('200 bookmarks · Page 1/20', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: technologyTitle, exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('nuzenio-saved')!),
+    ),
+  ).toEqual(ids.slice(1));
+});
+
+for (const missing of ['any', 'timeout', 'both'] as const) {
+  test(`Saved loads and revalidates without AbortSignal ${missing}`, async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ missing, technology }) => {
+        const methods = missing === 'both' ? ['any', 'timeout'] : [missing];
+        for (const method of methods)
+          Object.defineProperty(AbortSignal, method, {
+            configurable: true,
+            value: undefined,
+          });
+        localStorage.setItem('nuzenio-saved', JSON.stringify([technology]));
+      },
+      { missing, technology },
+    );
+    await page.goto('/saved?lang=en');
+    await expect(
+      page.getByRole('heading', { name: technologyTitle, exact: true }),
+    ).toBeVisible();
+    await page.route('**/api/reader/story?**', (route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: '{"error":"Story unavailable."}',
+      }),
+    );
+    await page
+      .getByRole('button', { name: 'Refresh stories', exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', {
+        name: 'Story no longer publicly available',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: technologyTitle, exact: true }),
+    ).toHaveCount(0);
+    await page.unroute('**/api/reader/story?**');
+    await page
+      .getByRole('button', { name: 'Refresh stories', exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: technologyTitle, exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: technologyTitle, exact: true }),
+    ).toBeVisible();
+  });
+}
+
 test('saved pages bound fetching and keep long unavailable IDs readable', async ({
   page,
 }) => {

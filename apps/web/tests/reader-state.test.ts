@@ -144,6 +144,74 @@ describe('browser-local reader preferences', () => {
     expect(store.toggle('saved', ids[0])).toBe(true);
     expect(store.toggle('saved', 'overflow')).toBe(true);
   });
+  it.each(['saved', 'sources', 'hidden'] as const)(
+    'preserves legacy overflow in %s while limiting only future additions',
+    (key) => {
+      const ids = Array.from({ length: 251 }, (_, i) => 'legacy-' + i);
+      const raw = JSON.stringify(ids);
+      const data = storage({ [READER_KEYS[key]]: raw, unrelated: 'keep' });
+      const store = createReaderStore(() => data);
+      store.refresh();
+      expect(store.getSnapshot()[key]).toEqual(ids);
+      expect(data.getItem(READER_KEYS[key])).toBe(raw);
+      expect(store.toggle(key, 'new-item')).toBe(false);
+      expect(data.getItem(READER_KEYS[key])).toBe(raw);
+      for (const id of [ids[0], ids[125], ids[250]]) {
+        expect(store.toggle(key, id)).toBe(true);
+        ids.splice(ids.indexOf(id), 1);
+        expect(JSON.parse(data.getItem(READER_KEYS[key])!)).toEqual(ids);
+      }
+      const next = createReaderStore(() => data);
+      next.refresh();
+      expect(next.getSnapshot()[key]).toEqual(ids);
+      expect(data.getItem('unrelated')).toBe('keep');
+    },
+  );
+  it('removes exactly one of 201 old bookmarks and recovers addition capacity', () => {
+    const ids = Array.from({ length: 201 }, (_, i) => 'story-' + i);
+    const data = storage({ [READER_KEYS.saved]: JSON.stringify(ids) });
+    const store = createReaderStore(() => data);
+    expect(store.toggle('saved', 'story-0')).toBe(true);
+    expect(JSON.parse(data.getItem(READER_KEYS.saved)!)).toEqual(ids.slice(1));
+    expect(store.toggle('saved', 'new-story')).toBe(false);
+    expect(store.toggle('saved', 'story-200')).toBe(true);
+    expect(store.toggle('saved', 'new-story')).toBe(true);
+    expect(JSON.parse(data.getItem(READER_KEYS.saved)!)).toEqual([
+      ...ids.slice(1, 200),
+      'new-story',
+    ]);
+  });
+  it('preserves long legacy IDs and rereads overflow changes from other tabs', () => {
+    const ids = Array.from({ length: 300 }, (_, i) =>
+      ('story-' + i).padEnd(300, 'x'),
+    );
+    const data = storage({ [READER_KEYS.saved]: JSON.stringify(ids) });
+    const first = createReaderStore(() => data);
+    const second = createReaderStore(() => data);
+    first.refresh();
+    expect(second.toggle('saved', ids[299])).toBe(true);
+    expect(first.toggle('saved', ids[0])).toBe(true);
+    expect(first.getSnapshot().saved).toEqual(ids.slice(1, 299));
+    expect(JSON.parse(data.getItem(READER_KEYS.saved)!)).toEqual(
+      ids.slice(1, 299),
+    );
+  });
+  it('refuses edits rather than overwriting legacy storage above the parsing budget', () => {
+    const raw = JSON.stringify(
+      Array.from({ length: 500 }, (_, i) => ('story-' + i).padEnd(300, 'x')),
+    );
+    expect(raw.length).toBeGreaterThan(131072);
+    const data = storage({ [READER_KEYS.saved]: raw });
+    const store = createReaderStore(() => data);
+    store.refresh();
+    expect(store.getSnapshot().storageAvailable).toBe(false);
+    expect(store.toggle('saved', 'new-story')).toBe(false);
+    expect(data.getItem(READER_KEYS.saved)).toBe(raw);
+    // The user can still recover after replacing the oversized data externally.
+    data.setItem(READER_KEYS.saved, '["retained"]');
+    expect(store.toggle('saved', 'new-story')).toBe(true);
+    expect(store.getSnapshot().saved).toEqual(['retained', 'new-story']);
+  });
   it('persists source follows, hides and personalisation independently', () => {
     const data = storage(),
       store = createReaderStore(() => data);
