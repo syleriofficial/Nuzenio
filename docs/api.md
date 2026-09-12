@@ -1,5 +1,9 @@
 # Reader and editorial API
 
+Milestone 3C1 adds protected `/v1/admin/incoming-articles`, `/v1/admin/draft-workspaces`
+and `/v1/admin/incoming-articles/{articleId}/assign`. These are opt-in offline fixture
+endpoints, not publishing APIs. See [draft assignment contracts and limits](draft-inbox.md).
+
 Milestone 3B adds the write-only public report endpoint and authenticated report
 inbox/triage endpoints. See [reader report contracts and setup](reader-reports.md).
 

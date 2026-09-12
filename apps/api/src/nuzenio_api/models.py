@@ -102,6 +102,29 @@ class FeedRunState(StrEnum):
     SKIPPED = "SKIPPED"
 
 
+class DraftWorkspace(UUIDTimestampMixin, Base):
+    """Only inbox-created, still-unedited drafts accept inbox attachments."""
+
+    __tablename__ = "draft_workspaces"
+    cluster_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("event_clusters.id"), unique=True)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"))
+    assignment_revision: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (CheckConstraint("assignment_revision >= 1", name="ck_draft_revision"),)
+
+
+class ArticleDraftAssignment(UUIDTimestampMixin, Base):
+    """Durable idempotency receipt; editorial membership can subsequently evolve."""
+
+    __tablename__ = "article_draft_assignments"
+    article_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("articles.id"), unique=True)
+    cluster_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("event_clusters.id"), index=True)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("staff_users.id"))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    rights_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    article_version: Mapped[int] = mapped_column(Integer)
+    cluster_version: Mapped[int] = mapped_column(Integer)
+
+
 class ReaderReport(UUIDTimestampMixin, Base):
     __tablename__ = "reader_reports"
     __table_args__ = (

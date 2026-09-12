@@ -38,6 +38,7 @@ services:
       NUZENIO_DEMO_MODE: "true"
       NUZENIO_COOKIE_SECURE: "false"
       NUZENIO_FEED_KILL_SWITCH: "true"
+      NUZENIO_DRAFT_INBOX_ENABLED: "${NUZENIO_DRAFT_INBOX_ENABLED:-false}"
       NUZENIO_ALLOWED_HOSTS: '["localhost","127.0.0.1","api","testserver"]'
     ports:
       - "${API_PORT:-8000}:8000"

@@ -325,7 +325,7 @@ def test_runtime_can_persist_reports_but_audit_identity_cannot_read_private_text
 
 def test_migration_and_database_constraints():
     with SessionLocal() as db:
-        assert db.scalar(text("SELECT version_num FROM alembic_version")) == "76d934bfa102"
+        assert db.scalar(text("SELECT version_num FROM alembic_version")) == "a81c3d7e520b"
         assert (
             db.scalar(
                 text("SELECT count(*) FROM pg_constraint WHERE conrelid='reader_reports'::regclass")
@@ -368,7 +368,7 @@ def test_upgrade_from_3a_preserves_existing_rows_and_starts_with_empty_inbox(mon
         assert snapshot() == before
         with target.connect() as db:
             assert db.scalar(text("SELECT count(*) FROM reader_reports")) == 0
-            assert db.scalar(text("SELECT version_num FROM alembic_version")) == "76d934bfa102"
+            assert db.scalar(text("SELECT version_num FROM alembic_version")) == "a81c3d7e520b"
     finally:
         target.dispose()
         with admin.connect() as db:

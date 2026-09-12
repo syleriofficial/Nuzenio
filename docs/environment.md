@@ -1,5 +1,12 @@
 # Environment variables
 
+## Offline fixture draft inbox
+
+`NUZENIO_DRAFT_INBOX_ENABLED=false` by default. Enabling it requires explicit
+`development`/`test`, demo mode and the global network-feed kill switch ON.
+Production always rejects it. It never enables polling; see [the fixture inbox
+setup and separate test-database requirements](draft-inbox.md).
+
 ## Remediation settings
 
 `NUZENIO_DATABASE_URL` is the unprivileged runtime identity. Migrations receive
