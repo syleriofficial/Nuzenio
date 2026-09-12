@@ -102,6 +102,34 @@ class FeedRunState(StrEnum):
     SKIPPED = "SKIPPED"
 
 
+class ReaderReport(UUIDTimestampMixin, Base):
+    __tablename__ = "reader_reports"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('NEW','REVIEWING','RESOLVED','DISMISSED')", name="ck_report_status"
+        ),
+        CheckConstraint("language IN ('en','hi')", name="ck_report_language"),
+        CheckConstraint(
+            "category IN ('INACCURATE','OUTDATED','UNCLEAR','OTHER')", name="ck_report_category"
+        ),
+        CheckConstraint("version >= 1", name="ck_report_version"),
+        Index("ix_reader_reports_queue", "status", "created_at", "id"),
+    )
+    cluster_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("event_clusters.id", ondelete="SET NULL"), nullable=True
+    )
+    story_slug: Mapped[str] = mapped_column(String(300), nullable=False)
+    language: Mapped[str] = mapped_column(String(2), nullable=False)
+    category: Mapped[str] = mapped_column(String(20), nullable=False)
+    details: Mapped[str] = mapped_column(String(2000), nullable=False)
+    submission_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), server_default="NEW", nullable=False)
+    version: Mapped[int] = mapped_column(Integer, server_default="1", nullable=False)
+    resolution_note: Mapped[str] = mapped_column(String(1000), server_default="", nullable=False)
+    handled_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("staff_users.id"))
+
+
 class PublisherOrganization(UUIDTimestampMixin, Base):
     __tablename__ = "publisher_organizations"
     name: Mapped[str] = mapped_column(String(200), nullable=False)

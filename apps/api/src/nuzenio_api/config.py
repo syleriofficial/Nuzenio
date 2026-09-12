@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     login_verifier_timeout_seconds: float = Field(default=3, ge=0.1, le=10)
     login_lock_directory: str = f"{tempfile.gettempdir()}/nuzenio-password-{os.getuid()}"
     login_key_prefix: str = "nuzenio:auth:v2"
+    report_key_prefix: str = "nuzenio:reports:v1"
+    report_global_limit: int = Field(default=120, ge=1, le=10000)
+    report_peer_limit: int = Field(default=30, ge=1, le=10000)
+    report_window_seconds: int = Field(default=60, ge=10, le=3600)
     trusted_proxy_cidrs: list[str] = []
     feed_user_agent: str = "NuzenioFeedFetcher/0.4 (+https://nuzenio.example/feeds)"
     feed_timeout_seconds: float = 10.0

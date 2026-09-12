@@ -35,6 +35,7 @@ from nuzenio_api.pipeline.demo import (
     duplicate_groups,
 )
 from nuzenio_api.pipeline.interfaces import PipelineArticle
+from nuzenio_api.reader_reports import router as reports_router
 from nuzenio_api.schemas import (
     AdminActionResponse,
     BriefRead,
@@ -102,6 +103,7 @@ app.add_middleware(
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 register_error_handlers(app)
 app.include_router(admin_router)
+app.include_router(reports_router)
 
 
 @app.middleware("http")
