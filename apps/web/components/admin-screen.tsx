@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ReaderReportInbox } from '@/components/reader-report-inbox';
 import {
   AdminApiError,
   resetPrivateRequests,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/admin-api-client';
 
 type TabId =
+  | 'reports'
   | 'sources'
   | 'health'
   | 'clusters'
@@ -195,6 +197,7 @@ const tabs: Array<{
   { id: 'health', label: 'Feed health', permission: 'feed:operate' },
   { id: 'clusters', label: 'Clusters', permission: 'review:read' },
   { id: 'corrections', label: 'Corrections', permission: 'correction:manage' },
+  { id: 'reports', label: 'Reader reports', permission: 'report:read' },
   { id: 'risk', label: 'High-risk review', permission: 'review:read' },
   { id: 'edition', label: 'Edition control', permission: 'edition:pause' },
   { id: 'audit', label: 'Audit', permission: 'audit:read' },
@@ -617,6 +620,14 @@ export function AdminScreen() {
           clusters={clusters}
           csrfToken={csrfToken}
           mutate={mutate}
+        />
+      )}
+      {active === 'reports' && (
+        <ReaderReportInbox
+          key={session.id}
+          csrfToken={csrfToken}
+          canManage={hasPermission(session, 'report:manage')}
+          onUnauthorized={clearPrivateState}
         />
       )}
       {active === 'risk' && (

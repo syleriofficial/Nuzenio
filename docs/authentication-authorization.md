@@ -40,6 +40,7 @@ API permissions are authoritative. The web workspace only uses the same permissi
 | Approve or reject summaries | ✓ | ✓ | ✓ | — | — |
 | Final high-risk approval / alert readiness | ✓ | — | ✓ | — | — |
 | Open and publish corrections | ✓ | ✓ | ✓ | — | — |
+| Read and triage private reader reports | ✓ | ✓ | ✓ | — | — |
 | Create and manage publishers, domains, rights drafts and feeds | ✓ | — | — | ✓ | — |
 | Review domains, rights and feed onboarding transitions | ✓ | — | — | ✓ | — |
 | Dry-run, run, pause and retry feeds | ✓ | — | — | ✓ | — |

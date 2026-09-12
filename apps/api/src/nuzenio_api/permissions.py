@@ -19,6 +19,8 @@ class Permission(StrEnum):
     EDITION_PAUSE = "edition:pause"
     AUDIT_READ = "audit:read"
     AUDIT_EXPORT = "audit:export"
+    REPORT_READ = "report:read"
+    REPORT_MANAGE = "report:manage"
 
 
 ALL_PERMISSIONS = frozenset(Permission)
@@ -32,6 +34,8 @@ ROLE_PERMISSIONS: dict[StaffRole, frozenset[Permission]] = {
             Permission.CLAIM_EDIT,
             Permission.SUMMARY_REVIEW,
             Permission.CORRECTION_MANAGE,
+            Permission.REPORT_READ,
+            Permission.REPORT_MANAGE,
         }
     ),
     StaffRole.REVIEWER: frozenset(
@@ -41,6 +45,8 @@ ROLE_PERMISSIONS: dict[StaffRole, frozenset[Permission]] = {
             Permission.SUMMARY_REVIEW,
             Permission.HIGH_RISK_APPROVE,
             Permission.CORRECTION_MANAGE,
+            Permission.REPORT_READ,
+            Permission.REPORT_MANAGE,
         }
     ),
     StaffRole.PUBLISHER_MANAGER: frozenset(
