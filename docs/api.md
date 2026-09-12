@@ -1,5 +1,8 @@
 # Reader and editorial API
 
+Milestone 3B adds the write-only public report endpoint and authenticated report
+inbox/triage endpoints. See [reader report contracts and setup](reader-reports.md).
+
 ## Remediation contract additions
 
 - Review queue entries now include `contributorIds`, `provenanceComplete`, `approvalEligible` and

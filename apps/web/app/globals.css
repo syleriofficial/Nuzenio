@@ -1,5 +1,35 @@
 @import 'tailwindcss';
 
+.reader-report-inbox,
+.reader-report-card form {
+  display: grid;
+  gap: 1rem;
+}
+.reader-report-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.reader-report-card h3,
+.report-user-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.reader-report-inbox label,
+.report-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+.reader-report-inbox select,
+.report-form select {
+  color: inherit;
+  background: var(--background);
+  border: 1px solid var(--border);
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

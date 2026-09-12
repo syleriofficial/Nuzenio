@@ -26,10 +26,10 @@ describe('release Playwright retry policy', () => {
       'reader-chromium',
       'mobile-chromium',
     ]);
-    expect(reader?.testMatch).toEqual(/reader-mvp\.spec\.ts/);
-    expect(editorial?.testIgnore).toEqual(/reader-mvp\.spec\.ts/);
+    expect(reader?.testMatch).toEqual(/reader-(?:mvp|reports)\.spec\.ts/);
+    expect(editorial?.testIgnore).toEqual(/reader-(?:mvp|reports)\.spec\.ts/);
     expect(mobile?.testMatch).toEqual(
-      /(?:accessibility|founder-acceptance|reader-mvp)\.spec\.ts/,
+      /(?:accessibility|founder-acceptance|reader-mvp|reader-reports)\.spec\.ts/,
     );
     expect(reader?.dependencies ?? []).toEqual([]);
     expect(mobile?.dependencies ?? []).toEqual([]);
@@ -46,14 +46,14 @@ describe('release Playwright retry policy', () => {
     const listed = result.stdout
       .split('\n')
       .filter((line) => /^\s*\[[^\]]+\] › /.test(line));
-    expect(listed).toHaveLength(50);
-    expect(new Set(listed).size).toBe(50);
+    expect(listed).toHaveLength(60);
+    expect(new Set(listed).size).toBe(60);
     expect(
       listed.filter((line) => line.includes('[reader-chromium]')),
-    ).toHaveLength(12);
+    ).toHaveLength(17);
     expect(
       listed.filter((line) => line.includes('[mobile-chromium]')),
-    ).toHaveLength(17);
+    ).toHaveLength(22);
     expect(listed.filter((line) => line.includes('[chromium]'))).toHaveLength(
       21,
     );

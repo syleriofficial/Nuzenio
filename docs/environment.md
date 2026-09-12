@@ -53,6 +53,7 @@ Copy `.env.example` to `.env` only for local development. Never commit a populat
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Browser-compatible reader API URL; must contain no credential. |
 | `NEXT_PUBLIC_ADMIN_API_BASE_URL` | `http://localhost:8000` | Credentialed admin API origin. CORS must explicitly allow the web origin. |
 | `NUZENIO_ENABLE_DEMO_FALLBACK` | `false` | Explicit fixture fallback for non-production reader connectivity/5xx failures only. |
+| `NUZENIO_REPORT_WEB_ORIGIN` | `http://localhost:3000` | Required canonical browser origin for report POSTs. No trailing slash; exact match, no Host/forwarded-header inference. Export into the web process or set apps/web/.env.local. Missing/malformed value returns 503; mismatched Origin returns 403. |
 
 Production code disables reader fixture fallback regardless of its configured value. Admin operations never have a fixture fallback.
 
@@ -76,6 +77,12 @@ Production code disables reader fixture fallback regardless of its configured va
 | `NUZENIO_READINESS_TIMEOUT_SECONDS` | `2` | Bounded Redis connection/read timeout for readiness. |
 
 ## Staff security
+
+Reader reports have independent Redis admission: `NUZENIO_REPORT_GLOBAL_LIMIT=120`,
+`NUZENIO_REPORT_PEER_LIMIT=30`, `NUZENIO_REPORT_WINDOW_SECONDS=60` and
+`NUZENIO_REPORT_KEY_PREFIX=nuzenio:reports:v1`. These are fixed-window attempt caps,
+not quotas per reader. The same-origin web proxy intentionally does not forward
+client IP headers, so its visitors share a peer bucket. See [reporting limits](reader-reports.md).
 
 | Variable | Local default | Purpose |
 | --- | --- | --- |

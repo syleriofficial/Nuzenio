@@ -24,7 +24,7 @@ export default defineConfig({
   projects: [
     {
       name: 'reader-chromium',
-      testMatch: /reader-mvp\.spec\.ts/,
+      testMatch: /reader-(?:mvp|reports)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1440, height: 900 },
@@ -35,7 +35,7 @@ export default defineConfig({
       // Reader assertions need the unchanged seed. The editorial suite below
       // deliberately splits those clusters and publishes corrected headlines.
       dependencies: ['reader-chromium', 'mobile-chromium'],
-      testIgnore: /reader-mvp\.spec\.ts/,
+      testIgnore: /reader-(?:mvp|reports)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1440, height: 900 },
@@ -47,7 +47,8 @@ export default defineConfig({
         ...devices['Pixel 7'],
         viewport: { width: 390, height: 844 },
       },
-      testMatch: /(?:accessibility|founder-acceptance|reader-mvp)\.spec\.ts/,
+      testMatch:
+        /(?:accessibility|founder-acceptance|reader-mvp|reader-reports)\.spec\.ts/,
     },
   ],
   webServer: [
@@ -79,6 +80,7 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         NUZENIO_API_BASE_URL: apiOrigin,
+        NUZENIO_REPORT_WEB_ORIGIN: webOrigin,
         NEXT_PUBLIC_API_BASE_URL: apiOrigin,
         NEXT_PUBLIC_ADMIN_API_BASE_URL: apiOrigin,
         NUZENIO_ENABLE_DEMO_FALLBACK: 'false',

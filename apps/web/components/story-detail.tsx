@@ -1,6 +1,6 @@
 'use client';
 
-import { type SyntheticEvent, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { ReaderReportForm } from '@/components/reader-report-form';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
 import { useReaderPreferences } from '@/lib/reader-preferences';
@@ -60,7 +60,6 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
   const reader = useReaderPreferences();
   const saved = reader.saved.includes(story.slug);
   const [reportOpen, setReportOpen] = useState(false);
-  const [reported, setReported] = useState(false);
   const [message, setMessage] = useState('');
   const share = async () => {
     if (navigator.share)
@@ -70,17 +69,6 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
       });
     else await navigator.clipboard?.writeText(window.location.href);
     setMessage(t('Link copied', 'लिंक कॉपी हुआ'));
-  };
-  const submitReport = (event: SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setReported(true);
-    setReportOpen(false);
-    setMessage(
-      t(
-        'Issue submitted for editorial review',
-        'मुद्दा संपादकीय समीक्षा के लिए भेजा गया',
-      ),
-    );
   };
   const facts =
     language === 'hi'
@@ -180,47 +168,11 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
         </div>
       )}
       {reportOpen && (
-        <form className="report-form" onSubmit={submitReport}>
-          <div>
-            <h2>{t('Report an issue', 'मुद्दा रिपोर्ट करें')}</h2>
-            <p>
-              {t(
-                'Tell the editorial team what may be inaccurate, outdated or unclear.',
-                'संपादकीय टीम को बताएं कि क्या गलत, पुराना या अस्पष्ट हो सकता है।',
-              )}
-            </p>
-          </div>
-          <label>
-            {t('Details', 'विवरण')}
-            <Textarea
-              required
-              minLength={10}
-              placeholder={t(
-                'Describe the issue and, if possible, name the source.',
-                'मुद्दा बताएं और संभव हो तो स्रोत का नाम दें।',
-              )}
-            />
-          </label>
-          <div>
-            <Button type="submit">{t('Submit', 'भेजें')}</Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setReportOpen(false)}
-            >
-              {t('Cancel', 'रद्द करें')}
-            </Button>
-          </div>
-        </form>
-      )}
-      {reported && (
-        <p className="success-banner">
-          <Check />{' '}
-          {t(
-            'Thank you. This cluster is now in the editorial issue queue.',
-            'धन्यवाद। यह क्लस्टर अब संपादकीय मुद्दा कतार में है।',
-          )}
-        </p>
+        <ReaderReportForm
+          key={story.slug}
+          slug={story.slug}
+          onClose={() => setReportOpen(false)}
+        />
       )}
 
       <div className="detail-layout">
