@@ -57,3 +57,47 @@ worktree. Test containers/data belong only to this validation and are disposable
 GitHub exact-commit CI has **not** been claimed for this local implementation. Push/PR and a fresh
 independent review are the next gates; this report does not authorize merging.
 See [workflow, API and deliberate limitations](draft-inbox.md).
+
+## PR #5 targeted remediation — 2026-09-13
+
+The original implementation above was pushed at `42a9ca7f07a401a5bc835b3a859b02c5ccd348d4`.
+Independent review reproduced two P2 defects despite that head's passing CI:
+
+1. A revoked source headline remained visible in the draft-target response.
+2. Opening a correction against a member article did not block a later inbox attachment.
+
+### Fixes
+
+- Draft target labels require a unique creation receipt, retained original membership, matching
+  source text and current source eligibility. Unknown, edited, revoked or otherwise blocked text is
+  replaced with a generic ID-bearing label. Stored editorial text and history are not rewritten.
+- The shared target gate includes corrections against any current member article, in addition to
+  direct cluster corrections. Current members are locked after the cluster and before the gate,
+  coordinating with the correction INSERT's PostgreSQL foreign-key key-share locks.
+- No schema, frontend, dependency, workflow, role grant or production activation change.
+
+### Local evidence on the remediation diff
+
+| Check | Result |
+| --- | --- |
+| Added regressions before implementation fix | 17 expected failures, two passing cluster-correction controls |
+| Added repository cases | 27; the complete inbox module now contains 58 tests |
+| Full API/security/migration suite, real isolated PostgreSQL/Redis, Python 3.14.4 | 1,131 passed |
+| Original reviewer-authored script executed unchanged by implementation task | Four passed: both defect reproductions and both controls |
+| Ruff lint and formatting | Passed; 79 files already formatted |
+| Git diff integrity | Passed |
+
+Coverage includes English/Hindi; API rights revocation; expiry and headline-permission loss; paused
+or ineligible sources; absent/ambiguous origins and changed membership/text; initial versus later
+source identity; primary/secondary article and direct cluster corrections; an unrelated-article
+control; unchanged assignment graph/audit on rejection; and an actual correction API commit while
+an assignment waits for a member-article lock. The original 31 inbox cases remain covered.
+
+The reviewer script was authored during the preceding independent review, but this rerun and these
+fixes were performed by the implementation task. They are not a fresh independent closure review.
+Matching GitHub CI is a separate post-push gate; its final SHA/run evidence belongs in PR #5.
+Web/browser/Compose suites were not rerun locally in this API-only remediation; the unchanged CI
+gates must still pass. No broader production-readiness or rights-licensing guarantee is claimed.
+
+Alembic stays at `a81c3d7e520b`. Live feeds stay disabled. Existing previews/services and main are
+outside this change; temporary test data is isolated and disposable. Re-review is required before merge.

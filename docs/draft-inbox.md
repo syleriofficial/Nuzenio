@@ -43,6 +43,10 @@ Bootstrap staff only through the existing password-prompting CLI. Sign in at `/a
 1. Inspect the paginated Unassigned/Assigned/All queue. Source language, version and eligibility are
    explicit. Blocked items withhold headline, excerpt and original URL in this inbox.
 2. Create a private draft, or select an eligible inbox-created draft and attach the article.
+   The target label repeats a source headline only while the untouched draft has one provable,
+   currently eligible creation source. Revoked/expired/ineligible sources, unknown origins and
+   edited or otherwise blocked targets use `Private draft <id> (headline withheld)` instead.
+   This does not erase the stored headline/history or change broader editorial access.
 3. The result is always **HIGH risk, HELD, PENDING**, with push readiness false. No claims, summaries,
    evidence assertions, translation, briefs or notifications are generated.
 4. Open the existing editorial workspace. Factual writing, evidence, language work, corrections and
@@ -95,10 +99,21 @@ membership, retry returns 409 rather than reconstructing it. The browser retains
 only in the mounted staff-session component; refresh/version/target changes use a new operation.
 
 Attachments are limited to inbox-created drafts still at their recorded assignment revision with
-no claims, summaries, primary documents, corrections or prior review decisions. Existing published,
+no claims, summaries, primary documents, corrections or prior review decisions. Corrections include
+both direct cluster corrections and corrections against **any existing member article**, with no
+status exception. The shared gate is used by the dropdown and the assignment transaction. Current
+member articles are locked in UUID order after the cluster; this serializes the gate with PostgreSQL's
+foreign-key locks for concurrent article-correction creation. Existing published,
 suppressed, edited or otherwise authored clusters require the editorial workflow. Attaching an article
 increments the material revision, supersedes the prior pending review and retains all contributors.
 Administrators are not exempt from the no-self-approval rule.
+
+The headline origin is identified by the creation receipt (`cluster_version=1`), retained membership
+and matching source text, not by whichever article was attached most recently. Later eligible articles
+cannot reauthorize a revoked origin label. Missing/ambiguous receipts withhold the label; they do not
+invent source lineage. This is a response-time inbox label policy, not remote erasure of previously
+delivered text. Attaching an independently eligible article does not in itself reauthorize other
+articles in the draft. Publisher-rights checks elsewhere in the editorial workflow remain separate.
 
 ## Migration and durability
 

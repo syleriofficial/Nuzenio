@@ -1,12 +1,13 @@
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from threading import Event
 
 import pytest
 from alembic import command
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-from sqlalchemy import create_engine, func, select, text
+from sqlalchemy import create_engine, event, func, select, text
 
 from nuzenio_api import draft_inbox
 from nuzenio_api.config import Settings, get_settings
@@ -148,6 +149,235 @@ def assign(inbox, article_id, payload=None):
         headers=headers,
         json=payload or request_for(article_id),
     )
+
+
+def draft_row(inbox, cluster_id):
+    response = inbox[0].get("/v1/admin/draft-workspaces?page_size=50")
+    assert response.status_code == 200, response.text
+    assert "no-store" in response.headers["cache-control"]
+    return next(row for row in response.json()["items"] if row["id"] == str(cluster_id))
+
+
+def open_correction(inbox, **target):
+    response = inbox[0].post(
+        "/v1/admin/corrections",
+        headers=inbox[1],
+        json={
+            **target,
+            "description": "This fictional source assertion needs correction.",
+            "sourceUrl": "https://review.example/correction",
+            "evidence": "Offline correction regression, not actual news.",
+        },
+    )
+    assert response.status_code == 200, response.text
+    return response
+
+
+def assignment_snapshot(cluster_id, incoming_id):
+    with SessionLocal() as db:
+        cluster = db.get(EventCluster, cluster_id)
+        return {
+            "cluster": (cluster.version, cluster.material_revision, cluster.review_state),
+            "article": db.get(Article, incoming_id).version,
+            **{
+                model.__tablename__: set(
+                    db.scalars(select(model.id).where(model.cluster_id == cluster_id))
+                )
+                for model in (
+                    ClusterArticle,
+                    ArticleDraftAssignment,
+                    EditorialReview,
+                    MaterialContributor,
+                )
+            },
+            "audit": set(
+                db.scalars(select(AuditLog.id).where(AuditLog.action == "FIXTURE_ARTICLE_ASSIGNED"))
+            ),
+        }
+
+
+@pytest.mark.parametrize("language", ["en", "hi"])
+@pytest.mark.parametrize(
+    "change", ["revoke", "expiry", "headline_right", "publisher", "feed", "domain"]
+)
+def test_draft_target_withholds_ineligible_origin_headline(inbox, language, change):
+    article_id = source_articles(language)[0]
+    created = assign(inbox, article_id).json()
+    title = draft_row(inbox, created["clusterId"])["title"]
+    with SessionLocal() as db:
+        assert title == db.get(Article, article_id).title
+        rights_id = db.get(Article, article_id).feed.rights_policy_id
+    if change == "revoke":
+        admin = make_staff(StaffRole.ADMINISTRATOR)
+        client, csrf = login(admin)
+        response = client.post(
+            f"/v1/admin/rights/{rights_id}/transition",
+            headers={"X-CSRF-Token": csrf},
+            json={"expectedVersion": 1, "state": "BLOCKED", "notes": "Fixture rights revoked."},
+        )
+        assert response.status_code == 200, response.text
+    else:
+        with SessionLocal.begin() as db:
+            article = db.get(Article, article_id)
+            if change == "expiry":
+                article.feed.rights_policy.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+            elif change == "headline_right":
+                article.feed.rights_policy.may_use_headline = False
+            elif change == "publisher":
+                article.feed.organization.active = False
+            elif change == "feed":
+                article.feed.kill_switch = True
+            else:
+                db.get(PublisherDomain, article.feed.domain_id).verified = False
+    incoming = inbox[0].get("/v1/admin/incoming-articles?state=ALL&page_size=50").json()
+    source = next(row for row in incoming["items"] if row["id"] == str(article_id))
+    assert source["title"] is None and source["blockedReasons"]
+    target = draft_row(inbox, created["clusterId"])
+    assert title not in target["title"]
+    assert "headline withheld" in target["title"]
+    assert target["id"] == created["clusterId"] and target["version"] == 1
+    with SessionLocal() as db:
+        assert db.get(EventCluster, uuid.UUID(created["clusterId"])).neutral_headline == title
+
+
+@pytest.mark.parametrize("change", ["receipt", "membership", "edited", "source_title"])
+def test_draft_target_does_not_guess_unknown_or_edited_headline_origin(inbox, change):
+    article_id = source_articles()[0]
+    created = assign(inbox, article_id).json()
+    cluster_id = uuid.UUID(created["clusterId"])
+    old_title = draft_row(inbox, cluster_id)["title"]
+    with SessionLocal.begin() as db:
+        if change == "receipt":
+            db.delete(
+                db.scalar(
+                    select(ArticleDraftAssignment).where(
+                        ArticleDraftAssignment.article_id == article_id
+                    )
+                )
+            )
+        elif change == "membership":
+            db.delete(
+                db.scalar(select(ClusterArticle).where(ClusterArticle.article_id == article_id))
+            )
+        elif change == "edited":
+            cluster = db.get(EventCluster, cluster_id)
+            cluster.neutral_headline = "An edited assertion outside the inbox's source proof."
+            cluster.version += 1
+            cluster.material_revision += 1
+        else:
+            db.get(Article, article_id).title = "Changed source text without matching draft text."
+    target = draft_row(inbox, cluster_id)
+    assert old_title not in target["title"]
+    assert "headline withheld" in target["title"]
+
+
+@pytest.mark.parametrize("change", ["origin_revoked", "other_revoked", "ambiguous_receipt"])
+def test_target_label_uses_creation_origin_not_a_later_attachment(inbox, change):
+    original = source_articles()[0]
+    other = source_articles("hi")[0]
+    created = assign(inbox, original).json()
+    cluster_id = uuid.UUID(created["clusterId"])
+    headline = draft_row(inbox, cluster_id)["title"]
+    result = assign(
+        inbox, other, request_for(other, targetClusterId=str(cluster_id), expectedClusterVersion=1)
+    )
+    assert result.status_code == 200, result.text
+    assert draft_row(inbox, cluster_id)["title"] == headline
+    with SessionLocal.begin() as db:
+        if change == "ambiguous_receipt":
+            receipt = db.scalar(
+                select(ArticleDraftAssignment).where(ArticleDraftAssignment.article_id == other)
+            )
+            receipt.cluster_version = 1  # An inconsistent history is not proof of source text.
+        else:
+            article = db.get(Article, original if change == "origin_revoked" else other)
+            article.feed.rights_policy.revoked_at = datetime.now(UTC)
+    row = draft_row(inbox, cluster_id)
+    if change == "other_revoked":
+        assert row["title"] == headline  # This label contains only the still-eligible origin text.
+    else:
+        assert headline not in row["title"] and "headline withheld" in row["title"]
+
+
+@pytest.mark.parametrize("language", ["en", "hi"])
+@pytest.mark.parametrize("kind", ["cluster", "primary_article", "secondary_article"])
+def test_target_corrections_block_assignment_without_mutation(inbox, language, kind):
+    ids = source_articles(language, count=3)
+    created = assign(inbox, ids[0]).json()
+    cluster_id = uuid.UUID(created["clusterId"])
+    attached = assign(
+        inbox,
+        ids[1],
+        request_for(ids[1], targetClusterId=str(cluster_id), expectedClusterVersion=1),
+    )
+    assert attached.status_code == 200, attached.text
+    assert not draft_row(inbox, cluster_id)["blockedReasons"]
+    target = (
+        {"clusterId": str(cluster_id)}
+        if kind == "cluster"
+        else {"articleId": str(ids[0 if kind == "primary_article" else 1])}
+    )
+    open_correction(inbox, **target)
+    snapshot = assignment_snapshot(cluster_id, ids[2])
+    row = draft_row(inbox, cluster_id)
+    assert "target_has_editorial_material" in row["blockedReasons"]
+    result = assign(
+        inbox,
+        ids[2],
+        request_for(ids[2], targetClusterId=str(cluster_id), expectedClusterVersion=2),
+    )
+    assert result.status_code == 409 and result.json()["error"]["code"] == "draft_locked"
+    assert assignment_snapshot(cluster_id, ids[2]) == snapshot
+
+
+def test_unrelated_article_correction_does_not_lock_target(inbox):
+    ids = source_articles(count=3)
+    created = assign(inbox, ids[0]).json()
+    open_correction(inbox, articleId=str(ids[2]))
+    assert draft_row(inbox, created["clusterId"])["blockedReasons"] == []
+    result = assign(
+        inbox,
+        ids[1],
+        request_for(ids[1], targetClusterId=created["clusterId"], expectedClusterVersion=1),
+    )
+    assert result.status_code == 200, result.text
+
+
+def test_article_correction_committed_during_target_lock_wait_blocks_assignment(inbox):
+    ids = source_articles()
+    created = assign(inbox, ids[0]).json()
+    cluster_id = uuid.UUID(created["clusterId"])
+    payload = request_for(ids[1], targetClusterId=str(cluster_id), expectedClusterVersion=1)
+    snapshot = assignment_snapshot(cluster_id, ids[1])
+    correction_user = make_staff(StaffRole.EDITOR)
+    correction_client, csrf = login(correction_user)
+    correction_inbox = correction_client, {"X-CSRF-Token": csrf}, correction_user
+    waiting = Event()
+    with SessionLocal() as db:
+        target_engine = db.get_bind()
+
+    def observe(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if "FOR UPDATE OF articles" in statement:
+            waiting.set()
+
+    event.listen(target_engine, "before_cursor_execute", observe)
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with SessionLocal.begin() as db:
+                # A correction's FK key-share lock may coexist here, but the
+                # assignment must wait before evaluating member corrections.
+                db.execute(
+                    text("SELECT id FROM articles WHERE id=:id FOR KEY SHARE"), {"id": ids[0]}
+                )
+                future = pool.submit(assign, inbox, ids[1], payload)
+                assert waiting.wait(5), "Assignment did not lock existing target articles"
+                assert not future.done()
+                open_correction(correction_inbox, articleId=str(ids[0]))
+            result = future.result(timeout=15)
+        assert result.status_code == 409 and result.json()["error"]["code"] == "draft_locked"
+        assert assignment_snapshot(cluster_id, ids[1]) == snapshot
+    finally:
+        event.remove(target_engine, "before_cursor_execute", observe)
 
 
 @pytest.mark.parametrize("language", ["en", "hi"])

@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import ConfigDict, Field, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from nuzenio_api.audit import append_audit
@@ -167,9 +167,22 @@ def target_blockers(
         or workspace.assignment_revision != cluster.material_revision
     ):
         return ["target_requires_editorial_workflow"]
-    for model in (Claim, SummaryVersion, PrimaryDocument, Correction):
+    for model in (Claim, SummaryVersion, PrimaryDocument):
         if session.scalar(select(model.id).where(model.cluster_id == cluster.id).limit(1)):
             return ["target_has_editorial_material"]
+    if session.scalar(
+        select(Correction.id)
+        .where(
+            or_(
+                Correction.cluster_id == cluster.id,
+                Correction.article_id.in_(
+                    select(ClusterArticle.article_id).where(ClusterArticle.cluster_id == cluster.id)
+                ),
+            )
+        )
+        .limit(1)
+    ):
+        return ["target_has_editorial_material"]
     if session.scalar(
         select(EditorialReview.id)
         .where(
@@ -180,6 +193,42 @@ def target_blockers(
     ):
         return ["target_has_review_decision"]
     return []
+
+
+def target_title(session: Session, cluster: EventCluster, blockers: list[str]) -> str:
+    """Expose copied text only with a current, unambiguous eligible origin.
+
+    The creation receipt records cluster version one. Later attachments are not
+    proof of the headline's source; neither are edited or restructured drafts.
+    Keep their IDs selectable/readable without repeating unproven source text.
+    This is an inbox response policy, not a rewrite of editorial/history data.
+    """
+    withheld = f"Private draft {cluster.id} (headline withheld)"
+    if blockers:
+        return withheld
+    origins = list(
+        session.scalars(
+            select(Article)
+            .join(ArticleDraftAssignment, ArticleDraftAssignment.article_id == Article.id)
+            .join(ClusterArticle, ClusterArticle.article_id == Article.id)
+            .where(
+                ArticleDraftAssignment.cluster_id == cluster.id,
+                ArticleDraftAssignment.cluster_version == 1,
+                ClusterArticle.cluster_id == cluster.id,
+            )
+            .options(
+                joinedload(Article.feed).joinedload(SourceFeed.organization),
+                joinedload(Article.feed).joinedload(SourceFeed.rights_policy),
+            )
+            .limit(2)
+        )
+    )
+    if len(origins) != 1:
+        return withheld
+    origin = origins[0]
+    if cluster.neutral_headline != origin.title or blocked_reasons(session, origin, origin.feed):
+        return withheld
+    return cluster.neutral_headline
 
 
 class AssignmentRequest(APIModel):
@@ -321,16 +370,19 @@ def draft_workspaces(
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    return DraftPage(
-        items=[
+    items = []
+    for cluster, workspace in rows:
+        blockers = target_blockers(session, cluster, workspace)
+        items.append(
             DraftRead(
                 id=cluster.id,
-                title=cluster.neutral_headline,
+                title=target_title(session, cluster, blockers),
                 version=cluster.version,
-                blocked_reasons=target_blockers(session, cluster, workspace),
+                blocked_reasons=blockers,
             )
-            for cluster, workspace in rows
-        ],
+        )
+    return DraftPage(
+        items=items,
         pagination=Pagination(
             page=page, page_size=page_size, total=total, total_pages=math.ceil(total / page_size)
         ),
@@ -359,6 +411,17 @@ def assign_article(
         workspace = session.scalar(
             select(DraftWorkspace).where(DraftWorkspace.cluster_id == payload.target_cluster_id)
         )
+        # Article-targeted correction INSERTs acquire a key-share FK lock on
+        # their article, not the cluster. Lock current members before checking
+        # corrections so an in-flight correction commits before that check,
+        # or starts only after this assignment. Keep cluster -> article order.
+        session.execute(
+            select(Article.id)
+            .join(ClusterArticle, ClusterArticle.article_id == Article.id)
+            .where(ClusterArticle.cluster_id == payload.target_cluster_id)
+            .order_by(Article.id)
+            .with_for_update(of=Article)
+        ).all()
     article = session.scalar(select(Article).where(Article.id == article_id).with_for_update())
     if not feed or article is None or article.feed_id != feed.id:
         fail("source_changed", "Source changed. Refresh before retrying.")
