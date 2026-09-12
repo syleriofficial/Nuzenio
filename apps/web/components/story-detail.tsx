@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
 
 function FactSection({
   kind,
@@ -56,7 +57,8 @@ function FactSection({
 
 export function StoryDetail({ story }: { story: StoryCluster }) {
   const { language, t } = usePreferences();
-  const [saved, setSaved] = useState(false);
+  const reader = useReaderPreferences();
+  const saved = reader.saved.includes(story.slug);
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState(false);
   const [message, setMessage] = useState('');
@@ -135,8 +137,24 @@ export function StoryDetail({ story }: { story: StoryCluster }) {
         <div className="detail-actions">
           <Button
             variant={saved ? 'secondary' : 'outline'}
-            onClick={() => setSaved(!saved)}
+            onClick={() => {
+              const ok = reader.toggle('saved', story.slug);
+              setMessage(
+                ok
+                  ? saved
+                    ? t('Removed from saved stories', 'सेव से हटाया गया')
+                    : t(
+                        'Story saved on this browser',
+                        'स्टोरी इस ब्राउज़र पर सेव हुई',
+                      )
+                  : t(
+                      'Could not save. Check browser storage or remove older items.',
+                      'सेव नहीं हुआ। ब्राउज़र स्टोरेज जांचें या पुराने आइटम हटाएं।',
+                    ),
+              );
+            }}
             aria-pressed={saved}
+            disabled={!reader.ready}
           >
             <Bookmark /> {saved ? t('Saved', 'सेव') : t('Save', 'सेव करें')}
           </Button>

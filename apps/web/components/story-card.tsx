@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   BellPlus,
   Bookmark,
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { whyStory } from '@/lib/reader-state';
 
 export function StoryCard({
   story,
@@ -25,39 +27,22 @@ export function StoryCard({
   showWhy?: boolean;
 }) {
   const { language, t } = usePreferences();
-  const [saved, setSaved] = useState(false);
-  const [followed, setFollowed] = useState(false);
+  const reader = useReaderPreferences();
+  const saved = reader.saved.includes(story.slug);
+  const followed = reader.topics.includes(story.category);
   const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    setSaved(
-      JSON.parse(localStorage.getItem('nuzenio-saved') ?? '[]').includes(
-        story.slug,
+  const failed = () =>
+    setMessage(
+      t(
+        'Could not save this preference. Check browser storage or remove older items.',
+        'प्राथमिकता सेव नहीं हुई। ब्राउज़र स्टोरेज जांचें या पुराने आइटम हटाएं।',
       ),
     );
-    setFollowed(
-      JSON.parse(
-        localStorage.getItem('nuzenio-followed-topics') ?? '[]',
-      ).includes(story.category),
-    );
-  }, [story.category, story.slug]);
-
-  const toggleInStorage = (key: string, value: string, active: boolean) => {
-    const values: string[] = JSON.parse(localStorage.getItem(key) ?? '[]');
-    localStorage.setItem(
-      key,
-      JSON.stringify(
-        active
-          ? values.filter((item) => item !== value)
-          : [...new Set([...values, value])],
-      ),
-    );
-  };
 
   const toggleSaved = () => {
-    toggleInStorage('nuzenio-saved', story.slug, saved);
-    setSaved(!saved);
+    if (!reader.toggle('saved', story.slug)) return failed();
     setMessage(
       saved
         ? t('Removed from saved stories', 'सेव से हटाया गया')
@@ -65,8 +50,7 @@ export function StoryCard({
     );
   };
   const toggleFollowed = () => {
-    toggleInStorage('nuzenio-followed-topics', story.category, followed);
-    setFollowed(!followed);
+    if (!reader.toggle('topics', story.category)) return failed();
     setMessage(
       followed
         ? t('Topic unfollowed', 'विषय अनफॉलो किया')
@@ -81,7 +65,7 @@ export function StoryCard({
   };
   const hideSource = () => {
     const source = story.sources[0];
-    toggleInStorage('nuzenio-hidden-sources', source.slug, false);
+    if (!source || !reader.toggle('hidden', source.slug)) return failed();
     setMessage(
       t(
         `${source.name} hidden from your feed`,
@@ -140,7 +124,7 @@ export function StoryCard({
           <summary>
             {t('Why am I seeing this?', 'मैं यह क्यों देख रहा/रही हूं?')}
           </summary>
-          <p>{story.whyShown}</p>
+          <p>{t(...whyStory(story, reader))}</p>
         </details>
       )}
       <div className="source-row">
@@ -167,6 +151,7 @@ export function StoryCard({
           variant={saved ? 'secondary' : 'ghost'}
           onClick={toggleSaved}
           aria-pressed={saved}
+          disabled={!reader.ready}
         >
           <Bookmark /> {saved ? t('Saved', 'सेव') : t('Save', 'सेव करें')}
         </Button>
@@ -174,6 +159,7 @@ export function StoryCard({
           variant={followed ? 'secondary' : 'ghost'}
           onClick={toggleFollowed}
           aria-pressed={followed}
+          disabled={!reader.ready}
         >
           {followed ? <Check /> : <BellPlus />}{' '}
           {followed ? t('Following', 'फॉलोइंग') : t('Follow', 'फॉलो करें')}
@@ -181,7 +167,16 @@ export function StoryCard({
         <Button variant="ghost" onClick={share}>
           <Share2 /> {t('Share', 'शेयर')}
         </Button>
-        <Button variant="ghost" onClick={hideSource} className="wide-action">
+        <Button
+          variant="ghost"
+          onClick={hideSource}
+          className="wide-action"
+          disabled={!reader.ready || !story.sources.length}
+          title={t(
+            `Hide ${story.sources[0]?.name ?? 'source'} and stories containing it`,
+            `${story.sources[0]?.name ?? 'स्रोत'} और उससे जुड़ी स्टोरी छिपाएं`,
+          )}
+        >
           <EyeOff /> {t('Hide source', 'स्रोत छिपाएं')}
         </Button>
         <Button

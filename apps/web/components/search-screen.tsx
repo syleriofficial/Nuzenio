@@ -8,15 +8,19 @@ import { Input } from '@/components/ui/input';
 import { StoryCard } from '@/components/story-card';
 import type { StoryCluster } from '@/lib/story-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { visibleStories } from '@/lib/reader-state';
 
 export function SearchScreen({
   initialQuery,
-  stories,
+  stories: inputStories,
 }: {
   initialQuery: string;
   stories: StoryCluster[];
 }) {
   const { t } = usePreferences();
+  const reader = useReaderPreferences();
+  const stories = visibleStories(inputStories, reader);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [input, setInput] = useState(initialQuery);
@@ -87,8 +91,8 @@ export function SearchScreen({
           <h2>{t('No matching story clusters', 'कोई मिलती स्टोरी नहीं')}</h2>
           <p>
             {t(
-              'Try a broader topic, city or publisher name.',
-              'कोई व्यापक विषय, शहर या प्रकाशक नाम आजमाएं।',
+              'Try a broader topic, city or publisher name, or check hidden sources in Settings.',
+              'कोई व्यापक विषय, शहर या प्रकाशक नाम आजमाएं, या सेटिंग्स में छिपे स्रोत जांचें।',
             )}
           </p>
         </div>

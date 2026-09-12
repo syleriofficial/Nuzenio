@@ -16,6 +16,21 @@ interface PreferencesContextValue {
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 
+function readPreference(key: string) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writePreference(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* Theme/language can still work for this visit. */
+  }
+}
+
 export function PreferencesProvider({
   children,
 }: {
@@ -29,11 +44,11 @@ export function PreferencesProvider({
     const queryLanguage = new URLSearchParams(window.location.search).get(
       'lang',
     );
-    const storedLanguage = localStorage.getItem('nuzenio-language');
-    const storedTheme = localStorage.getItem('nuzenio-theme');
+    const storedLanguage = readPreference('nuzenio-language');
+    const storedTheme = readPreference('nuzenio-theme');
     if (queryLanguage === 'hi' || queryLanguage === 'en') {
       setLanguageState(queryLanguage);
-      localStorage.setItem('nuzenio-language', queryLanguage);
+      writePreference('nuzenio-language', queryLanguage);
     } else if (storedLanguage === 'hi') setLanguageState('hi');
     if (
       storedTheme === 'dark' ||
@@ -50,11 +65,11 @@ export function PreferencesProvider({
 
   const setLanguage = (value: Language) => {
     setLanguageState(value);
-    localStorage.setItem('nuzenio-language', value);
+    writePreference('nuzenio-language', value);
   };
   const setTheme = (value: Theme) => {
     setThemeState(value);
-    localStorage.setItem('nuzenio-theme', value);
+    writePreference('nuzenio-theme', value);
   };
   const value = useMemo(
     () => ({

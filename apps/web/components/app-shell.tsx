@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { PreferencesProvider, usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
 
 const nav = [
   { href: '/', en: 'Top', hi: 'मुख्य', icon: Home },
@@ -32,6 +33,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
   const { language, theme, hydrated, setLanguage, setTheme, t } =
     usePreferences();
   const [menuOpen, setMenuOpen] = useState(false);
+  const reader = useReaderPreferences();
   const currentPath = usePathname();
   const router = useRouter();
 
@@ -114,6 +116,14 @@ function ShellContent({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="header-actions">
             <Link
+              className={`saved-nav-link ${buttonVariants({ variant: 'ghost', size: 'icon-lg' })}`}
+              href={localizedHref('/saved')}
+              aria-label={t('Saved stories', 'सेव की गई स्टोरी')}
+              aria-current={isCurrent('/saved') ? 'page' : undefined}
+            >
+              <Bookmark />
+            </Link>
+            <Link
               className={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}
               href={localizedHref('/search')}
               aria-label={t('Search', 'खोजें')}
@@ -174,10 +184,24 @@ function ShellContent({ children }: { children: React.ReactNode }) {
             <Link href={localizedHref('/settings')}>
               <Settings /> {t('Settings', 'सेटिंग्स')}
             </Link>
+            <Link href={localizedHref('/saved')}>
+              <Bookmark />
+              {t('Saved stories', 'सेव की गई स्टोरी')}
+            </Link>
           </nav>
         )}
       </header>
-      <div className="content-shell">{children}</div>
+      <div className="content-shell">
+        {reader.ready && !reader.storageAvailable && (
+          <output className="demo-notice" aria-live="polite">
+            {t(
+              'Browser storage is unavailable. Preference changes could not be saved.',
+              'ब्राउज़र स्टोरेज उपलब्ध नहीं है। प्राथमिकता बदलाव सेव नहीं हुए।',
+            )}
+          </output>
+        )}
+        {children}
+      </div>
       <nav
         className="bottom-nav"
         aria-label={t('Primary mobile navigation', 'मुख्य मोबाइल नेविगेशन')}

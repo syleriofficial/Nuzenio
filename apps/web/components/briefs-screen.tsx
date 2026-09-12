@@ -5,6 +5,8 @@ import { Clock3, MoonStar, SunMedium } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ReaderBrief } from '@/lib/api-types';
 import { usePreferences } from '@/lib/preferences';
+import { useReaderPreferences } from '@/lib/reader-preferences';
+import { visibleStories } from '@/lib/reader-state';
 
 export function BriefsScreen({
   briefs,
@@ -14,7 +16,8 @@ export function BriefsScreen({
   const { language, t } = usePreferences();
   const [edition, setEdition] = useState<'morning' | 'evening'>('morning');
   const brief = briefs[edition];
-  const stories = brief.stories;
+  const reader = useReaderPreferences();
+  const stories = visibleStories(brief.stories, reader);
   return (
     <>
       <section className="page-heading">
