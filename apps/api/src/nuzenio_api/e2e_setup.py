@@ -47,11 +47,17 @@ def main() -> None:
 
     # Import only after the test database URL is established.
     from nuzenio_api.auth import create_staff_user
+    from nuzenio_api.config import get_settings
     from nuzenio_api.db import SessionLocal
     from nuzenio_api.models import StaffRole, StaffUser
     from nuzenio_api.seed import seed_database
 
     seed_database(SessionLocal)
+    if get_settings().draft_inbox_enabled:
+        from nuzenio_api.draft_fixtures import import_fixtures
+
+        with SessionLocal.begin() as session:
+            import_fixtures(session)
     accounts = {
         "e2e-admin": StaffRole.ADMINISTRATOR,
         "e2e-editor": StaffRole.EDITOR,

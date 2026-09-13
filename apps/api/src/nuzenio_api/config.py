@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
     demo_mode: bool = True
+    draft_inbox_enabled: bool = False
     max_page_size: int = 50
     sql_echo: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -115,6 +116,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
+        if self.draft_inbox_enabled and (
+            is_production(self.environment) or not self.demo_mode or not self.feed_kill_switch
+        ):
+            raise ValueError(
+                "Draft inbox requires development/test, demo mode, and the network feed kill switch"
+            )
         if not is_production(self.environment):
             return self
         if (

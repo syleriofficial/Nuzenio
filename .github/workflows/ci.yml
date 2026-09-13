@@ -122,6 +122,16 @@ jobs:
       - run: npm run test:e2e:setup
       - name: Run production Playwright suite without retries
         run: npm --workspace apps/web run test:e2e:release
+      - name: Prepare separate offline draft fixtures
+        env:
+          NUZENIO_E2E_DATABASE_URL: postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_draft_e2e
+          NUZENIO_DRAFT_INBOX_ENABLED: "true"
+          NUZENIO_FEED_KILL_SWITCH: "true"
+        run: apps/api/.venv/bin/python -m nuzenio_api.e2e_setup
+      - name: Run offline draft browser gate without retries
+        env:
+          NUZENIO_E2E_DATABASE_URL: postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_draft_e2e
+        run: npm --workspace apps/web run test:e2e:drafts
 
   compose:
     runs-on: ubuntu-latest

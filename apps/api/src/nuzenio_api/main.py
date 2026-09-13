@@ -17,6 +17,7 @@ from nuzenio_api.admin_routes import router as admin_router
 from nuzenio_api.auth import AuthenticatedStaff, require_permission
 from nuzenio_api.config import get_settings
 from nuzenio_api.db import get_db
+from nuzenio_api.draft_inbox import router as draft_inbox_router
 from nuzenio_api.environment import is_production
 from nuzenio_api.errors import register_error_handlers
 from nuzenio_api.observability import (
@@ -104,6 +105,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 register_error_handlers(app)
 app.include_router(admin_router)
 app.include_router(reports_router)
+app.include_router(draft_inbox_router)
 
 
 @app.middleware("http")

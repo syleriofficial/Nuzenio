@@ -33,6 +33,7 @@ All checked-in stories, publishers, documents and links are fictional demonstrat
 
 ### Editorial operations
 
+- Milestone 3C1 adds an explicitly enabled, fixture-only incoming-article inbox and transactional private draft assignment. It does not fetch or publish news. See [activation, workflow and boundaries](docs/draft-inbox.md).
 - Staff accounts are created only with a protected CLI. Passwords use Argon2id; session and CSRF tokens are random, stored only as keyed hashes server-side, and delivered in secure cookie flows.
 - Five roles are enforced by FastAPI permissions as well as reflected in the admin UI.
 - Persistent workflows cover review queues, headlines, claims, summaries, merge/split, suppression, corrections, primary documents, sources, rights, feed runs, edition pause and staff/session revocation.

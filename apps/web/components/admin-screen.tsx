@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ReaderReportInbox } from '@/components/reader-report-inbox';
+import { IncomingArticleInbox } from '@/components/incoming-article-inbox';
 import {
   AdminApiError,
   resetPrivateRequests,
@@ -35,6 +36,7 @@ import {
 } from '@/lib/admin-api-client';
 
 type TabId =
+  | 'incoming'
   | 'reports'
   | 'sources'
   | 'health'
@@ -198,6 +200,7 @@ const tabs: Array<{
   { id: 'clusters', label: 'Clusters', permission: 'review:read' },
   { id: 'corrections', label: 'Corrections', permission: 'correction:manage' },
   { id: 'reports', label: 'Reader reports', permission: 'report:read' },
+  { id: 'incoming', label: 'Incoming articles', permission: 'article:read' },
   { id: 'risk', label: 'High-risk review', permission: 'review:read' },
   { id: 'edition', label: 'Edition control', permission: 'edition:pause' },
   { id: 'audit', label: 'Audit', permission: 'audit:read' },
@@ -620,6 +623,18 @@ export function AdminScreen() {
           clusters={clusters}
           csrfToken={csrfToken}
           mutate={mutate}
+        />
+      )}
+      {active === 'incoming' && (
+        <IncomingArticleInbox
+          key={session.id}
+          csrfToken={csrfToken}
+          canAssign={hasPermission(session, 'article:assign')}
+          onUnauthorized={clearPrivateState}
+          onOpenDraft={(id) => {
+            setSelectedClusters([id]);
+            setActive('clusters');
+          }}
         />
       )}
       {active === 'reports' && (
