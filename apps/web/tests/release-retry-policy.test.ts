@@ -29,7 +29,7 @@ describe('release Playwright retry policy', () => {
     expect(reader?.testMatch).toEqual(/reader-(?:mvp|reports)\.spec\.ts/);
     expect(editorial?.testIgnore).toEqual(/reader-(?:mvp|reports)\.spec\.ts/);
     expect(mobile?.testMatch).toEqual(
-      /(?:accessibility|founder-acceptance|reader-mvp|reader-reports)\.spec\.ts/,
+      /(?:accessibility|founder-acceptance|reader-mvp|reader-reports|admin-create-forms)\.spec\.ts/,
     );
     expect(reader?.dependencies ?? []).toEqual([]);
     expect(mobile?.dependencies ?? []).toEqual([]);
@@ -46,17 +46,30 @@ describe('release Playwright retry policy', () => {
     const listed = result.stdout
       .split('\n')
       .filter((line) => /^\s*\[[^\]]+\] › /.test(line));
-    expect(listed).toHaveLength(60);
-    expect(new Set(listed).size).toBe(60);
+    expect(listed).toHaveLength(76);
+    expect(new Set(listed).size).toBe(76);
+    const existing = listed.filter(
+      (line) => !line.includes('admin-create-forms.spec.ts'),
+    );
+    expect(existing).toHaveLength(60);
     expect(
-      listed.filter((line) => line.includes('[reader-chromium]')),
+      existing.filter((line) => line.includes('[reader-chromium]')),
     ).toHaveLength(17);
     expect(
-      listed.filter((line) => line.includes('[mobile-chromium]')),
+      existing.filter((line) => line.includes('[mobile-chromium]')),
     ).toHaveLength(22);
-    expect(listed.filter((line) => line.includes('[chromium]'))).toHaveLength(
+    expect(existing.filter((line) => line.includes('[chromium]'))).toHaveLength(
       21,
     );
+    for (const viewport of ['chromium', 'mobile-chromium']) {
+      expect(
+        listed.filter(
+          (line) =>
+            line.includes(`[${viewport}]`) &&
+            line.includes('admin-create-forms.spec.ts'),
+        ),
+      ).toHaveLength(8);
+    }
     expect(result.stdout).toContain('effective retries=0 for 3 projects');
   });
 
