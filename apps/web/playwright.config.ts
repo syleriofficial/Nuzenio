@@ -48,7 +48,7 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
       testMatch:
-        /(?:accessibility|founder-acceptance|reader-mvp|reader-reports)\.spec\.ts/,
+        /(?:accessibility|founder-acceptance|reader-mvp|reader-reports|admin-create-forms)\.spec\.ts/,
     },
   ],
   webServer: [

@@ -476,19 +476,25 @@ export function AdminScreen() {
     }
   }, [active, loadTab, session]);
 
-  async function mutate(action: () => Promise<unknown>, confirmation: string) {
+  async function mutate(
+    action: () => Promise<unknown>,
+    confirmation: string,
+  ): Promise<boolean> {
     setError('');
     setMessage('');
     try {
       await action();
       setMessage(confirmation);
       if (session) await loadTab(active);
+      // A refresh failure is reported by loadTab, but the write already succeeded.
+      return true;
     } catch (caught) {
       setError(
         caught instanceof AdminApiError
           ? caught.message
           : 'The operation could not be completed.',
       );
+      return false;
     }
   }
 
@@ -690,7 +696,36 @@ interface MutationProps {
   mutate: (
     action: () => Promise<unknown>,
     confirmation: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
+}
+
+function useCreateForm(mutate: MutationProps['mutate']) {
+  const inFlight = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(
+    event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
+    action: (form: FormData) => Promise<unknown>,
+    confirmation: string,
+  ) {
+    event.preventDefault();
+    if (inFlight.current) return;
+    // React clears currentTarget after synchronous dispatch. Retain the element
+    // and capture values before disabling fields or awaiting the request.
+    const element = event.currentTarget;
+    const form = new FormData(element);
+    inFlight.current = true;
+    setSubmitting(true);
+    try {
+      const saved = await mutate(() => action(form), confirmation);
+      if (saved && element.isConnected) element.reset();
+    } finally {
+      inFlight.current = false;
+      setSubmitting(false);
+    }
+  }
+
+  return { submit, submitting };
 }
 
 function SourceRegistry({
@@ -699,11 +734,11 @@ function SourceRegistry({
   csrfToken,
   mutate,
 }: MutationProps & { rows: PublisherRow[]; session: StaffSession }) {
-  async function create(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await mutate(
-      () =>
+  const { submit, submitting } = useCreateForm(mutate);
+  function create(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+    return submit(
+      event,
+      (form) =>
         adminRequest('/v1/admin/publishers', {
           method: 'POST',
           csrfToken,
@@ -718,7 +753,6 @@ function SourceRegistry({
         }),
       'Publisher draft created.',
     );
-    event.currentTarget.reset();
   }
 
   return (
@@ -733,15 +767,21 @@ function SourceRegistry({
       {hasPermission(session, 'publisher:manage') && (
         <details className="admin-disclosure">
           <summary>Add publisher draft</summary>
-          <form className="admin-form-grid" onSubmit={create}>
+          <form
+            className="admin-form-grid"
+            onSubmit={create}
+            aria-busy={submitting}
+          >
             <Input
               name="name"
+              disabled={submitting}
               aria-label="Publisher name"
               placeholder="Publisher name"
               required
             />
             <Input
               name="slug"
+              disabled={submitting}
               aria-label="Publisher slug"
               placeholder="publisher-slug"
               required
@@ -749,18 +789,21 @@ function SourceRegistry({
             />
             <Input
               name="ownership"
+              disabled={submitting}
               aria-label="Ownership"
               placeholder="Ownership"
               required
             />
             <Input
               name="contactName"
+              disabled={submitting}
               aria-label="Contact name"
               placeholder="Contact name"
               required
             />
             <Input
               name="contactEmail"
+              disabled={submitting}
               type="email"
               aria-label="Contact email"
               placeholder="Contact email"
@@ -768,12 +811,15 @@ function SourceRegistry({
             />
             <Input
               name="correctionRoute"
+              disabled={submitting}
               type="url"
               aria-label="Correction route"
               placeholder="https://…/corrections"
               required
             />
-            <Button type="submit">Create draft</Button>
+            <Button type="submit" disabled={submitting}>
+              Create draft
+            </Button>
           </form>
         </details>
       )}
@@ -1802,11 +1848,11 @@ function CorrectionWorkspace({
   csrfToken,
   mutate,
 }: MutationProps & { rows: CorrectionRow[]; clusters: ClusterRow[] }) {
-  async function create(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await mutate(
-      () =>
+  const { submit, submitting } = useCreateForm(mutate);
+  function create(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+    return submit(
+      event,
+      (form) =>
         adminRequest('/v1/admin/corrections', {
           method: 'POST',
           csrfToken,
@@ -1819,7 +1865,6 @@ function CorrectionWorkspace({
         }),
       'Correction opened for review and propagation.',
     );
-    event.currentTarget.reset();
   }
   async function apply(
     event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
@@ -1862,10 +1907,14 @@ function CorrectionWorkspace({
       </header>
       <details className="admin-disclosure">
         <summary>Open a correction</summary>
-        <form className="admin-form-grid" onSubmit={create}>
+        <form
+          className="admin-form-grid"
+          onSubmit={create}
+          aria-busy={submitting}
+        >
           <label>
             Story cluster
-            <select name="clusterId" required>
+            <select name="clusterId" required disabled={submitting}>
               {clusters.map((cluster) => (
                 <option key={cluster.id} value={cluster.id}>
                   {cluster.headline}
@@ -1875,12 +1924,14 @@ function CorrectionWorkspace({
           </label>
           <Input
             name="description"
+            disabled={submitting}
             aria-label="Correction description"
             placeholder="What requires correction?"
             required
           />
           <Input
             name="sourceUrl"
+            disabled={submitting}
             type="url"
             aria-label="Correction source URL"
             placeholder="https://…"
@@ -1888,11 +1939,14 @@ function CorrectionWorkspace({
           />
           <Input
             name="evidence"
+            disabled={submitting}
             aria-label="Correction evidence"
             placeholder="Evidence or document reference"
             required
           />
-          <Button type="submit">Open correction</Button>
+          <Button type="submit" disabled={submitting}>
+            Open correction
+          </Button>
         </form>
       </details>
       <ul className="admin-record-list">
