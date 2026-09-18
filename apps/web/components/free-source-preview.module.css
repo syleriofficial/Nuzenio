@@ -1,0 +1,278 @@
+.page {
+  max-width: 1280px;
+  margin: auto;
+  padding: 0 32px 32px;
+}
+.page a {
+  text-underline-offset: 4px;
+}
+.page a:focus-visible,
+.page select:focus-visible,
+.page button:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 4px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+.header nav {
+  display: flex;
+  gap: 16px;
+}
+.header [aria-current] {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.intro {
+  max-width: 840px;
+  padding: 48px 0 30px;
+}
+.eyebrow {
+  color: var(--brand);
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+}
+.intro h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(36px, 6vw, 66px);
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+  margin: 14px 0;
+}
+.intro p {
+  line-height: 1.65;
+}
+.intro .lead {
+  font-size: 21px;
+  margin-bottom: 10px;
+}
+.notice {
+  background: var(--accent);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand);
+  border-radius: 8px;
+  padding: 20px 24px;
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+.notice p {
+  margin-top: 6px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 285px;
+  gap: 36px;
+  align-items: start;
+}
+.sectionHeading {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.sectionHeading h2,
+.registry h2 {
+  font-size: 23px;
+  font-weight: 750;
+}
+.sectionHeading span,
+.helper {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.filters label {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 650;
+  min-width: 140px;
+}
+.filters select {
+  padding: 10px;
+  min-height: 44px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+.filters button {
+  min-height: 44px;
+  padding: 10px 16px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-radius: 6px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.helper {
+  margin: 12px 0 22px;
+  line-height: 1.6;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.card {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.badge {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.sourceType {
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 20px 0 8px;
+}
+.card h3 {
+  font-family: Georgia, serif;
+  font-size: 23px;
+  line-height: 1.35;
+  margin: 0 0 16px;
+}
+.byline,
+.card time {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+.excerpt {
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 20px 0;
+}
+.attribution {
+  font-size: 12px;
+  line-height: 1.65;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: auto;
+}
+.attribution p {
+  margin: 5px 0 8px;
+}
+.attribution a,
+.candidate a {
+  text-decoration: underline;
+}
+.originalLink {
+  display: block;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 750;
+  margin-top: 20px;
+  text-decoration: underline;
+}
+.registry {
+  border-top: 3px solid var(--foreground);
+  padding-top: 18px;
+}
+.registry h2 {
+  line-height: 1.4;
+  margin: 10px 0 20px;
+}
+.candidate {
+  border-top: 1px solid var(--border);
+  padding: 20px 0;
+}
+.candidate h3 {
+  font-size: 18px;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+.candidate p,
+.registry > p:last-child {
+  font-size: 13px;
+  line-height: 1.75;
+  margin: 12px 0;
+}
+.candidate a {
+  font-size: 13px;
+}
+.candidate small {
+  display: block;
+  color: var(--muted-foreground);
+  margin-top: 10px;
+}
+.footer {
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .registry {
+    max-width: 650px;
+  }
+}
+@media (max-width: 620px) {
+  .page {
+    padding: 0 18px 24px;
+  }
+  .intro {
+    padding-top: 30px;
+  }
+  .cards {
+    grid-template-columns: 1fr;
+  }
+  .notice {
+    padding: 16px;
+  }
+  .sectionHeading {
+    align-items: start;
+    flex-direction: column;
+  }
+  .filters button {
+    width: 100%;
+  }
+  .header {
+    gap: 12px;
+  }
+}

@@ -56,6 +56,8 @@ it.each([
   '/v1/admin/auth/session',
   '/v1/feed/top',
   '/admin',
+  '/preview/source-cards',
+  '/preview/source-cards?lang=hi',
   '/?_rsc=private',
   '/_next/static/app.js?token=private',
 ])('never intercepts private, API, or query requests: %s', (path) => {

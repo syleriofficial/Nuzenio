@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/preview/source-cards',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
+      {
         source: '/service-worker.js',
         headers: [
           {

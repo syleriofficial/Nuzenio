@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:release": "playwright test --config=playwright.release.config.ts",
     "test:e2e:admin-forms": "playwright test --config=playwright.admin-forms.config.ts",
+    "test:e2e:source-cards": "playwright test --config=playwright.source-cards.config.ts",
     "test:e2e:drafts": "playwright test --config=playwright.draft.config.ts"
   },
   "dependencies": {

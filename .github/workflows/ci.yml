@@ -132,6 +132,12 @@ jobs:
         env:
           NUZENIO_E2E_DATABASE_URL: postgresql+psycopg://nuzenio:nuzenio@localhost:5432/nuzenio_draft_e2e
         run: npm --workspace apps/web run test:e2e:drafts
+      - name: Verify offline source-card development preview without retries
+        run: npm --workspace apps/web run test:e2e:source-cards
+      - name: Verify source-card preview is absent in production
+        env:
+          NUZENIO_SOURCE_CARD_TEST_PRODUCTION: "true"
+        run: npm --workspace apps/web run test:e2e:source-cards
 
   compose:
     runs-on: ubuntu-latest
