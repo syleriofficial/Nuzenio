@@ -1,0 +1,78 @@
+[
+  {
+    "fictional": true,
+    "candidateId": "pib",
+    "guid": "fixture-pib-en-library",
+    "language": "en",
+    "title": "Fictional release: neighbourhood library opens a reading room",
+    "description": "Demo source excerpt: a fictional town announces a public reading room. This is invented test data, not a PIB release or independently verified reporting.",
+    "author": "Fictional public information desk",
+    "pubDate": "2026-09-18T03:30:00.000Z",
+    "link": "https://pib-fixture.example/releases/library-en",
+    "licenceUrl": "https://pib-fixture.example/demo-policy",
+    "attribution": "Invented by Nuzenio for layout testing. PIB is a disabled research candidate, not the author of this item. No real article is reproduced.",
+    "fixturePermission": {
+      "headline": "fixture-only",
+      "excerpt": "fixture-only",
+      "attribution": "fixture-only",
+      "revoked": false
+    }
+  },
+  {
+    "fictional": true,
+    "candidateId": "pib",
+    "guid": "fixture-pib-hi-science",
+    "language": "hi",
+    "title": "काल्पनिक विज्ञप्ति: नगर पुस्तकालय में विज्ञान प्रदर्शनी",
+    "description": "डेमो स्रोत अंश: एक काल्पनिक नगर के पुस्तकालय में विज्ञान प्रदर्शनी का उदाहरण। यह बनाया गया परीक्षण डेटा है, PIB की वास्तविक खबर नहीं।",
+    "author": "काल्पनिक जनसूचना कार्यालय",
+    "pubDate": "2026-09-17T06:00:00.000Z",
+    "link": "https://pib-fixture.example/releases/science-hi",
+    "licenceUrl": "https://pib-fixture.example/demo-policy",
+    "attribution": "Nuzenio का काल्पनिक लेआउट उदाहरण। PIB केवल शोध हेतु चुना गया निष्क्रिय स्रोत है। यह हिंदी परीक्षण सामग्री है, स्वचालित अनुवाद नहीं।",
+    "fixturePermission": {
+      "headline": "fixture-only",
+      "excerpt": "fixture-only",
+      "attribution": "fixture-only",
+      "revoked": false
+    }
+  },
+  {
+    "fictional": true,
+    "candidateId": "global-voices",
+    "guid": "fixture-gv-en-language",
+    "language": "en",
+    "title": "Fictional community story: volunteers share a language archive",
+    "description": "Demo source excerpt: an imaginary volunteer group collects local words in a community archive. This is a fictional layout example, not a Global Voices article.",
+    "dc:creator": "Fictional community contributor",
+    "pubDate": "2026-09-16T08:00:00.000Z",
+    "link": "https://global-voices-fixture.example/stories/language-en",
+    "licenceUrl": "https://global-voices-fixture.example/demo-licence",
+    "attribution": "Fictional contributor / Nuzenio test fixture. Attribution and original-link layout only; no Global Voices article, licence approval or endorsement is implied.",
+    "fixturePermission": {
+      "headline": "fixture-only",
+      "excerpt": "fixture-only",
+      "attribution": "fixture-only",
+      "revoked": false
+    }
+  },
+  {
+    "fictional": true,
+    "candidateId": "global-voices",
+    "guid": "fixture-gv-hi-culture",
+    "language": "hi",
+    "title": "काल्पनिक समुदाय रिपोर्ट: पड़ोस में लोककथाओं की बैठक",
+    "description": "डेमो स्रोत अंश: एक काल्पनिक मोहल्ले में लोग लोककथाएँ साझा करते हैं। यह केवल हिंदी लेआउट परीक्षण है; Global Voices की वास्तविक या ताज़ा रिपोर्ट नहीं।",
+    "dc:creator": "काल्पनिक समुदाय लेखक",
+    "pubDate": "2026-09-15T07:00:00.000Z",
+    "link": "https://global-voices-fixture.example/stories/culture-hi",
+    "licenceUrl": "https://global-voices-fixture.example/demo-licence",
+    "attribution": "काल्पनिक लेखक / Nuzenio परीक्षण। वास्तविक दैनिक हिंदी कवरेज का दावा नहीं। कोई लेख, चित्र या स्वचालित अनुवाद आयात नहीं किया गया।",
+    "fixturePermission": {
+      "headline": "fixture-only",
+      "excerpt": "fixture-only",
+      "attribution": "fixture-only",
+      "revoked": false
+    }
+  }
+]

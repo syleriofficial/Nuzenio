@@ -1,5 +1,9 @@
 # Nuzenio
 
+Optional [Free Source Cards offline prototype](docs/free-source-cards.md):
+development-only fictional English/Hindi cards with disabled PIB/Global Voices
+research entries. No live feeds, content approval or public publishing.
+
 > One story. Multiple sources. Clear in 60 seconds.
 
 Nuzenio is an India-first news aggregation, clustering, comparison and briefing platform. It does not
