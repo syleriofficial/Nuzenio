@@ -70,7 +70,7 @@ async function adminEmail(req,env){
 async function admin(req,env,url){
  const email=await adminEmail(req,env);if(!email)return new Response("Forbidden: Cloudflare Access required",{status:403,headers:headers("text/plain")});
  if(url.pathname==="/admin"&&req.method==="GET"){
-  const body='<section class="hero"><div class="eyebrow">PRIVATE EDITORIAL WORKSPACE</div><h1>Nuzenio Originals</h1><p>All articles start as drafts. Nothing is published automatically.</p></section><form class="admin-form" id="article-form"><label>Headline<input name="title" required maxlength="180"></label><label>Slug<input name="slug" required pattern="[a-z0-9-]{5,100}" maxlength="100"></label><label>Author<input name="author" required></label><label>Language<select name="language"><option value="hi">Hindi</option><option value="en">English</option></select></label><label>Body<textarea name="body" required minlength="120" rows="10"></textarea></label><button type="submit">Save draft</button></form><div id="status" role="status" class="status"></div><p class="muted">Publish an approved draft through the restricted admin API only.</p><script defer src="/admin.js"></script>';
+  const body='<section class="hero"><div class="eyebrow">PRIVATE EDITORIAL WORKSPACE</div><h1>Nuzenio Originals</h1><p>All articles start as drafts. Nothing is published automatically.</p></section><form class="admin-form" id="article-form"><label>Headline<input name="title" required maxlength="180"></label><label>Slug<input name="slug" required pattern="[a-z0-9-]{5,100}" maxlength="100"></label><label>Author<input name="author" required></label><label>Language<select name="language"><option value="hi">Hindi</option><option value="en">English</option></select></label><label>Body<textarea name="body" required minlength="120" rows="10"></textarea></label><button type="submit">Save draft</button></form><div id="status" role="status" class="status"></div><p class="muted">Publish an approved draft through the restricted admin API only.</p><hr><h2>Register a permitted RSS source</h2><p class="muted">All source rights remain pending until independently verified and explicitly approved. A public RSS link alone is not permission.</p><form class="admin-form" id="source-form"><label>Publisher<input name="name" required maxlength="120"></label><label>Publisher domain<input name="domain" required placeholder="example.org"></label><label>HTTPS RSS URL<input name="feed_url" type="url" required></label><label>Commercial headline/link reuse rights evidence<input name="rights_evidence" required></label><label>Rights verified date<input name="rights_checked_at" type="date" required></label><label>Language<select name="language"><option value="hi">Hindi</option><option value="en">English</option></select></label><button type="submit">Save pending source</button></form><div id="source-status" role="status" class="status"></div><script defer src="/admin.js"></script>';
   return new Response(page(body,"Editorial workspace","en",true),{headers:headers()});
  }
  if(req.method!=="POST"||req.headers.get("origin")!==url.origin||(req.headers.get("content-type")||"").split(";")[0].trim()!=="application/json")return new Response('{"error":"JSON POST and same origin required"}',{status:405,headers:headers("application/json")});
@@ -84,6 +84,27 @@ async function admin(req,env,url){
   try{await query(env.DB,"INSERT INTO originals(id,slug,language,title,body,author,updated_at) VALUES (?,?,?,?,?,?,?)",id,slug,lang,title,body,author,now).run();}catch{return json({error:"Slug already exists"},409);}
   await query(env.DB,"INSERT INTO audit_log(id,actor,action,target_id,happened_at) VALUES(?,?,?,?,?)",crypto.randomUUID(),email,"create_draft",id,now).run();
   return json({ok:true,id,status:"draft"},201);
+ }
+ if(url.pathname==="/api/admin/sources"){
+  const name=safeInput(data.name,120),domain=safeInput(data.domain,180).toLowerCase().replace(/^www\./,""),feedUrl=safeInput(data.feed_url,1500),evidence=safeInput(data.rights_evidence,500),checked=safeInput(data.rights_checked_at,10),lang=data.language;
+  if(!name||!domain||!safeUrl(feedUrl,domain)||!evidence||!/^20\d\d-\d\d-\d\d$/.test(checked)||checked>new Date().toISOString().slice(0,10)||!["hi","en"].includes(lang))return json({error:"Invalid source or reuse-rights evidence"},400);
+  const id=crypto.randomUUID(),now=new Date().toISOString();
+  try{await query(env.DB,"INSERT INTO sources(id,name,domain,feed_url,language,rights_evidence,rights_checked_at) VALUES(?,?,?,?,?,?,?)",id,name,domain,feedUrl,lang,evidence,checked).run();}catch{return json({error:"Feed is already registered"},409);}
+  await query(env.DB,"INSERT INTO audit_log(id,actor,action,target_id,happened_at) VALUES(?,?,?,?,?)",crypto.randomUUID(),email,"register_source_pending",id,now).run();
+  return json({ok:true,id,status:"pending",message:"Explicit rights review and approval required"},201);
+ }
+ const sourceAction=url.pathname.match(/^\/api\/admin\/sources\/([0-9a-f-]{36})\/(approve|revoke)$/);
+ if(sourceAction){
+  const item=await query(env.DB,"SELECT * FROM sources WHERE id=?",sourceAction[1]).first();
+  if(!item)return json({error:"Source not found"},404);
+  if(sourceAction[2]==="approve"){
+   if(data.attestation!=="I HAVE VERIFIED RIGHTS"||!item.rights_evidence||!item.rights_checked_at||!safeUrl(item.feed_url,item.domain))return json({error:"Verified rights and explicit approval required"},400);
+   await query(env.DB,"UPDATE sources SET rights_status='approved',active=1,allow_title=1,allow_link=1 WHERE id=?",item.id).run();
+  }else{
+   await query(env.DB,"UPDATE sources SET rights_status='revoked',active=0 WHERE id=?",item.id).run();
+  }
+  await query(env.DB,"INSERT INTO audit_log(id,actor,action,target_id,happened_at) VALUES(?,?,?,?,?)",crypto.randomUUID(),email,sourceAction[2]+"_source_rights",item.id,new Date().toISOString()).run();
+  return json({ok:true,status:sourceAction[2]==="approve"?"approved":"revoked"});
  }
  const action=url.pathname.match(/^\/api\/admin\/articles\/([0-9a-f-]{36})\/(publish|unpublish)$/);
  if(action){
