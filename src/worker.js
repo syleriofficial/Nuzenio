@@ -1,7 +1,7 @@
 // Nuzenio 2.0 — fresh Cloudflare Worker (no retired code reused).
 const LIMIT=24;
 const CATEGORIES=["india","politics","business","technology","sports","entertainment","education","world"];
-const STATES=["bihar","delhi","uttar-pradesh","maharashtra","rajasthan","west-bengal","karnataka","tamil-nadu","madhya-pradesh","gujarat","jharkhand"];
+const STATES=["andhra-pradesh","arunachal-pradesh","assam","bihar","chhattisgarh","goa","gujarat","haryana","himachal-pradesh","jharkhand","karnataka","kerala","madhya-pradesh","maharashtra","manipur","meghalaya","mizoram","nagaland","odisha","punjab","rajasthan","sikkim","tamil-nadu","telangana","tripura","uttar-pradesh","uttarakhand","west-bengal","andaman-and-nicobar-islands","chandigarh","dadra-and-nagar-haveli-and-daman-and-diu","delhi","jammu-and-kashmir","ladakh","lakshadweep","puducherry"];
 export function escapeHtml(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 export function safeUrl(value,domain){
  try{
@@ -44,8 +44,9 @@ function empty(lang){return '<div class="empty">'+(lang==="hi"?"इस अनु
 function newsPage(lang,rows,originals,opts={}){
  const title=opts.title||(lang==="hi"?"भारत की खबरें, एक जगह।":"India in focus.");
  const cards=[...originals.map(x=>originalCard(x,lang)),...rows.map(x=>sourceCard(x,lang))].filter(Boolean);
+ const stateLinks='<section class="states-strip" aria-label="India states"><b>'+(lang==="hi"?"राज्य की खबरें":"News by state")+'</b>'+STATES.map(x=>'<a href="/'+lang+'/state/'+x+'">'+escapeHtml(x.replace(/-/g," "))+"</a>").join("")+"</section>";
  const body=intro(lang,title,lang==="hi"?"स्रोत स्पष्ट। तथ्य महत्वपूर्ण। खबरों को पढ़ें और मूल प्रकाशक तक पहुँचें।":"Trusted attribution. Clear sources. One place to discover the stories that matter.")+
- '<div class="toolbar"><h2>'+(lang==="hi"?"ताज़ा खबरें":"Latest coverage")+'</h2><form action="/'+lang+'/search" method="get"><input name="q" maxlength="80" placeholder="'+(lang==="hi"?"खबर खोजें":"Search news")+'"><button type="submit">'+(lang==="hi"?"खोजें":"Search")+'</button></form></div><section class="feed">'+(cards.join("")||empty(lang))+'</section>';
+ stateLinks+'<div class="toolbar"><h2>'+(lang==="hi"?"ताज़ा खबरें":"Latest coverage")+'</h2><form action="/'+lang+'/search" method="get"><input name="q" maxlength="80" placeholder="'+(lang==="hi"?"खबर खोजें":"Search news")+'"><button type="submit">'+(lang==="hi"?"खोजें":"Search")+'</button></form></div><section class="feed">'+(cards.join("")||empty(lang))+'</section>';
  return page(body,title,lang,true);
 }
 function from64(v){return Uint8Array.from(atob(v.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));}
