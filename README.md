@@ -29,3 +29,13 @@ Original Nuzenio articles are separate and must be manually published. No AI-gen
 ## Next milestones
 
 Improve mobile design, add first-party story clustering, build richer original-article editing and correction history, independently audit XML/DNS security and publisher contracts, and perform full browser and production-security tests.
+
+## Current development functions
+
+- Reader routes: `/hi`, `/en`, category pages, search, and all 28 states + 8 union territories.
+- Sources start as **pending**, then an editor checks reuse evidence and explicitly approves. Rights can be revoked, hiding items automatically.
+- `/admin` and `/api/admin/*` require a valid Cloudflare Access JWT and email allowlist. Drafts and published originals are separate from publisher links.
+- RSS ingestion is guarded by source rights, HTTPS domains and bounded fetches. **An independent SSRF/DNS security audit is still required before live sources.**
+- GitHub Actions executes syntax checks and Node smoke/security tests on each push and PR.
+
+**Not yet included:** real publisher contracts, editorial operations team, complete source discovery, full Google News-style clustering and recommendations, production-domain deployment, professional legal review or advertising activation.
