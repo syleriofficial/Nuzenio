@@ -7,6 +7,7 @@ export function safeUrl(value,domain){
  try{
   const u=new URL(value),h=u.hostname.toLowerCase(),d=String(domain).toLowerCase().replace(/^www\./,"");
   if(u.protocol!=="https:"||u.username||u.password||(u.port&&u.port!=="443"))return null;
+  if(!d.includes(".")||d.startsWith(".")||d.endsWith(".")||d.includes(".."))return null;
   if(!/^[a-z0-9.-]+$/.test(h)||!h.includes(".")||h.includes("..")||h.endsWith(".local")||h.endsWith(".internal")||h.endsWith(".invalid")||h.endsWith(".test"))return null;
   if(h!==(d)&&h!=="www."+d&&!h.endsWith("."+d))return null;
   if(/^\d+(\.\d+){3}$/.test(h))return null;
