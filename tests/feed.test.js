@@ -18,3 +18,35 @@ test('safe headlines are plain text, not copied article bodies',()=>{
  assert.equal(items[0].title,'Headline');
  assert.equal(Object.hasOwn(items[0],'description'),false);
 });
+
+import worker from '../src/worker.js';
+const environment={
+ DB:{prepare(){return{bind(){return{async all(){return{results:[]};},async first(){return null;}};}};}},
+ ASSETS:{fetch(){return new Response('asset');}},
+ ENABLE_INDEXING:'false'
+};
+test('Hindi and English reader pages render safely without publisher content',async()=>{
+ for(const lang of ['hi','en']){
+  const res=await worker.fetch(new Request('https://preview.example/'+lang),environment);
+  assert.equal(res.status,200);
+  const html=await res.text();
+  assert.match(html,/Nuzenio/);
+  assert.match(html,/noindex,nofollow/);
+ }
+});
+test('all India state pages, search and unknown routes behave correctly',async()=>{
+ const state=await worker.fetch(new Request('https://preview.example/hi/state/bihar'),environment);
+ assert.equal(state.status,200);
+ const search=await worker.fetch(new Request('https://preview.example/en/search?q=hello'),environment);
+ assert.equal(search.status,200);
+ const missing=await worker.fetch(new Request('https://preview.example/nonexistent'),environment);
+ assert.equal(missing.status,404);
+});
+test('admin is denied without a verified Cloudflare Access token',async()=>{
+ const res=await worker.fetch(new Request('https://preview.example/admin'),environment);
+ assert.equal(res.status,403);
+});
+test('robots blocks indexing before editorial launch gate',async()=>{
+ const res=await worker.fetch(new Request('https://preview.example/robots.txt'),environment);
+ assert.match(await res.text(),/Disallow: \//);
+});
