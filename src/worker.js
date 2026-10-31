@@ -14,7 +14,7 @@ export function safeUrl(value,domain){
  }catch{return null;}
 }
 function decodeEntities(v){return String(v).replace(/&(?:amp|lt|gt|quot|apos|#39);/gi,c=>({"&amp;":"&","&lt;":"<","&gt;":">","&quot;":'"',"&apos;":"'","&#39;":"'"}[c.toLowerCase()]));}
-function tag(segment,name){const m=segment.match(new RegExp("<"+name+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/"+name+">","i"));return m?decodeEntities(m[1].replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g,"$1").replace(/<[^>]+>/g,"")).trim():"";}
+function tag(segment,name){const m=segment.match(new RegExp("<"+name+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/"+name+">","i"));return m?decodeEntities(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/<[^>]+>/g,"")).trim():"";}
 export function headlineFromRSS(xml,domain){
  if(typeof xml!=="string"||xml.length>1_000_000||/<!DOCTYPE|<!ENTITY/i.test(xml))return [];
  const matches=[...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].slice(0,60);
