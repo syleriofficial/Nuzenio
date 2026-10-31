@@ -1,0 +1,22 @@
+name = "nuzenio-2-new"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nuzenio-v2-new"
+database_id = "REPLACE_WITH_NEW_D1_DATABASE_ID"
+migrations_dir = "db/migrations"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+SITE_URL = "https://example.invalid"
+ENABLE_INDEXING = "false"
