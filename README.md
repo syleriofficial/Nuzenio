@@ -50,3 +50,12 @@ See [docs/editorial-cms.md](docs/editorial-cms.md) for the owner-controlled publ
 Cloudflare Pages: Node.js 22+, build command \`npm run build\`, output \`dist\`.
 
 Prior to launch: replace all sample content, verify corrections/privacy/legal pages, image rights, source provenance, structured data, indexing, real CMS sign-in/security and human editorial workflow.
+
+
+## Offline Editorial Studio (Phase 3)
+
+A local, working Hindi draft editor is provided at \`tools/editor/index.html\`. Open that file on your computer to create, preview, validate and download draft-only \`.md\` news or \`.json\` Web Stories. It is intentionally **not shipped** in the static site and has no CMS login or backend. For use and safety notes, see \`tools/editor/README.md\`.
+
+Run \`npm run editor:check\` to test the editor's export rules.
+
+The existing website \`/admin/\` remains a closed login placeholder until authenticated OAuth + GitHub protections are deployed, reviewed and explicitly authorized. Nothing is automatically published.

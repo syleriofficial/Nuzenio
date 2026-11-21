@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="hi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+    <title>Nuzenio — Offline Editorial Studio</title>
+    <link rel="stylesheet" href="./editor.css" />
+    <script src="./editor-model.cjs" defer></script>
+    <script src="./editor.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#editor">संपादकीय फॉर्म पर जाएँ</a>
+    <header class="topbar">
+      <div class="brand"><span>nuzenio<span class="brand-dot">.</span></span><small>EDITORIAL STUDIO</small></div>
+      <div class="topbar-right"><span class="status-pip"></span> Local-only · No publishing <span class="version">v0.1</span></div>
+    </header>
+    <main id="editor" class="shell">
+      <section class="page-intro">
+        <div>
+          <p class="overline"><span></span> MANUAL EDITORIAL WORKFLOW</p>
+          <h1>कहानी लिखें।<br /><em>तथ्य जाँचें।</em></h1>
+          <p>Nuzenio के लिए खबर या Web Story का ड्राफ्ट बनाइए। जब तक आप खुद फाइल एक्सपोर्ट न करें, कुछ सेव या भेजा नहीं जाता।</p>
+        </div>
+        <div class="trust-box">
+          <div class="trust-symbol">✓</div>
+          <strong>आपके नियंत्रण में</strong>
+          <p>कोई ऑटो-पब्लिशिंग नहीं। लॉगिन, सर्वर सेव और लाइव साइट से कोई संपर्क नहीं।</p>
+        </div>
+      </section>
+      <div class="warning" role="note"><span aria-hidden="true">ⓘ</span><p><strong>ऑफ़लाइन ड्राफ्ट टूल:</strong> यह वेबसाइट का सार्वजनिक एडमिन पेज या सुरक्षित लॉगिन नहीं है। निजी/संवेदनशील रिपोर्टिंग GitHub के सार्वजनिक रिपॉज़िटरी में न डालें।</p></div>
+      <div class="workspace">
+        <div class="workspace-main">
+          <div class="section-top">
+            <div><span class="step-number">01</span><h2>कंटेंट का प्रकार</h2></div>
+            <span class="step-hint">एक समय पर एक ड्राफ्ट</span>
+          </div>
+          <div class="type-switch" role="group" aria-label="ड्राफ्ट का प्रकार">
+            <button type="button" class="type-button selected" data-kind="news" aria-pressed="true"><span class="type-icon">▤</span><span><strong>समाचार लेख</strong><small>पूरा हिंदी न्यूज़ आर्टिकल</small></span></button>
+            <button type="button" class="type-button" data-kind="stories" aria-pressed="false"><span class="type-icon">▦</span><span><strong>वेब स्टोरी</strong><small>5–8 विज़ुअल स्लाइड्स</small></span></button>
+          </div>
+
+          <form id="draft-form" novalidate>
+            <div class="section-top section-top-form"><div><span class="step-number">02</span><h2>जानकारी भरें</h2></div><span class="required-info">* आवश्यक</span></div>
+            <div class="form-grid">
+              <div class="field full"><label for="title">शीर्षक <b>*</b></label><input id="title" name="title" type="text" maxlength="180" placeholder="खबर का स्पष्ट और सटीक शीर्षक" autocomplete="off" required /><span class="help">10–180 अक्षर, तथ्यात्मक और बिना सनसनी के</span><small class="error" data-error="title"></small></div>
+              <div class="field full"><label for="description">संक्षिप्त विवरण <b>*</b></label><textarea id="description" name="description" rows="3" maxlength="320" placeholder="पाठक को इस खबर का संदर्भ बताइए..." required></textarea><small class="error" data-error="description"></small></div>
+              <div class="field"><label for="slug">URL Slug <b>*</b></label><input id="slug" name="slug" type="text" maxlength="90" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" placeholder="example-news-headline" required/><span class="help">अंग्रेज़ी छोटे अक्षर और hyphens</span><small class="error" data-error="slug"></small></div>
+              <div class="field"><label for="category">कैटेगरी <b>*</b></label><select id="category" name="category" required><option value="desh">देश</option><option value="duniya">दुनिया</option><option value="tech-ai">टेक और AI</option><option value="vigyan">विज्ञान</option><option value="entertainment">एंटरटेनमेंट</option><option value="video">वीडियो</option></select><small class="error" data-error="category"></small></div>
+              <div class="field full news-only"><label for="author">लेखक <b>*</b></label><input id="author" name="author" type="text" maxlength="120" value="Nuzenio Desk" required /><small class="error" data-error="author"></small></div>
+              <div class="field full"><label for="sourceUrls">पुष्टि के लिए स्रोत (एक URL प्रति पंक्ति)</label><textarea id="sourceUrls" name="sourceUrls" rows="3" placeholder="https://example.com/original-report"></textarea><span class="help">ड्राफ्ट में वैकल्पिक; अंतिम स्वीकृति से पहले वास्तविक विश्वसनीय स्रोत आवश्यक हैं।</span><small class="error" data-error="sourceUrls"></small></div>
+              <div class="field full"><label for="image">चित्र का पथ <span class="story-required" hidden>*</span></label><input id="image" name="image" type="text" placeholder="/images/uploads/my-image.webp" autocomplete="off" /><span class="help">चित्र को अनुमति के साथ अलग से प्रोजेक्ट के public/images/ फ़ोल्डर में रखें।</span><small class="error" data-error="image"></small></div>
+              <div class="field"><label for="imageAlt">चित्र का Alt Text <span class="story-required" hidden>*</span></label><input id="imageAlt" name="imageAlt" type="text" placeholder="चित्र का सटीक विवरण" /><small class="error" data-error="imageAlt"></small></div>
+              <div class="field"><label for="imageCredit">चित्र का श्रेय</label><input id="imageCredit" name="imageCredit" type="text" placeholder="फ़ोटोग्राफ़र / स्रोत" /></div>
+              <div class="field full"><label for="imageRights">चित्र उपयोग-अधिकार <span class="story-required" hidden>*</span></label><input id="imageRights" name="imageRights" type="text" placeholder="लाइसेंस या अपनी रचना होने की पुष्टि" /><small class="error" data-error="imageRights"></small></div>
+              <div class="field full news-only"><label for="body">पूरा समाचार लेख <b>*</b></label><textarea id="body" name="body" class="body-input" rows="15" placeholder="पहला पैराग्राफ़...
+
+दूसरा पैराग्राफ़...
+
+## जरूरी संदर्भ
+..." required></textarea><span class="help">Markdown समर्थन: ## शीर्षक, **बोल्ड**, - सूची। इस टूल में प्रीव्यू केवल सुरक्षित सादा टेक्स्ट में है।</span><small class="error" data-error="body"></small></div>
+            </div>
+            <div id="story-fields" hidden>
+              <div class="section-top slide-heading"><div><span class="step-number">03</span><h2>स्टोरी की स्लाइड्स</h2></div><button type="button" id="add-slide" class="small-action">+ स्लाइड जोड़ें</button></div>
+              <p class="help" id="slide-count-label">5 स्लाइड्स · अधिकतम 8</p>
+              <div id="slide-list" class="slides-inputs"></div>
+              <small class="error" data-error="slides"></small>
+            </div>
+            <div class="form-footer">
+              <div class="form-footer-note"><strong>स्थिति: ड्राफ्ट</strong><span>इस टूल से स्वीकृति या प्रकाशन नहीं किया जा सकता।</span></div>
+              <div class="form-actions"><button type="button" id="clear-form" class="outline-action">नया ड्राफ्ट</button><button type="submit" class="primary-action">ड्राफ्ट फाइल सेव करें <span aria-hidden="true">↓</span></button></div>
+            </div>
+          </form>
+          <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+        </div>
+
+        <aside class="preview-pane">
+          <div class="preview-head"><div><span class="red-line"></span><h2>लाइव प्रीव्यू</h2></div><span class="preview-label">LOCAL · DRAFT</span></div>
+          <div class="preview-paper">
+            <p class="preview-category" id="preview-category">देश / डेमो</p>
+            <h3 id="preview-title">यहाँ आपकी खबर का शीर्षक दिखाई देगा</h3>
+            <p id="preview-description">जैसे-जैसे आप जानकारी भरेंगे, उसका प्रीव्यू यहाँ दिखाई देगा।</p>
+            <div class="preview-meta"><span>NUZENIO</span><span>•</span><span>अप्रकाशित ड्राफ्ट</span></div>
+            <div id="preview-visual" class="preview-visual"><span>n.</span><small>ILLUSTRATION PLACEHOLDER</small></div>
+            <p class="preview-body" id="preview-body">लेख का शुरुआती हिस्सा या Web Story की स्लाइड का विवरण यहाँ आएगा।</p>
+            <div id="preview-slides" class="preview-slides" hidden></div>
+          </div>
+          <div class="publish-steps"><h3>प्रकाशन से पहले</h3><ol><li>सभी स्रोतों से तथ्यों की पुष्टि</li><li>चित्र उपयोग-अधिकार का सत्यापन</li><li>मानवीय संपादकीय समीक्षा</li><li>मालिक की स्पष्ट मंज़ूरी</li><li>तभी स्वीकृत PR को मर्ज/डिप्लॉय करें</li></ol></div>
+        </aside>
+      </div>
+      <footer class="footer"><span>© Nuzenio · Editorial Development Tool</span><span>ऑफ़लाइन · कोई नेटवर्क रिक्वेस्ट नहीं · कोई ऑटो-पब्लिश नहीं</span></footer>
+    </main>
+  </body>
+</html>
