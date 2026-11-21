@@ -190,7 +190,8 @@
     document.body.append(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Keep the temporary URL valid through the end of the download gesture.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     feedback.classList.add("success");
     feedback.textContent = "ड्राफ्ट डाउनलोड किया गया: " + result.filename + " । आगे इसे " + result.directory + " में जोड़कर समीक्षा के लिए PR बनाना होगा। अभी कोई खबर प्रकाशित नहीं हुई।";
   });
