@@ -1,0 +1,92 @@
+---
+import "../styles/global.css";
+import { categories, site } from "../data/editorial";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: "website" | "article";
+}
+const {
+  title = "समाचार, पूरे संदर्भ के साथ",
+  description = "Nuzenio — देश, दुनिया, टेक और AI, विज्ञान और संस्कृति को समझने की एक स्वतंत्र हिंदी न्यूज़ वेबसाइट।",
+  image = "/images/ai.svg",
+  type = "website",
+} = Astro.props;
+const pageTitle = title + " | Nuzenio";
+const canonical = new URL(Astro.url.pathname, site.url).toString();
+const activePath = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="hi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={site.preview ? "noindex, nofollow" : "index, follow"} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:locale" content="hi_IN" />
+    <meta property="og:site_name" content="Nuzenio" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, site.url).toString()} />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">मुख्य सामग्री पर जाएँ</a>
+    {site.preview && <div class="preview-bar" role="status"><span class="preview-dot"></span>डिज़ाइन प्रीव्यू — सभी लेख और स्टोरीज़ नमूना सामग्री हैं, वास्तविक समाचार नहीं।</div>}
+    <div class="topline">
+      <div class="container topline-inner">
+        <span>स्वतंत्र हिंदी डिजिटल न्यूज़ प्लेटफ़ॉर्म</span>
+        <span class="topline-right">समाचार • संदर्भ • स्पष्टता</span>
+      </div>
+    </div>
+    <header class="site-header">
+      <div class="container brand-row">
+        <a href="/" class="brand" aria-label="Nuzenio — होम">
+          <span class="brand-name">nuzenio<span class="brand-dot">.</span></span>
+          <span class="brand-sub">खबर के साथ, उसका संदर्भ भी।</span>
+        </a>
+        <a class="header-stories" href="/web-stories/"><span class="header-stories-icon">▣</span><span>वेब स्टोरीज़</span></a>
+      </div>
+      <div class="nav-border">
+        <div class="container nav-row">
+          <nav class="primary-nav" aria-label="मुख्य मेन्यू">
+            <a href="/" class:list={{active:activePath === "/"}}>होम</a>
+            {categories.map((cat) => <a href={"/category/" + cat.slug + "/"} class:list={{active:activePath.startsWith("/category/" + cat.slug + "/")}}>{cat.name}</a>)}
+            <a href="/web-stories/" class:list={{active:activePath.startsWith("/web-stories/")}}>वेब स्टोरीज़</a>
+          </nav>
+          <div class="nav-actions">
+            <a class="search-button" href="/search/" aria-label="खोजें"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8"></path></svg><span>खोजें</span></a>
+            <details class="mobile-menu">
+              <summary aria-label="मेन्यू खोलें"><span></span><span></span><span></span></summary>
+              <nav aria-label="मोबाइल मेन्यू" class="mobile-panel">
+                <a href="/">होम</a>
+                {categories.map((cat) => <a href={"/category/" + cat.slug + "/"}>{cat.name}</a>)}
+                <a href="/web-stories/">वेब स्टोरीज़</a>
+                <a href="/search/">खोजें</a>
+              </nav>
+            </details>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main id="content"><slot /></main>
+    <footer class="site-footer">
+      <div class="container footer-top">
+        <div>
+          <a href="/" class="footer-brand">nuzenio<span>.</span></a>
+          <p>समाचार को शोर से अलग, संदर्भ के साथ प्रस्तुत करने की कोशिश।</p>
+          {site.preview && <p class="footer-note">यह संस्करण केवल डिज़ाइन समीक्षा के लिए है।</p>}
+        </div>
+        <div class="footer-links"><strong>Nuzenio</strong><a href="/about/">हमारे बारे में</a><a href="/editorial-policy/">संपादकीय नीति</a><a href="/web-stories/">वेब स्टोरीज़</a></div>
+        <div class="footer-links"><strong>श्रेणियाँ</strong>{categories.slice(0,5).map((cat) => <a href={"/category/" + cat.slug + "/"}>{cat.name}</a>)}</div>
+      </div>
+      <div class="container footer-bottom"><span>© {new Date().getFullYear()} Nuzenio. सर्वाधिकार सुरक्षित।</span><span>संपादकीय स्वीकृति के बाद ही प्रकाशन</span></div>
+    </footer>
+  </body>
+</html>

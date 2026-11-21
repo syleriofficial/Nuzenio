@@ -1,0 +1,55 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { webStories, type WebStory } from "../../data/editorial";
+export function getStaticPaths() {
+  return webStories.map((story) => ({ params: { slug: story.slug }, props: { story } }));
+}
+const { story } = Astro.props as { story: WebStory };
+---
+<BaseLayout title={story.title} description={story.description} image={story.image}>
+  <div class="story-viewer-page">
+    <div class="story-player" data-story-viewer tabindex="0" aria-label={story.title}>
+      <div class="story-progress" aria-hidden="true">{story.slides.map((_,index) => <span class:list={{filled:index===0}} data-story-progress></span>)}</div>
+      <div class="story-player-header"><a href="/web-stories/" aria-label="स्टोरीज़ पर वापस जाएँ" class="story-close">×</a><span class="story-player-brand">nuzenio<span>.</span></span><span class="story-count" data-story-count>1 / {story.slides.length}</span></div>
+      {story.slides.map((slide, index) => <section class="story-slide" data-story-slide hidden={index!==0} aria-label={"स्लाइड " + (index+1)}>
+        <img class="story-slide-backdrop" src={story.image} alt="" />
+        <div class="story-slide-scrim"></div>
+        <div class="story-slide-inner"><span class="story-slide-label">{index===0 ? "डेमो वेब स्टोरी" : "NUZENIO · EXPLAINER"}</span><h1>{slide.title}</h1><p>{slide.text}</p><span class="story-slide-caption">सांकेतिक चित्र · उदाहरण सामग्री</span></div>
+      </section>)}
+      <div class="story-player-controls"><button type="button" data-story-prev aria-label="पिछली स्लाइड"><span aria-hidden="true">←</span></button><button type="button" data-story-next aria-label="अगली स्लाइड"><span aria-hidden="true">→</span></button></div>
+      <div class="story-player-hint">आगे बढ़ने के लिए टैप करें या तीर कुंजियाँ दबाएँ</div>
+    </div>
+    <div class="story-explainer"><p class="eyebrow"><span class="red-mark"></span> वेब स्टोरी · डेमो</p><h2>{story.title}</h2><p>{story.description}</p><a href="/web-stories/">← सभी स्टोरीज़</a><p class="story-caveat">यह गैर-AMP इंटरैक्टिव डेमो है। वास्तविक AMP Stories अलग तकनीकी सत्यापन के बाद ही जारी की जाएँगी।</p></div>
+  </div>
+  <script>
+    document.querySelectorAll<HTMLElement>("[data-story-viewer]").forEach((viewer) => {
+      const slides = Array.from(viewer.querySelectorAll<HTMLElement>("[data-story-slide]"));
+      const bars = Array.from(viewer.querySelectorAll<HTMLElement>("[data-story-progress]"));
+      const count = viewer.querySelector<HTMLElement>("[data-story-count]");
+      const previous = viewer.querySelector<HTMLButtonElement>("[data-story-prev]");
+      const next = viewer.querySelector<HTMLButtonElement>("[data-story-next]");
+      let current = 0;
+      let touchStartX = 0;
+      const show = (nextIndex: number) => {
+        current = Math.min(Math.max(nextIndex, 0), slides.length - 1);
+        slides.forEach((slide, index) => { slide.hidden = index !== current; });
+        bars.forEach((bar, index) => { bar.classList.toggle("filled", index <= current); });
+        if (count) count.textContent = String(current + 1) + " / " + String(slides.length);
+        if (previous) previous.disabled = current === 0;
+        if (next) next.disabled = current === slides.length - 1;
+      };
+      previous?.addEventListener("click", () => show(current - 1));
+      next?.addEventListener("click", () => show(current + 1));
+      viewer.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight") show(current + 1);
+        if (event.key === "ArrowLeft") show(current - 1);
+      });
+      viewer.addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0]?.screenX ?? 0; }, { passive: true });
+      viewer.addEventListener("touchend", (event) => {
+        const delta = (event.changedTouches[0]?.screenX ?? 0) - touchStartX;
+        if (Math.abs(delta) > 55) show(current + (delta < 0 ? 1 : -1));
+      }, { passive: true });
+      show(0);
+    });
+  </script>
+</BaseLayout>

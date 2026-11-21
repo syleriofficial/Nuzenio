@@ -1,0 +1,20 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import WebStoryCard from "../../components/WebStoryCard.astro";
+import { webStories } from "../../data/editorial";
+---
+<BaseLayout title="वेब स्टोरीज़" description="Nuzenio की छोटी, विज़ुअल हिंदी कहानियाँ — अभी डेमो प्रीव्यू।">
+  <div class="container">
+    <nav aria-label="ब्रेडक्रंब" class="breadcrumb"><a href="/">होम</a><span>/</span><span>वेब स्टोरीज़</span></nav>
+    <section class="category-hero stories-page-hero">
+      <p class="eyebrow"><span class="red-mark"></span> VISUAL JOURNALISM</p>
+      <h1>वेब स्टोरीज़<span class="title-red-dot">.</span></h1>
+      <p>जटिल विषयों की साफ़, छोटी और देखने लायक कहानी।</p>
+    </section>
+    <section class="section-block">
+      <div class="section-heading"><div><span class="heading-line"></span><h2>सभी स्टोरीज़</h2><span class="heading-label">डेमो इंटरैक्टिव प्रीव्यू</span></div></div>
+      <div class="stories-index-grid">{webStories.map((story) => <WebStoryCard story={story} />)}</div>
+      <p class="index-note"><strong>महत्त्वपूर्ण:</strong> ये मोबाइल-फ्रेंडली Web Story प्रोटोटाइप हैं; AMP तकनीकी सत्यापन और प्रकाशन अलग अगले चरण में होंगे।</p>
+    </section>
+  </div>
+</BaseLayout>
