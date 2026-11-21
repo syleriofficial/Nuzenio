@@ -1,0 +1,11 @@
+---
+import type { WebStory } from "../data/editorial";
+interface Props { story: WebStory; }
+const { story } = Astro.props;
+---
+<a class="web-story-card" href={"/web-stories/" + story.slug + "/"} aria-label={story.title}>
+  <img src={story.image} alt="" loading="lazy" decoding="async" />
+  <span class="story-overlay"></span>
+  <span class="story-topline"><span class="story-icon">▣</span> WEB STORY · डेमो</span>
+  <span class="story-card-bottom"><span class="story-category">{story.category}</span><strong>{story.title}</strong><span class="story-read">स्टोरी देखें <span aria-hidden="true">↗</span></span></span>
+</a>

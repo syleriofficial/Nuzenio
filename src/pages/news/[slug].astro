@@ -1,0 +1,35 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+import { articles, getCategory, type Article } from "../../data/editorial";
+export function getStaticPaths() {
+  return articles.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+const { article } = Astro.props as { article: Article };
+const category = getCategory(article.category);
+const related = articles.filter((item) => item.slug !== article.slug && item.category === article.category).slice(0,2);
+---
+<BaseLayout title={article.title} description={article.excerpt} image={article.image} type="article">
+  <div class="container article-page">
+    <nav aria-label="ब्रेडक्रंब" class="breadcrumb"><a href="/">होम</a><span aria-hidden="true">/</span><a href={"/category/" + article.category + "/"}>{category?.name}</a><span aria-hidden="true">/</span><span>नमूना लेख</span></nav>
+    <div class="article-header">
+      <p class="eyebrow"><span class="red-mark"></span> {category?.name} <span class="eyebrow-divider">/</span> {article.label}</p>
+      <h1>{article.title}</h1>
+      <p class="article-standfirst">{article.excerpt}</p>
+      <div class="byline-row"><span class="author-avatar">N.</span><div><strong>Nuzenio — डेमो डेस्क</strong><small>डिज़ाइन नमूना · {article.minutes} मिनट पढ़ें</small></div></div>
+    </div>
+    <figure class="article-hero-figure"><img src={article.image} alt={article.imageAlt} /><figcaption>मौलिक सांकेतिक चित्र · यह वास्तविक घटनास्थल की तस्वीर नहीं है।</figcaption></figure>
+    <div class="article-reading-grid">
+      <div class="article-tools"><span>इस पेज पर</span><a href="#article-body">लेख</a><a href="#important-points">मुख्य बातें</a><a href="#editorial-note">संपादकीय नोट</a></div>
+      <article id="article-body" class="article-body">
+        <div class="article-disclaimer"><strong>केवल डिज़ाइन प्रीव्यू</strong><p>यह उदाहरण लेख है, प्रकाशित या सत्यापित ताज़ा समाचार नहीं। इसे वास्तविक रिपोर्ट की तरह साझा न करें।</p></div>
+        {article.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+        <h2 id="important-points">ध्यान रखने वाली बातें</h2>
+        <ul>{article.points.map((point) => <li>{point}</li>)}</ul>
+        <div id="editorial-note" class="article-note"><h3>हमारी संपादकीय प्रक्रिया</h3><p>वास्तविक खबरों के लिए मूल स्रोत, तथ्य-जाँच, उचित चित्र-अनुमति और मानव संपादकीय स्वीकृति आवश्यक होगी। इस डेमो लेख के लिए कोई घटनास्थल या अज्ञात स्रोत दावा नहीं किया गया है।</p><a href="/editorial-policy/">संपादकीय नीति ↗</a></div>
+      </article>
+      <aside class="article-aside"><p class="aside-kicker">NUZENIO</p><h3>समझना भी ज़रूरी है।</h3><p>सिर्फ क्या हुआ नहीं, क्यों और कैसे—इसका संदर्भ भी।</p></aside>
+    </div>
+    {related.length > 0 && <section class="section-block related-section"><div class="section-heading"><div><span class="heading-line"></span><h2>इससे जुड़ी कहानियाँ</h2></div></div><div class="three-grid">{related.map((item) => <ArticleCard article={item} />)}</div></section>}
+  </div>
+</BaseLayout>

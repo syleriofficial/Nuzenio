@@ -1,0 +1,4 @@
+# Nuzenio is an editorial design preview. Remove this block only
+# after real, reviewed editorial content has replaced all demo material.
+User-agent: *
+Disallow: /

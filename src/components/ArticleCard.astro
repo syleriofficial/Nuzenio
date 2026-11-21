@@ -1,0 +1,18 @@
+---
+import { getCategory, type Article } from "../data/editorial";
+interface Props { article: Article; featured?: boolean; compact?: boolean; }
+const { article, featured = false, compact = false } = Astro.props;
+const category = getCategory(article.category);
+---
+<a class:list={["article-card", { "article-card-featured": featured, "article-card-compact": compact }]} href={"/news/" + article.slug + "/"}>
+  <div class="article-image">
+    <img src={article.image} alt={article.imageAlt} loading={featured ? "eager" : "lazy"} decoding="async" />
+    <span class="image-chip">डेमो</span>
+  </div>
+  <div class="article-copy">
+    <div class="article-kicker"><span>{category?.name}</span><span class="kicker-separator">/</span><span>{article.label}</span></div>
+    <h3>{article.title}</h3>
+    {!compact && <p class="article-dek">{article.excerpt}</p>}
+    <div class="article-meta"><span>नमूना लेख</span><span class="meta-dot"></span><span>{article.minutes} मिनट पढ़ें</span></div>
+  </div>
+</a>
