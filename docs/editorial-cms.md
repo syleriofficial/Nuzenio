@@ -54,3 +54,19 @@ For Web Stories create \`src/content/stories/english-slug.json\` with the same e
 Research → Fact check → Write → Draft → Owner review → Owner approval → Manual PR merge → Build/deploy only when authorized.
 
 No item becomes public solely because it exists in the content folder or because someone saves an unpublished CMS draft. If an entry is marked "approved" in an editor branch, it may appear on **preview** builds of that branch; keep those builds private/noindex and require protected approvals before public deployment.
+
+
+## Phase 3 — local-only working draft editor
+
+Open \`tools/editor/index.html\` in your browser from a local checkout of the Nuzenio repository.
+
+- Article and Web Story form controls, safe live text previews and field-level validation
+- News text exported as \`src/content/news/<slug>.md\`
+- 5–8-slide Web Stories exported as \`src/content/stories/<slug>.json\`
+- All exports have \`status: draft\` **without approval fields**; there is no UI control for marking approved.
+- No autosave, upload, remote service, GitHub credential, API token or publishing endpoint.
+- Files are downloaded only when the editor explicitly clicks the export button.
+- This editor is stored OUTSIDE \`public/\` and \`src/pages/\`; no production URL is generated.
+- Node tests verify validation, draft-only output, malicious scheme/traversal blocking, safe YAML output, and no networking APIs in the editor.
+
+This is not an authentication system; the public \`/admin/\` route continues to be a disabled-login notice. Do not confuse a local draft editor with a deployed, protected CMS. For an authenticated in-browser CMS, first complete GitHub OAuth and trusted access protection, as described above.
