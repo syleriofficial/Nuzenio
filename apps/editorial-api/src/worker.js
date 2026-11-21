@@ -1,5 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { validateDraft, reviewReady } from "./validation.js";
+import { studioHtml, studioCss } from "./studio-assets.js";
+import { studioClient } from "./studio-client.js";
 
 const MAX_BODY_BYTES = 65536;
 const JWKS_CACHE = new Map();
@@ -211,6 +213,18 @@ export async function handleRequest(request,env,authenticate=verifyIdentity){
   const identity=await authenticate(request,env);
   if(!identity.ok)return json(identity.status || 401,{error:"unauthorized"});
   const path=u.pathname.replace(/\/+$/,"")||"/";
+  if (request.method === "GET" && ["/studio","/studio/app.js","/studio/app.css"].includes(path)) {
+    const body=path==="/studio"?studioHtml:path==="/studio/app.js"?studioClient:studioCss;
+    const type=path==="/studio"?"text/html":path==="/studio/app.js"?"text/javascript":"text/css";
+    return new Response(body,{
+      status:200,
+      headers:{
+        ...SECURITY_HEADERS,
+        "Content-Type":type+"; charset=utf-8",
+        "Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; form-action 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      }
+    });
+  }
   if(!path.startsWith("/api/")) return json(404,{error:"not_found"});
   try{return await dispatch(request,env,identity.email,path);}
   catch{return json(500,{error:"unexpected_error"});}

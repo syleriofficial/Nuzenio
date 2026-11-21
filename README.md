@@ -59,3 +59,13 @@ A local, working Hindi draft editor is provided at \`tools/editor/index.html\`. 
 Run \`npm run editor:check\` to test the editor's export rules.
 
 The existing website \`/admin/\` remains a closed login placeholder until authenticated OAuth + GitHub protections are deployed, reviewed and explicitly authorized. Nothing is automatically published.
+
+## Phase 4: Private Cloudflare Access editorial staging API (NOT DEPLOYED)
+
+The new `apps/editorial-api/` directory contains an owner-only Cloudflare Worker with D1 private draft storage and a simple in-browser editorial workspace. **Nothing is live**; the required Cloudflare Access identity application, D1 database, domain and keys have not been configured.
+
+The server checks Cloudflare Access JWTs, the configured owner email and the expected origin before returning data. All drafts remain private. Status `approved_for_manual_release` is NOT publication; no public-site publishing endpoint exists. This phase also does not activate the public `/admin/` page.
+
+Detailed owner setup and limitations: [apps/editorial-api/README.md](apps/editorial-api/README.md).
+
+Run `npm run editorial-api:check` for offline API tests. Passing tests is not a security audit.
