@@ -1,0 +1,15 @@
+# TEMPLATE ONLY. Configure Cloudflare Access, then independently review before deploy.
+name = "nuzenio-private-editorial-staging"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = false
+[vars]
+EDITOR_ENABLED = "false"
+ADMIN_ORIGIN = "https://editor.nuzenio.com"
+TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
+POLICY_AUD = "REPLACE_WITH_CLOUDFLARE_ACCESS_AUD"
+OWNER_EMAIL = "replace-with-owner-email@example.invalid"
+[[d1_databases]]
+binding = "DB"
+database_name = "nuzenio_private_drafts"
+database_id = "REPLACE_WITH_CREATED_D1_DATABASE_ID"
