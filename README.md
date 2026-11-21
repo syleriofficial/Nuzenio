@@ -1,59 +1,52 @@
-# Nuzenio — Hindi news website (editorial preview)
+# Nuzenio — Hindi news platform
 
-This is a **static, manually edited Astro website**, not an automated news service.
+Nuzenio is an Astro 5 Hindi news site with an **owner-approved/manual publication model**.
 
-## Current pages
+**Current status:** Stacked draft implementation. It is not deployed and the editorial CMS login is intentionally unavailable until secure GitHub OAuth setup and owner review.
 
-- Responsive homepage, navigation and six editorial sections
-- Article detail pages and related-reading cards
-- Client-side search over preview content
-- Short, interactive **non-AMP** Web Story demos
-- Editorial policy, about page and custom 404
-- Original abstract SVG artwork (no scraped/unauthorized news imagery)
-- Basic SEO metadata and canonical URLs
-- CI for Astro type checks and static production build
+## Run locally
 
-## Local development
-
-Requires Node.js 22+.
+Node.js 22+:
 
 \`\`\`bash
 npm install
 npm run dev
 npm run check
 npm run build
-npm run preview
+node scripts/test-publication-gates.mjs
 \`\`\`
 
-Cloudflare Pages settings after approval: build command \`npm run build\`, output directory \`dist\`, Node 22.
+## What's built
 
-## Editorial safeguards — important
+- Hindi responsive homepage, categories, search and article pages
+- Visual Web Stories (interactive HTML prototypes; **not validated AMP**)
+- Original SVG illustrations for demo content
+- Markdown news and JSON Web Story content collections validated by Astro/Zod
+- Draft, in-review and approved metadata states
+- Only explicitly approved news and stories included in public static routes
+- Date, source links, image attribution and owner approval metadata on approved articles
+- Conditional demo UI: example articles and stories are shown only while \`site.preview\` is enabled
+- CI publication-gate tests: approved fixtures published, draft/in-review fixtures excluded
+- Future Decap CMS editor configuration template (\`cms/config.example.yml\`) and intentionally closed \`/admin/\` placeholder
 
-**All existing articles and Web Stories are fictional/evergreen UI examples. They are NOT verified current news.** Every preview page is marked "डेमो"; \`src/data/editorial.ts\` has \`site.preview: true\`, which renders a prominent site-wide preview banner and \`noindex,nofollow\` meta. \`public/robots.txt\` disallows crawling.
+## Safeguards
 
-There is **no automatic content ingestion, no publishing automation, no backend, no credentials and no production deployment** in this change.
+**Everything in \`src/data/editorial.ts\` is example preview content, not real news.** The current preview site has an obvious banner, noindex metadata and robots disallow. It must not be presented as a launched news service.
 
-For each real post, a human editor must:
-1. Gather credible primary/secondary sources and verify material facts, quotes, names and dates.
-2. Write original Hindi text (or revise assisted drafts) and distinguish opinions/analysis from verified news.
-3. Verify usage rights for photographs, video and illustrations; add accurate image descriptions/credits.
-4. Approve the article/story for publication and manually add or change the appropriate entry in \`src/data/editorial.ts\`.
-5. Remove example content. Configure site preview off **only after all demonstration content has been replaced**, and review robots/indexing, Google structured data, author/source attribution, correction workflow, legal pages and production QA.
-6. Deploy **only on explicit owner approval**, not by automation.
+No auto-generation, feed polling, draft auto-approval or auto-publish is enabled.
 
-The site currently offers no real CMS. A secured, manual draft/review/publish CMS is a future milestone. News CMS integration should not bypass owner approval.
+Real published content uses \`src/content/news/*.md\` and \`src/content/stories/*.json\`. A new item must start as \`draft\`. Only an item explicitly marked \`approved\` with \`approvedBy: syleriofficial\`, a date and at least one checked source URL can generate a public route. Its status field is a **content assertion, not security verification**; real ownership enforcement requires GitHub protected branch/approval and a trusted authenticated editor.
 
-## Web Stories / AMP
+The repository is PUBLIC. Even if draft material does not appear on the site, any draft committed to a GitHub branch/PR is visible to the public. Do not use these files for confidential reporting.
 
-The included stories are intentionally **interactive HTML prototypes**, not claimed to be valid Google AMP Web Stories. A separate milestone is needed to implement and validate AMP syntax, permitted images, poster assets, accessibility and Google indexing requirements. Do not label these demos "AMP" in public.
+**Do not merge, enable indexation or deploy to production without explicit approval.**
 
-## Structure
+## Editorial CMS activation (not enabled)
 
-- \`src/data/editorial.ts\`: category, article and story data
-- \`src/layouts/BaseLayout.astro\`: site shell, metadata and navigation
-- \`src/components/\`: content cards
-- \`src/pages/\`: statically generated routes
-- \`src/styles/global.css\`: responsive visual system
-- \`public/images/\`: original symbolic art assets
+See [docs/editorial-cms.md](docs/editorial-cms.md) for the owner-controlled publishing steps, why \`/admin/\` is closed, OAuth/branch protection requirements and the Decap CMS configuration example.
 
-No external news sources are polled, no RSS is consumed and nothing is published without review.
+## Deploy later
+
+Cloudflare Pages: Node.js 22+, build command \`npm run build\`, output \`dist\`.
+
+Prior to launch: replace all sample content, verify corrections/privacy/legal pages, image rights, source provenance, structured data, indexing, real CMS sign-in/security and human editorial workflow.

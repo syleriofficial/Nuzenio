@@ -1,0 +1,122 @@
+# REVIEWED TEMPLATE ONLY. This is intentionally NOT served at /admin/config.yml.
+# To activate, deploy an authenticated GitHub OAuth proxy, add a protected
+# /admin/config.yml and replace /admin/index.html only after owner review.
+#
+# IMPORTANT: GitHub editorial workflow opens GitHub pull requests. PR previews
+# and draft content are visible in this PUBLIC repo. Do not store private news
+# sources, credentials, confidential tips, or embargoed reporting here.
+backend:
+  name: github
+  repo: syleriofficial/Nuzenio
+  branch: main
+  base_url: https://cms-auth-placeholder.invalid
+  auth_endpoint: auth
+
+publish: false  # This line is a documentation guard; REMOVE when activating.
+publish_mode: editorial_workflow
+site_url: https://nuzenio.com
+display_url: https://nuzenio.com
+logo_url: /favicon.svg
+
+media_folder: public/images/uploads
+public_folder: /images/uploads
+local_backend: false
+
+collections:
+  - name: news
+    label: समाचार लेख
+    label_singular: समाचार लेख
+    folder: src/content/news
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{fields.slug}}"
+    summary: "{{title}} — {{status}}"
+    fields:
+      - { label: शीर्षक, name: title, widget: string, required: true }
+      - { label: URL slug (English, dash), name: slug, widget: string, pattern: ["^[a-z0-9]+(?:-[a-z0-9]+)*$", "Use lowercase English letters, numbers and hyphens"], required: true }
+      - { label: संक्षेप, name: description, widget: text, required: true }
+      - label: श्रेणी
+        name: category
+        widget: select
+        options:
+          - { label: देश, value: desh }
+          - { label: दुनिया, value: duniya }
+          - { label: टेक और AI, value: tech-ai }
+          - { label: विज्ञान, value: vigyan }
+          - { label: एंटरटेनमेंट, value: entertainment }
+          - { label: वीडियो, value: video }
+      - { label: लेखक, name: author, widget: string, required: true }
+      - { label: प्रमुख चित्र (अधिकृत हो), name: image, widget: image, required: false }
+      - { label: चित्र का Alt Text, name: imageAlt, widget: string, required: false }
+      - { label: चित्र का श्रेय, name: imageCredit, widget: string, required: false }
+      - { label: चित्र उपयोग-अधिकार का प्रमाण, name: imageRights, widget: text, required: false }
+      - label: प्रकाशन स्थिति
+        name: status
+        widget: select
+        default: draft
+        options:
+          - { label: ड्राफ्ट, value: draft }
+          - { label: समीक्षा में, value: in_review }
+          - { label: स्वीकृत, value: approved }
+      - { label: स्वीकृति देने वाला GitHub owner, name: approvedBy, widget: string, required: false }
+      - { label: स्वीकृति समय, name: approvedAt, widget: datetime, required: false }
+      - { label: प्रकाशन समय, name: publishedAt, widget: datetime, required: false }
+      - label: सत्यापित स्रोत URL
+        name: sourceUrls
+        widget: list
+        required: false
+        field: { label: स्रोत URL, name: url, widget: string }
+      - { label: लेख, name: body, widget: markdown, required: true }
+
+  - name: stories
+    label: वेब स्टोरीज़
+    label_singular: वेब स्टोरी
+    folder: src/content/stories
+    create: true
+    extension: json
+    format: json
+    slug: "{{fields.slug}}"
+    summary: "{{title}} — {{status}}"
+    fields:
+      - { label: शीर्षक, name: title, widget: string, required: true }
+      - { label: URL slug (English, dash), name: slug, widget: string, pattern: ["^[a-z0-9]+(?:-[a-z0-9]+)*$", "Use lowercase English letters, numbers and hyphens"], required: true }
+      - { label: संक्षेप, name: description, widget: text, required: true }
+      - label: श्रेणी
+        name: category
+        widget: select
+        options:
+          - { label: देश, value: desh }
+          - { label: दुनिया, value: duniya }
+          - { label: टेक और AI, value: tech-ai }
+          - { label: विज्ञान, value: vigyan }
+          - { label: एंटरटेनमेंट, value: entertainment }
+          - { label: वीडियो, value: video }
+      - { label: कवर चित्र, name: image, widget: image, required: true }
+      - { label: Alt Text, name: imageAlt, widget: string, required: true }
+      - { label: चित्र का श्रेय, name: imageCredit, widget: string, required: false }
+      - { label: चित्र उपयोग-अधिकार, name: imageRights, widget: text, required: true }
+      - label: स्लाइड (5 से 8)
+        name: slides
+        widget: list
+        min: 5
+        max: 8
+        fields:
+          - { label: स्लाइड शीर्षक, name: title, widget: string, required: true }
+          - { label: जानकारी, name: text, widget: text, required: true }
+      - label: प्रकाशन स्थिति
+        name: status
+        widget: select
+        default: draft
+        options:
+          - { label: ड्राफ्ट, value: draft }
+          - { label: समीक्षा में, value: in_review }
+          - { label: स्वीकृत, value: approved }
+      - { label: स्वीकृति देने वाला GitHub owner, name: approvedBy, widget: string, required: false }
+      - { label: स्वीकृति समय, name: approvedAt, widget: datetime, required: false }
+      - { label: प्रकाशन समय, name: publishedAt, widget: datetime, required: false }
+      - label: सत्यापित स्रोत URL
+        name: sourceUrls
+        widget: list
+        required: false
+        field: { label: स्रोत URL, name: url, widget: string }

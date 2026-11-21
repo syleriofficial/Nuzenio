@@ -1,4 +1,4 @@
-name: Nuzenio UI checks
+name: Nuzenio UI and editorial gates
 
 on:
   push:
@@ -16,3 +16,4 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run check
       - run: npm run build
+      - run: node scripts/test-publication-gates.mjs

@@ -1,12 +1,15 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
-import { articles, categories, type Category } from "../../data/editorial";
+import PublishedCard from "../../components/PublishedCard.astro";
+import { getApprovedNews } from "../../lib/publications";
+import { articles, categories, site, type Category } from "../../data/editorial";
 export function getStaticPaths() {
   return categories.map((category) => ({ params: { slug: category.slug }, props: { category } }));
 }
 const { category } = Astro.props as { category: Category };
-const filtered = articles.filter((article) => article.category === category.slug);
+const filtered = site.preview ? articles.filter((article) => article.category === category.slug) : [];
+const published = (await getApprovedNews()).filter((entry) => entry.data.category === category.slug);
 ---
 <BaseLayout title={category.name} description={category.description}>
   <div class="container">
@@ -17,8 +20,8 @@ const filtered = articles.filter((article) => article.category === category.slug
       <p>{category.description}</p>
     </section>
     <section class="section-block category-results" aria-labelledby="category-list-heading">
-      <div class="section-heading"><div><span class="heading-line"></span><h2 id="category-list-heading">इस श्रेणी में पढ़ें</h2><span class="heading-label">{filtered.length} नमूना लेख</span></div></div>
-      {filtered.length ? <div class="three-grid">{filtered.map((article) => <ArticleCard article={article} />)}</div> : <div class="empty-state"><span class="empty-state-symbol">◌</span><h3>जल्द यहाँ नई कहानियाँ होंगी</h3><p>इस श्रेणी में अभी कोई स्वीकृत लेख या नमूना सामग्री नहीं है।</p><a class="text-link" href="/">होमपेज पर जाएँ ↗</a></div>}
+      <div class="section-heading"><div><span class="heading-line"></span><h2 id="category-list-heading">इस श्रेणी में पढ़ें</h2><span class="heading-label">{published.length} स्वीकृत लेख{site.preview && " · " + filtered.length + " नमूना लेख"}</span></div></div>
+      {published.length || filtered.length ? <div class="three-grid">{published.map((entry) => <PublishedCard entry={entry} />)}{filtered.map((article) => <ArticleCard article={article} />)}</div> : <div class="empty-state"><span class="empty-state-symbol">◌</span><h3>जल्द यहाँ नई कहानियाँ होंगी</h3><p>इस श्रेणी में अभी कोई स्वीकृत लेख या नमूना सामग्री नहीं है।</p><a class="text-link" href="/">होमपेज पर जाएँ ↗</a></div>}
     </section>
   </div>
 </BaseLayout>

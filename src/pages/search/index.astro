@@ -1,19 +1,22 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
-import { articles, getCategory } from "../../data/editorial";
+import PublishedCard from "../../components/PublishedCard.astro";
+import { getApprovedNews } from "../../lib/publications";
+import { articles, getCategory, site } from "../../data/editorial";
+const published = await getApprovedNews();
 ---
 <BaseLayout title="खोजें" description="Nuzenio के लेखों और विषयों में खोजें।">
   <div class="container">
     <nav class="breadcrumb" aria-label="ब्रेडक्रंब"><a href="/">होम</a><span>/</span><span>खोजें</span></nav>
-    <section class="category-hero search-hero"><p class="eyebrow"><span class="red-mark"></span> EXPLORE NUZENIO</p><h1>क्या पढ़ना चाहेंगे<span class="title-red-dot">?</span></h1><p>हमारी नमूना सामग्री में विषय या शब्द खोजें।</p></section>
+    <section class="category-hero search-hero"><p class="eyebrow"><span class="red-mark"></span> EXPLORE NUZENIO</p><h1>क्या पढ़ना चाहेंगे<span class="title-red-dot">?</span></h1><p>समाचार और विषयों में खोजें।</p></section>
     <form class="search-form" id="search-form" role="search">
       <label for="search-input">खोजने के लिए शब्द लिखें</label>
       <div class="search-input-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="2"></path></svg><input type="search" id="search-input" name="q" placeholder="जैसे: AI, मानसून, विज्ञान..." autocomplete="off" /></div>
     </form>
     <section class="section-block search-results">
-      <div class="section-heading"><div><span class="heading-line"></span><h2>लेख खोजें</h2><span class="heading-label" id="search-count" aria-live="polite">सभी नमूना लेख</span></div></div>
-      <div class="three-grid" id="search-items">{articles.map((article) => <div data-search-item data-search-text={[article.title,article.excerpt,article.label,getCategory(article.category)?.name].join(" ").toLocaleLowerCase("hi")}><ArticleCard article={article}/></div>)}</div>
+      <div class="section-heading"><div><span class="heading-line"></span><h2>लेख खोजें</h2><span class="heading-label" id="search-count" aria-live="polite">सभी लेख</span></div></div>
+      <div class="three-grid" id="search-items">{published.map((entry) => <div data-search-item data-search-text={[entry.data.title,entry.data.description,getCategory(entry.data.category)?.name].join(" ").toLocaleLowerCase("hi")}><PublishedCard entry={entry}/></div>)}{site.preview && articles.map((article) => <div data-search-item data-search-text={[article.title,article.excerpt,article.label,getCategory(article.category)?.name].join(" ").toLocaleLowerCase("hi")}><ArticleCard article={article}/></div>)}</div>
       <div class="empty-state" id="search-empty" hidden><h3>इस शब्द से कोई लेख नहीं मिला</h3><p>दूसरे शब्द से खोजकर देखें।</p></div>
     </section>
   </div>
@@ -32,7 +35,7 @@ import { articles, getCategory } from "../../data/editorial";
         if (matches) shown++;
       });
       if (empty) empty.hidden = shown !== 0;
-      if (count) count.textContent = String(shown) + " नमूना लेख";
+      if (count) count.textContent = String(shown) + " लेख";
       const url = new URL(location.href);
       if (q) url.searchParams.set("q",q); else url.searchParams.delete("q");
       history.replaceState(null,"",url.pathname + url.search);

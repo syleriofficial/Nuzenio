@@ -2,7 +2,12 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import WebStoryCard from "../components/WebStoryCard.astro";
-import { articles, categories, webStories } from "../data/editorial";
+import PublishedCard from "../components/PublishedCard.astro";
+import PublishedStoryCard from "../components/PublishedStoryCard.astro";
+import { getApprovedNews, getApprovedStories } from "../lib/publications";
+import { articles, categories, webStories, site } from "../data/editorial";
+const approvedNews = await getApprovedNews();
+const approvedStories = await getApprovedStories();
 const lead = articles[0];
 const supporting = articles.slice(1,3);
 const newest = articles.slice(3);
@@ -23,6 +28,8 @@ const newest = articles.slice(3);
       </div>
     </section>
 
+    {approvedNews.length > 0 && <section class="section-block latest-news" aria-labelledby="approved-heading"><div class="section-heading"><div><span class="heading-line"></span><h2 id="approved-heading">ताज़ा प्रकाशित</h2><span class="heading-label">संपादकीय रूप से स्वीकृत लेख</span></div><a href="/search/" class="text-link">सभी लेख ↗</a></div><div class="three-grid">{approvedNews.slice(0,6).map((entry) => <PublishedCard entry={entry} />)}</div></section>}
+    {site.preview && <>
     <section class="section-block hero-news" aria-labelledby="top-headlines">
       <div class="section-heading">
         <div><span class="heading-line"></span><h2 id="top-headlines">मुख्य कहानियाँ</h2><span class="heading-label">डिज़ाइन के लिए नमूना लेख</span></div>
@@ -40,9 +47,10 @@ const newest = articles.slice(3);
       </div>
       <div class="three-grid">{newest.map((article) => <ArticleCard article={article} />)}</div>
     </section>
+    </>}
   </div>
 
-  <section class="stories-panel" aria-labelledby="stories-heading">
+  {(site.preview || approvedStories.length > 0) && <section class="stories-panel" aria-labelledby="stories-heading">
     <div class="container">
       <div class="section-heading section-heading-dark">
         <div><span class="heading-line"></span><h2 id="stories-heading">वेब स्टोरीज़</h2><span class="heading-label">तस्वीरों में, कम शब्दों में</span></div>
@@ -55,10 +63,10 @@ const newest = articles.slice(3);
           <p>कुछ विषय कम शब्दों और असरदार विज़ुअल्स में बेहतर समझ आते हैं। यहाँ वही कोशिश है।</p>
           <a href="/web-stories/" class="stories-cta">स्टोरीज़ एक्सप्लोर करें <span aria-hidden="true">↗</span></a>
         </div>
-        <div class="stories-cards">{webStories.map((story) => <WebStoryCard story={story} />)}</div>
+        <div class="stories-cards">{approvedStories.map((entry) => <PublishedStoryCard entry={entry} />)}{site.preview && webStories.map((story) => <WebStoryCard story={story} />)}</div>
       </div>
     </div>
-  </section>
+  </section>}
 
   <div class="container">
     <section class="section-block explore-section" aria-labelledby="explore-heading">
