@@ -1,10 +1,22 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { webStories, type WebStory } from "../../data/editorial";
-export function getStaticPaths() {
-  return webStories.map((story) => ({ params: { slug: story.slug }, props: { story } }));
+import { webStories, site, getCategory, type WebStory } from "../../data/editorial";
+import type { CollectionEntry } from "astro:content";
+import { getApprovedStories } from "../../lib/publications";
+export async function getStaticPaths() {
+  const approved = await getApprovedStories();
+  const paths = approved.map((entry) => ({ params: { slug: entry.id }, props: { published: entry } }));
+  const slugs = new Set(approved.map((entry) => entry.id));
+  const demos = site.preview ? webStories.filter((story) => !slugs.has(story.slug)).map((story) => ({ params: { slug: story.slug }, props: { demo: story } })) : [];
+  return [...paths, ...demos];
 }
-const { story } = Astro.props as { story: WebStory };
+const { published, demo } = Astro.props as {
+  published?: CollectionEntry<"stories">;
+  demo?: WebStory;
+};
+const story = published
+  ? { slug: published.id, title: published.data.title, description: published.data.description, category: getCategory(published.data.category)?.name || "", image: published.data.image, slides: published.data.slides }
+  : demo!;
 ---
 <BaseLayout title={story.title} description={story.description} image={story.image}>
   <div class="story-viewer-page">
@@ -14,12 +26,12 @@ const { story } = Astro.props as { story: WebStory };
       {story.slides.map((slide, index) => <section class="story-slide" data-story-slide hidden={index!==0} aria-label={"स्लाइड " + (index+1)}>
         <img class="story-slide-backdrop" src={story.image} alt="" />
         <div class="story-slide-scrim"></div>
-        <div class="story-slide-inner"><span class="story-slide-label">{index===0 ? "डेमो वेब स्टोरी" : "NUZENIO · EXPLAINER"}</span><h1>{slide.title}</h1><p>{slide.text}</p><span class="story-slide-caption">सांकेतिक चित्र · उदाहरण सामग्री</span></div>
+        <div class="story-slide-inner"><span class="story-slide-label">{index===0 && !published ? "डेमो वेब स्टोरी" : "NUZENIO · EXPLAINER"}</span><h1>{slide.title}</h1><p>{slide.text}</p><span class="story-slide-caption">{published ? (published.data.imageCredit || "संपादकीय चित्र") : "सांकेतिक चित्र · उदाहरण सामग्री"}</span></div>
       </section>)}
       <div class="story-player-controls"><button type="button" data-story-prev aria-label="पिछली स्लाइड"><span aria-hidden="true">←</span></button><button type="button" data-story-next aria-label="अगली स्लाइड"><span aria-hidden="true">→</span></button></div>
       <div class="story-player-hint">आगे बढ़ने के लिए टैप करें या तीर कुंजियाँ दबाएँ</div>
     </div>
-    <div class="story-explainer"><p class="eyebrow"><span class="red-mark"></span> वेब स्टोरी · डेमो</p><h2>{story.title}</h2><p>{story.description}</p><a href="/web-stories/">← सभी स्टोरीज़</a><p class="story-caveat">यह गैर-AMP इंटरैक्टिव डेमो है। वास्तविक AMP Stories अलग तकनीकी सत्यापन के बाद ही जारी की जाएँगी।</p></div>
+    <div class="story-explainer"><p class="eyebrow"><span class="red-mark"></span> वेब स्टोरी {published ? "· संपादकीय स्वीकृत" : "· डेमो"}</p><h2>{story.title}</h2><p>{story.description}</p><a href="/web-stories/">← सभी स्टोरीज़</a>{published && <div class="story-caveat"><strong>स्रोत और संदर्भ</strong><ul>{published.data.sourceUrls.map((source, i) => <li><a href={source} target="_blank" rel="noopener noreferrer nofollow">स्रोत {i+1} ↗</a></li>)}</ul><p>चित्र उपयोग-अधिकार: {published.data.imageRights}</p></div>}<p class="story-caveat">यह इंटरैक्टिव HTML स्टोरी है, Google AMP द्वारा मान्य स्टोरी नहीं।{!published && " यह केवल डिज़ाइन उदाहरण है।"}</p></div>
   </div>
   <script>
     document.querySelectorAll<HTMLElement>("[data-story-viewer]").forEach((viewer) => {

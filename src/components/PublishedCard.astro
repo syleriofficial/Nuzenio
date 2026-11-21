@@ -1,0 +1,21 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCategory } from "../data/editorial";
+import { formatHindiDate } from "../lib/publications";
+
+interface Props { entry: CollectionEntry<"news">; }
+const { entry } = Astro.props;
+const { data } = entry;
+const category = getCategory(data.category);
+---
+<a class="article-card published-card" href={"/news/" + entry.id + "/"}>
+  <div class="article-image">
+    <img src={data.image ?? "/images/city.svg"} alt={data.imageAlt || "Nuzenio का सांकेतिक चित्र"} loading="lazy" decoding="async" />
+  </div>
+  <div class="article-copy">
+    <div class="article-kicker"><span>{category?.name}</span><span class="kicker-separator">/</span><span>संपादकीय स्वीकृत</span></div>
+    <h3>{data.title}</h3>
+    <p class="article-dek">{data.description}</p>
+    <div class="article-meta"><span>{data.author}</span><span class="meta-dot"></span><time datetime={data.publishedAt?.toISOString()}>{data.publishedAt && formatHindiDate(data.publishedAt)}</time></div>
+  </div>
+</a>

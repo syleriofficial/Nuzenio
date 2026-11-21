@@ -1,0 +1,13 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCategory } from "../data/editorial";
+interface Props { entry: CollectionEntry<"stories">; }
+const { entry } = Astro.props;
+const category = getCategory(entry.data.category);
+---
+<a class="web-story-card" href={"/web-stories/" + entry.id + "/"} aria-label={entry.data.title}>
+  <img src={entry.data.image} alt={entry.data.imageAlt} loading="lazy" decoding="async" />
+  <span class="story-overlay"></span>
+  <span class="story-topline"><span class="story-icon">▣</span> WEB STORY</span>
+  <span class="story-card-bottom"><span class="story-category">{category?.name}</span><strong>{entry.data.title}</strong><span class="story-read">स्टोरी देखें <span aria-hidden="true">↗</span></span></span>
+</a>
